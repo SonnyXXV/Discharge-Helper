@@ -1,3 +1,4 @@
 streamlit>=1.65
 pandas
 streamlit-sortables==0.3.1
+python-docx

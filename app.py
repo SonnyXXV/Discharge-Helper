@@ -3,8 +3,22 @@ import hashlib
 import json
 from pathlib import Path
 
+import io
+
 import pandas as pd
 import streamlit as st
+
+# Word files for the operation description, primary evaluation and decursus:
+#   py -3.13 -m pip install python-docx
+try:
+    from docx import Document
+    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+    from docx.shared import Cm, Pt
+    HAS_DOCX = True
+except ImportError:
+    HAS_DOCX = False
 import streamlit.components.v1 as components
 
 # Only the "old panel" option uses this add-on (it is already installed on your computer):
@@ -5379,6 +5393,160 @@ def sexed(text, sex):
     return text
 
 
+# ----- Word (.docx) versions, formatted like the department's documents -----
+
+DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+HDR_KEYS = ["hdr-patient", "hdr-history", "hdr-dept", "hdr-surgeons", "hdr-nurse", "hdr-date-op", "hdr-date-pe"]
+
+
+def _docx_new():
+    doc = Document()
+    section = doc.sections[0]
+    section.page_width, section.page_height = Cm(21), Cm(29.7)
+    section.left_margin, section.right_margin = Cm(2.5), Cm(1.5)
+    section.top_margin, section.bottom_margin = Cm(2), Cm(2)
+    normal = doc.styles["Normal"]
+    normal.font.name, normal.font.size = "Times New Roman", Pt(12)
+    normal.element.rPr.rFonts.set(qn("w:eastAsia"), "Times New Roman")
+    normal.paragraph_format.space_after = Pt(0)
+    return doc
+
+
+def _docx_bytes(doc):
+    buffer = io.BytesIO()
+    doc.save(buffer)
+    return buffer.getvalue()
+
+
+def _docx_line(doc, segments, indent=Cm(0.6), space_after=Pt(4)):
+    """One line made of (label, value) pairs: the label bold and underlined, the value plain."""
+    p = doc.add_paragraph()
+    p.paragraph_format.left_indent, p.paragraph_format.space_after = indent, space_after
+    for number, (label, value) in enumerate(segments):
+        if number:
+            p.add_run("  ")
+        run = p.add_run(label)
+        run.bold = run.underline = True
+        if value:
+            p.add_run(" " + value)
+    return p
+
+
+def _docx_rule(doc):
+    """A horizontal line (bottom border of an empty paragraph)."""
+    p = doc.add_paragraph()
+    border = OxmlElement("w:pBdr")
+    bottom = OxmlElement("w:bottom")
+    for key, value in (("w:val", "single"), ("w:sz", "18"), ("w:space", "1"), ("w:color", "000000")):
+        bottom.set(qn(key), value)
+    border.append(bottom)
+    p._p.get_or_add_pPr().append(border)
+    p.paragraph_format.space_after = Pt(10)
+
+
+def _docx_text_block(doc, text, justify=False, indent=None):
+    for line in text.split("\n"):
+        p = doc.add_paragraph(line)
+        if justify:
+            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        if indent is not None:
+            p.paragraph_format.left_indent = indent
+
+
+def operation_docx(h, name, paragraphs):
+    """Like the department's 'Operācijas apraksts' file: header table, underlined title, justified text."""
+    doc = _docx_new()
+    rows = [("Nodaļa:", h.get("dept", "")), ("Pacients:", h.get("patient", "")), ("Vēstures nr:", h.get("history", "")),
+            ("Operācija:", name), ("Datums:", h.get("date", "")), ("", ""),
+            ("Ķirurgs/ Asistents:", h.get("surgeons", "")), ("Operācijas māsa:", h.get("nurse", ""))]
+    table = doc.add_table(rows=len(rows), cols=2)
+    table.autofit = False
+    table.columns[0].width, table.columns[1].width = Cm(4.5), Cm(12)
+    for row, (label, value) in zip(table.rows, rows):
+        row.cells[0].width, row.cells[1].width = Cm(4.5), Cm(12)
+        row.cells[0].paragraphs[0].add_run(label)
+        row.cells[1].paragraphs[0].add_run(value)
+    for _ in range(3):
+        doc.add_paragraph()
+    title = doc.add_paragraph()
+    title.add_run("Operācijas apraksts:").underline = True
+    for text in paragraphs:
+        p = doc.add_paragraph(text)
+        if text.strip():
+            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.first_line_indent = Cm(1.25)
+            p.paragraph_format.line_spacing = 1.5
+    return _docx_bytes(doc)
+
+
+def decursus_docx(doc, decursus):
+    for line in decursus.split("\n"):
+        doc.add_paragraph(line)
+
+
+def evaluation_docx(h, reason, history, objective, diagnosis, conclusion, decursus):
+    """Like the department's 'Urologa apskate': title, date and patient, a line, bold underlined labels;
+    the decursus follows on a new page."""
+    doc = _docx_new()
+    title = doc.add_paragraph()
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = title.add_run("Urologa apskate")
+    run.bold, run.font.size = True, Pt(14)
+    _docx_line(doc, [("Datums", h.get("date", ""))])
+    _docx_line(doc, [("Pacients", h.get("patient", ""))], indent=Cm(0))
+    _docx_rule(doc)
+    _docx_text_block(doc, reason, justify=True, indent=Cm(0.6))
+    doc.add_paragraph()
+    for heading, lines in (("Citas pārciestas slimības:", history), ("Objektīvais stāvoklis:", objective)):
+        p = doc.add_paragraph()
+        p.paragraph_format.left_indent, p.paragraph_format.space_after = Cm(0.6), Pt(6)
+        p.paragraph_format.space_before = Pt(6)
+        run = p.add_run(heading)
+        run.bold, run.font.size = True, Pt(14)
+        for segments in lines:
+            _docx_line(doc, segments)
+    doc.add_paragraph()
+    p = doc.add_paragraph()
+    p.paragraph_format.left_indent, p.paragraph_format.space_after = Cm(0.6), Pt(8)
+    run = p.add_run("Diagnoze, Slēdziens:")
+    run.bold, run.underline, run.font.size = True, True, Pt(13)
+    p.add_run(" " + diagnosis).bold = True
+    _docx_text_block(doc, conclusion, justify=True, indent=Cm(0.6))
+    if decursus:
+        doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+        decursus_docx(doc, decursus)
+    return _docx_bytes(doc)
+
+
+def render_doc_header(kind):
+    """Header fields that only go into the Word file. kind: "op" or "pe"."""
+    st.session_state.setdefault("hdr-dept", "4.Uroloģijas")
+    st.session_state.setdefault(f"hdr-date-{kind}", datetime.date.today())
+    st.session_state.setdefault("hdr-surgeons", st.session_state.get("pe-surgeons", ""))
+    st.session_state.setdefault("hdr-nurse", st.session_state.get("pe-nurse", ""))
+    with st.expander("Word file header (optional)", expanded=False):
+        st.caption("Used only in the Word file. On the online version leave the patient's name and history number "
+                   "empty and type them in Word.")
+        c1, c2 = st.columns(2)
+        h = {"patient": c1.text_input("Pacients", key="hdr-patient").strip()}
+        day = c2.date_input("Datums", format="DD.MM.YYYY", key=f"hdr-date-{kind}")
+        h["date"] = fmt_date(day) + ("." if kind == "op" else "") if day else ""
+        if kind == "op":
+            h["history"] = c1.text_input("Vēstures nr", key="hdr-history").strip()
+            h["dept"] = c2.text_input("Nodaļa", key="hdr-dept").strip()
+            h["surgeons"] = c1.text_input("Ķirurgs/ Asistents", key="hdr-surgeons").strip()
+            h["nurse"] = c2.text_input("Operācijas māsa", key="hdr-nurse").strip()
+    return h
+
+
+def word_button(label, data_maker, file_name, key):
+    if not HAS_DOCX:
+        st.info("To download a Word file, install python-docx once: py -3.13 -m pip install python-docx")
+        return
+    st.download_button(label, data=data_maker(), file_name=file_name, mime=DOCX_MIME, key=key,
+                       icon=":material/download:")
+
+
 def render_primary_evaluation(sex):
     f = SEX_FORMS[sex]
     st.subheader("Urologist's primary evaluation")
@@ -5444,6 +5612,7 @@ def render_primary_evaluation(sex):
                                     placeholder="e.g. Ievietots Foley 18 CH urīnpūšļa ilgkatetrs.", key="pe-actions")
             if actions.strip():
                 plan += "\n" + actions.strip().rstrip(".") + "."
+    header = render_doc_header("pe")
     add_decursus = st.checkbox("Add decursus (daily notes) to this evaluation", key="pe-add-dec")
     decursus = render_decursus_cards(sex) if add_decursus else ""
 
@@ -5462,29 +5631,33 @@ def render_primary_evaluation(sex):
             reason += " " + sexed(course.strip(), sex)
             reason = reason if reason.endswith(".") else reason + "."
         reason += f" {f['stacionets'].capitalize()} 4. uroloģijas nodaļā."
-    lines = [reason, "",
-             "Citas pārciestas slimības:",
-             f"Citas slimības: {other.strip() or 'Noliedz'}",
-             f"TBC  {tbc}",
-             f"Hepatīti  {hep}",
-             f"Medikamentu nepanesība  {'Noliedz' if allergy == 'Noliedz' else (allergy_text.strip() or 'Ir')}",
-             f"Pārciestas operācijas: {operations.strip() or 'Nav'}",
-             "",
-             "Objektīvais stāvoklis:",
-             f"Vispārējais stāvoklis  {general}",
-             f"Samaņa:  {conscious}",
-             f"Mēle:  {tongue}",
-             f"Tūskas:  {edema}",
-             f"Perifērie limfmezgli  {nodes}",
-             f"Elpošana {rr} x/min.  {breath}",
-             f"Sirdsdarbība {hr} x/min. {rhythm};  TA {bp.strip()} mm/Hg.",
-             f"Vēders:  {abdomen.strip()}",
-             f"Peritoneja kairinājuma simptomi  {peritoneal}",
-             f"Nieres:  Nepalpējas.  Apklauvējot: {kidneys.lower() if kidneys == 'Nesāpīgas' else kidneys}",
-             f"Urīnpūslis:  {bladder}.",
-             f"Ārējie dzimumorgāni  {genitals.strip()}",
-             "",
-             f"Diagnoze, Slēdziens: {diagnosis.strip().rstrip('.')}."]
+    # Each line is a list of (label, value) pairs: plain text here, bold underlined labels in the Word file
+    history = [
+        [("Citas slimības:", other.strip() or "Noliedz")],
+        [("TBC", tbc)],
+        [("Hepatīti", hep)],
+        [("Medikamentu nepanesība", "Noliedz" if allergy == "Noliedz" else (allergy_text.strip() or "Ir"))],
+        [("Pārciestas operācijas:", operations.strip() or "Nav")],
+    ]
+    objective = [
+        [("Vispārējais stāvoklis", general)],
+        [("Samaņa:", conscious)],
+        [("Mēle:", tongue)],
+        [("Tūskas:", edema)],
+        [("Perifērie limfmezgli", nodes)],
+        [("Elpošana", f"{rr} x/min. {breath}")],
+        [("Sirdsdarbība", f"{hr} x/min. {rhythm}; TA {bp.strip()} mm/Hg.")],
+        [("Vēders:", abdomen.strip())],
+        [("Peritoneja kairinājuma simptomi", peritoneal)],
+        [("Nieres:", "Nepalpējas."), ("Apklauvējot:", kidneys.lower() if kidneys == "Nesāpīgas" else kidneys)],
+        [("Urīnpūslis:", f"{bladder}.")],
+        [("Ārējie dzimumorgāni", genitals.strip())],
+    ]
+    as_text = lambda line: "  ".join(f"{label}  {value}" for label, value in line)
+    dx_line = diagnosis.strip().rstrip(".") + "."
+    lines = ([reason, "", "Citas pārciestas slimības:"] + [as_text(l) for l in history]
+             + ["", "Objektīvais stāvoklis:"] + [as_text(l) for l in objective]
+             + ["", f"Diagnoze, Slēdziens: {dx_line}"])
     if operation.strip():
         op = operation.strip()
         dx = diagnosis.strip().rstrip(".")
@@ -5502,14 +5675,18 @@ def render_primary_evaluation(sex):
         if nurse.strip():
             parts.append(f"Op. māsa: {nurse.strip()}.")
         parts.append("Skat. op. aprakstu.")
-        lines += ["", " ".join(parts)]
+        conclusion = " ".join(parts)
     else:
-        lines += ["", plan.strip()]
+        conclusion = plan.strip()
+    lines += ["", conclusion]
     text = "\n".join(lines)
     if decursus:
         text += "\n\n" + decursus
     st.divider()
     st.text_area("Primary evaluation", text, height=650, key=f"pe-out-{hash(text)}")
+    word_button("Word file (Urologa apskate" + (" + decursus" if decursus else "") + ")",
+                lambda: evaluation_docx(header, reason, history, objective, dx_line, conclusion, decursus),
+                f"Urologa_apskate_{header.get('date', '').replace('.', '-') or 'bez_datuma'}.docx", "pe-word")
 
 
 # ----- decursus: one card per day, everything visible at once -----
@@ -5649,6 +5826,12 @@ def render_decursus(sex):
         text = render_decursus_cards(sex)
     with right:
         st.text_area("Decursus text", text, height=900, key=f"dec-out-{hash(text)}")
+        if text:
+            def make():
+                doc = _docx_new()
+                decursus_docx(doc, text)
+                return _docx_bytes(doc)
+            word_button("Word file (decursus)", make, "Decursus.docx", "dec-word")
 
 
 # ---------------------------------------------------------------
@@ -5980,8 +6163,12 @@ def render_operation(sex):
         st.info("Choose where the tumour is.")
         return
     output = (f"Operācija: {name}\n\n" if name else "") + "Operācijas apraksts:\n\n" + "\n".join(text)
+    header = render_doc_header("op")
     st.divider()
     st.text_area("Operācijas apraksts", output, height=420, key=f"op-out-{hash(output)}")
+    word_button("Word file (Operācijas apraksts)", lambda: operation_docx(header, name, text),
+                f"Operacijas_apraksts_{header.get('date', '').strip('.').replace('.', '-') or 'bez_datuma'}.docx",
+                "op-word")
 
 
 # ---------------------------------------------------------------
@@ -5990,7 +6177,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-21-n13 · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-21-word · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
@@ -6032,6 +6219,11 @@ with col_woman:
 with col_man:
     st.button("♂  Man", key="sex_man", on_click=set_sex, args=("Man",),
               type="primary" if sex == "Man" else "secondary", width="stretch")
+
+# Keep the Word header fields (and the surgeons) when you switch between pages
+for _key in HDR_KEYS + ["pe-surgeons", "pe-nurse"]:
+    if _key in st.session_state:
+        st.session_state[_key] = st.session_state[_key]
 
 # Primary evaluation and decursus have their own pages
 if doc_type != "Discharge":
