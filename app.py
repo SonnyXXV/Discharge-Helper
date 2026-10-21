@@ -24,6 +24,7 @@ except ImportError:
 DIAGNOSES = {
     "N10": "Acute tubulo-interstitial nephritis (acute pyelonephritis)",
     "N13.3": "Other and unspecified hydronephrosis",
+    "N13.0": "Hydronephrosis with ureteropelvic junction obstruction (PUJ stricture)",
     "N20": "Calculus of kidney and ureter (kidney stone disease)",
     "N23": "Unspecified renal colic",
     "N30.0": "Acute cystitis",
@@ -670,6 +671,24 @@ MODIFIERS = {
     "Sauna and pool": {"type": "single", "default_index": 1, "options": ["Same as the rest period", "3 months"],
                        "show_if": {"Operation": "Radical prostatectomy"}},
     # ----- N43 hydrocele (hydrocele plasty in 4. Urology) -----
+    "PUJ side": {"type": "single", "options": ["Right", "Left"]},
+    "PUJ cause": {"type": "single", "default_index": 0,
+                  "options": ["Not specified", "Intrinsic (congenital) stenosis", "Crossing lower-pole vessel",
+                              "Secondary (after stones or surgery)"]},
+    "Split renal function (%)": {"type": "number", "min": 0.0, "max": 100.0, "step": 1.0, "optional": True},
+    "Pyeloplasty approach": {"type": "single", "options": ["Laparoscopic", "Robot-assisted", "Open"]},
+    "Pyeloplasty technique": {"type": "single", "default_index": 0,
+                              "options": ["Dismembered (Anderson–Hynes)", "Non-dismembered (Y-V plasty)"]},
+    "Vessel transposition": {"type": "toggle", "default": True, "show_if": {"PUJ cause": "Crossing lower-pole vessel"}},
+    "Pyeloplasty stent": {"type": "single", "default_index": 0, "options": ["DJ stent", "No stent"]},
+    "Stent removal plan": {"type": "single", "default_index": 0,
+                           "options": ["In 4–6 weeks", "On a specific date"], "show_if": {"Pyeloplasty stent": "DJ stent"}},
+    "Stent removal date (N13)": {"type": "date", "show_if": {"Stent removal plan": "On a specific date"}},
+    "Pyeloplasty drain": {"type": "single", "default_index": 2,
+                          "options": ["No drain", "Removed on day 1", "Removed on day 2", "Removed on day 3",
+                                      "Removed on day 4", "Removed on day 5", "Discharged with drain"]},
+    "PUJ histology result": {"type": "text", "placeholder": "in Latvian, e.g. hroniska iekaisuma pazīmes, fibroze",
+                             "show_if": {"Histology": "Known"}},
     "Hydrocele side": {"type": "single", "options": ["Right", "Left"]},
     "Scrotal ultrasound before surgery": {"type": "toggle", "default": True},
     "Hydrocele technique": {"type": "single", "options": ["Eversion (Winkelmann)", "Excision (Bergmann)",
@@ -862,6 +881,19 @@ DIAGNOSIS_MODIFIERS = {
         ("3. Course", ["Postoperative course", "Postoperative complications", "Hydrocele drain", "Drain removal date",
                        "Scrotal hematoma"]),
         ("4. Recommendations", ["Activity restriction", "Skin sutures", "Urology visit"]),
+    ],
+    "N13.0": [
+        ("1. Admission", ["Admission", "PUJ side", "PUJ cause", "Split renal function (%)"]),
+        ("2. Operation",
+         ["Pyeloplasty approach", "Pyeloplasty technique", "Vessel transposition", "Procedure date",
+          "Intraoperative course", "Intraoperative complications", "Pyeloplasty stent"]),
+        ("3. Course and histology",
+         ["Postoperative course", "Postoperative complications", "Pyeloplasty drain", "Catheter removal",
+          "Catheter removed on", "Planned catheter removal (optional)", "Voiding after catheter removal",
+          "Histology", "PUJ histology result"]),
+        ("4. Recommendations",
+         ["Discharge paper", "Activity restriction", "Skin sutures", "Stent removal plan", "Stent removal date (N13)",
+          "Urology visit"]),
     ],
 }
 
@@ -1644,6 +1676,15 @@ TADALAFIL_QUARTER_BLOCK = {
             "rehabilitation improves spontaneous erections is limited. Not with nitrates.",
 }
 BLOCKS["C61"] += [AMOXICLAV_10_BLOCK, TADALAFIL_QUARTER_BLOCK]
+TAMSULOSIN_STENT_BLOCK = {
+    "id": "tamsulosin-stent", "group": G_ALPHA, "title": "Tamsulosin 0.4 mg once daily until stent removal",
+    "text": "Caps. Tamsulosini 0,4 mg 1 reizi dienā līdz DJ stenta izņemšanai (stenta radīto simptomu mazināšanai).",
+    "note": "Alpha-blockers reduce DJ stent discomfort (urgency, flank pain on voiding); EAU urolithiasis guideline "
+            "supports them for stent-related symptoms. Warn about orthostatic dizziness.",
+}
+BLOCKS["N13.0"] = [_c61_blocks["paracetamol"], _c61_blocks["ultracod"], TAMSULOSIN_STENT_BLOCK, SOLIFENACIN_BLOCK,
+                   FRAXIPARINE_BLOCK, FRAXIPARINE_04_BLOCK, _c61_blocks["macrogol"]]
+BLOCK_WARNINGS["N13.0"] = BLOCK_WARNINGS["N10"]
 BLOCK_WARNINGS["N10"].append({"ids": ["tadalafil", "tadalafil-quarter"], "text": "Two tadalafil regimens are chosen: keep one."})
 BLOCK_WARNINGS["N10"] += [
     {"ids": ["fraxiparine", "fraxiparine-04"], "text": "Two Fraxiparine doses are chosen (0,3 ml and 0,4 ml): keep one."},
@@ -1655,6 +1696,14 @@ BLOCK_WARNINGS["N10"] += [
 # match AND every modifier listed under "when" has that value.
 # Each template has: clinical_diagnosis (optional), epicrisis, recommendations.
 TEMPLATES = [
+    {
+        # PUJ stricture, pyeloplasty in 4. Urology. Written by n13_parts.
+        "id": "N13.0-4",
+        "diagnosis": "N13.0",
+        "department": "4",
+        "when": {},
+        "builder": "n13",
+    },
     {
         # Hydrocele plasty in 4. Urology. Written by n43_parts.
         "id": "N43-4",
@@ -4146,6 +4195,139 @@ CHECKS["N43"] = n43_checks
 
 
 # ---------------------------------------------------------------
+# 2o. PUJ STRICTURE (N13.0): pyeloplasty in 4. Urology
+# ---------------------------------------------------------------
+# There is no adult EAU guideline on PUJ obstruction (EAU covers it only in paediatric urology),
+# so the follow-up follows common practice: DJ stent out after 4–6 weeks, ultrasound after that,
+# diuretic renography (MAG3) about 3–6 months after surgery.
+
+PUJ_CAUSE_DX = {"Intrinsic (congenital) stenosis": "Iedzimta ģenēze.",
+                "Crossing lower-pole vessel": "Aberrants nieres apakšpola asinsvads.",
+                "Secondary (after stones or surgery)": "Sekundāra ģenēze."}
+PYELO_APPROACH = {"Laparoscopic": ("laparoskopiska", "laparoskopiskas"),
+                  "Robot-assisted": ("robotasistēta", "robotasistētas"),
+                  "Open": ("atvērta", "atvērtas")}
+PYELO_TECHNIQUE = {"Dismembered (Anderson–Hynes)": "pēc Anderson–Hynes", "Non-dismembered (Y-V plasty)": "Y-V plastika"}
+
+
+def n13_parts(sex, v, blocks=()):
+    f = SEX_FORMS[sex]
+    right = v["PUJ side"] == "Right"
+    side_cap, side = ("Labās", "labās") if right else ("Kreisās", "kreisās")
+    adj, adj_gen = PYELO_APPROACH[v["Pyeloplasty approach"]]
+    technique = PYELO_TECHNIQUE[v["Pyeloplasty technique"]]
+    day = fmt_date(v["Procedure date"])
+    admission = "akūtā kārtā" if v["Admission"] == "Acute" else "plānveida kārtā"
+    intraop, postop = c61_courses(v)
+    stent = v["Pyeloplasty stent"] == "DJ stent"
+    vessel = v.get("PUJ cause") == "Crossing lower-pole vessel" and v.get("Vessel transposition")
+    split = v.get("Split renal function (%)")
+
+    # Clinical diagnosis
+    diagnosis = f"{side_cap} puses pieloureterālā segmenta striktūra, hidronefroze."
+    if v.get("PUJ cause") in PUJ_CAUSE_DX:
+        diagnosis += " " + PUJ_CAUSE_DX[v["PUJ cause"]]
+    extras = (["aberrantā asinsvada transpozīciju"] if vessel else []) + (["DJ stenta ievietošanu"] if stent else [])
+    diagnosis += (f"\nSt. pēc {side} puses {adj_gen} pieloplastikas ({technique})"
+                  + (" ar " + lv_list(extras) if extras else "") + f" ({day}).")
+
+    # Epicrisis
+    reason = f"iepriekš diagnosticētu {side} puses pieloureterālā segmenta striktūru ar hidronefrozi"
+    if split not in (None, ""):
+        reason += f" ({side} nieres relatīvā funkcija {split:g} %)"
+    drain = v.get("Pyeloplasty drain") or "No drain"
+    course = [f"Pēcoperācijas periods {postop}."]
+    if drain.startswith("Removed on day"):
+        course.append(f"Drenu evakuē {drain.split()[-1]}. pēcoperācijas dienā.")
+    elif drain == "Discharged with drain":
+        course.append("Izrakstīšanas brīdī drena saglabāta.")
+    course.append(c61_catheter_sentence(f, v))
+    if v["Histology"] == "Pending":
+        histology = "Histoloģiskās izmeklēšanas rezultāts izrakstīšanas brīdī vēl nav zināms."
+    else:
+        histology = f"Histoloģiskās izmeklēšanas rezultāts: {v['PUJ histology result'].strip().rstrip('.')}."
+    epicrisis = "\n".join([
+        f"{f['Pacients']} {f['stacionets']} P. Stradiņa KUS 4. uroloģijas nodaļā {admission} operatīvai ārstēšanai "
+        f"sakarā ar {reason}. {f['Pacients']} tiek {f['gatavots']} operatīvai terapijai.",
+        f"{day} vispārējā anestēzijā veikta {side} puses {adj} pieloplastika ({technique})"
+        + (" ar " + lv_list(extras) if extras else "") + f". Operācija noritēja {intraop}.",
+        " ".join(course),
+        f"{histology} Uzlabojoties vispārējam stāvoklim, {f['pacients']} {f['izrakstits']} turpmākai aprūpei "
+        "ģimenes ārsta uzraudzībā. Sniegtas rekomendācijas.",
+    ])
+
+    # Recommendations
+    recs = []
+    if v["Discharge paper"] == "Temporary":
+        recs.append(TEMPORARY_PAPER_TEXT)
+    recs += [
+        "Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā.",
+        "Diēta: vispusīga. Lietot šķidrumu 1,5–2,0 L diennaktī, ja nav medicīnisku kontrindikāciju.",
+        f"Režīms: saudzējošs {WEEKS_TEXT[v['Activity restriction']]} no operācijas dienas – necelt smagumus, "
+        "izvairīties no pārmērīgas fiziskas slodzes, pirts un baseina apmeklējuma.",
+    ]
+    if stent:
+        when = (fmt_date(v["Stent removal date (N13)"]) if v.get("Stent removal plan") == "On a specific date"
+                else "4–6 nedēļas pēc operācijas")
+        recs += [
+            f"DJ stenta izņemšana (cistoskopiski) plānota {when}; neatlikt – ilgstoši atstāts stents var inkrustēties "
+            "un izraisīt infekciju.",
+            "Ar DJ stentu iespējama bieža un neatliekama urinācija, diskomforts vai sāpes sānos urinējot un neliels "
+            "asiņu piejaukums urīnā – šīs sūdzības nav bīstamas. Regulāri iztukšot urīnpūsli, nenoturēt urīnu ilgstoši.",
+        ]
+    if v["Catheter removal"] == "Discharged with catheter":
+        if v.get("Planned catheter removal (optional)"):
+            recs.append("Kopt urīnpūšļa ilgkatetru; " + CATHETER_CARE_LINES[1][0].lower() + CATHETER_CARE_LINES[1][1:])
+            recs.append(f"Katetra evakuācija plānota {fmt_date(v['Planned catheter removal (optional)'])}.")
+        else:
+            recs += CATHETER_CARE_LINES
+    if drain == "Discharged with drain":
+        recs.append("Drenas evakuācija pēc ārstējošā urologa norādījumiem; sekot izdalījumu daudzumam.")
+    recs.append("Ambulatori turpināt pēcoperācijas brūču apdari, šuvju vietas apstrādājot ar Betadine 100 mg/ml vai "
+                "brilijantzaļo šķīdumu, pārsēja maiņa pēc nepieciešamības.")
+    if v.get("Skin sutures") in WOUND_SUTURE_TEXT:
+        recs.append(WOUND_SUTURE_TEXT[v["Skin sutures"]])
+    if blocks:
+        recs.append("Terapijā lietot:")
+        recs += ["• " + b for b in blocks]
+    visit = f"Vizīte pie urologa ambulatori: {WEEKS_TEXT[v['Urology visit']]} pēc operācijas"
+    if v["Histology"] == "Pending":
+        visit += ", lai izvērtētu histoloģisko atbildi"
+    recs.append(visit + ".")
+    recs += tests_lines(v, "plain", after_op=True)  # e.g. ultrasound after stent removal, diuretic renography
+    recs.append("Ja paaugstinās ķermeņa temperatūra, parādās drebuļi, stipras sāpes sānos, nespēja urinēt, izteikta "
+                "hematūrija vai šķidruma tecēšana no brūces, nekavējoties vērsties NMC.")
+    return {"clinical_diagnosis": diagnosis, "epicrisis": epicrisis, "recommendations": "\n".join(recs)}
+
+
+def n13_checks(v):
+    blockers, cautions = [], []
+    if v.get("Voiding after catheter removal") == "Urinary retention":
+        blockers.append("Urinary retention after catheter removal.")
+    if v.get("Histology") == "Known" and blank(v.get("PUJ histology result")):
+        blockers.append("Type the histology result.")
+    if v.get("Pyeloplasty stent") == "DJ stent" and v.get("Stent removal plan") != "On a specific date":
+        cautions.append("A DJ stent stays in: if possible give a concrete removal date, so the stent is not forgotten.")
+    if v.get("Pyeloplasty drain") == "Discharged with drain":
+        cautions.append("Discharged with a drain: high output can mean an anastomotic urine leak – check before discharge.")
+    if v.get("Histology") == "Pending" and v.get("Discharge paper") == "Final":
+        cautions.append("Histology is still pending, but the discharge paper is marked as final.")
+    if v.get("Histology") == "Known" and v.get("Discharge paper") == "Temporary":
+        cautions.append("Histology is already known, but the discharge paper is marked as temporary.")
+    split = v.get("Split renal function (%)")
+    if split not in (None, "") and split < 15:
+        cautions.append("Split renal function below 15 %: recovery after pyeloplasty is less likely; make sure "
+                        "nephrectomy was considered and the follow-up renogram is planned.")
+    if "With complications" in (v.get("Intraoperative course"), v.get("Postoperative course")):
+        cautions.append("Complications are recorded: check that the recommendations cover them.")
+    return blockers, cautions
+
+
+BUILDERS["n13"] = n13_parts
+CHECKS["N13.0"] = n13_checks
+
+
+# ---------------------------------------------------------------
 # 2m. FOLLOW-UP TESTS: catalogue, guideline-based suggestions, text
 # ---------------------------------------------------------------
 # Nothing here goes into a text by default. The doctor ticks tests in the
@@ -4176,6 +4358,7 @@ FOLLOWUP_TESTS = {  # id -> group, English name in the app, Latvian text in the 
     "us_kb": {"group": "Imaging", "title": "Kidney and bladder ultrasound", "lv": "nieru un urīnpūšļa USS"},
     "us_k": {"group": "Imaging", "title": "Kidney ultrasound", "lv": "nieru USS"},
     "us_scrotum": {"group": "Imaging", "title": "Scrotal ultrasound", "lv": "sēklinieku maisiņa USS"},
+    "renogram": {"group": "Imaging", "title": "Diuretic renography (MAG3)", "lv": "diurētiskā renoscintigrāfija (MAG3)"},
     "kub": {"group": "Imaging", "title": "Plain X-ray KUB", "lv": "vēdera dobuma pārskata rentgenogramma (KUB)"},
     "ncct": {"group": "Imaging", "title": "Non-contrast low-dose CT (stones)",
              "lv": "nekontrasta zemas devas CT vēdera dobumam un mazajam iegurnim"},
@@ -4234,6 +4417,7 @@ TIMINGS = {
     "stent": ("Before DJ stent removal", "pirms DJ stenta izņemšanas", None),
     "visit": ("Before the urology visit", "pirms vizītes pie urologa", None),
     "at_visit": ("At the urology visit", "urologa vizītes laikā", None),
+    "after_stent": ("4–6 weeks after stent removal", "4–6 nedēļas pēc DJ stenta izņemšanas", None),
     "3m": ("In 3 months", "pēc 3 mēnešiem", "3 mēnešus pēc operācijas"),
     "6m": ("In 6 months", "pēc 6 mēnešiem", "6 mēnešus pēc operācijas"),
     "12m": ("In 12 months", "pēc 12 mēnešiem", "12 mēnešus pēc operācijas"),
@@ -4668,6 +4852,30 @@ def n43_tests(v):
 
 
 TEST_ADVISORS["N43"] = n43_tests
+
+
+def n13_tests(v):
+    out = []
+    stent = v.get("Pyeloplasty stent") == "DJ stent"
+    out.append(_s("us_k", "rec", "after_stent" if stent else "4-6w",
+                  "Common practice after pyeloplasty: ultrasound a few weeks after the stent is out, to check the "
+                  "hydronephrosis is not getting worse (no adult EAU guideline on PUJ obstruction)."))
+    out.append(_s("renogram", "rec", "6m", "Diuretic renography 3–6 months after surgery is the usual test of success "
+                                           "(better drainage, stable or better split function)."))
+    split = v.get("Split renal function (%)")
+    out.append(_s("creat", "rec" if (split not in (None, "") and split < 40) else "consider", "visit",
+                  "Renal function after surgery on an obstructed kidney; especially with reduced split function."))
+    if stent:
+        out.append(_s("uc", "consider", "stent", "Before cystoscopic stent removal if there are urinary symptoms or a "
+                                                 "recent infection (EAU: treat bacteriuria before procedures that "
+                                                 "breach the mucosa)."))
+    out.append(_s("us_k", "consider", "later", "Later yearly ultrasound for 1–2 years: late failures do happen.",
+                  text="nieru USS reizi gadā 1–2 gadus"))
+    out.append(_s("ua", "avoid", "visit", NO_ROUTINE_UA))
+    return out
+
+
+TEST_ADVISORS["N13.0"] = n13_tests
 
 
 # ----- tables the doctor fills in (st.data_editor) -----
@@ -5782,7 +5990,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-20-lap · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-21-n13 · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
