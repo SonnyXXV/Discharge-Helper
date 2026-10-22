@@ -5358,6 +5358,9 @@ def render_tests(code, v):
 PE_PRESETS = {
     "TURP – complicated BPH": ("Planned", "TURP", "komplicētu LPH", "Komplicēta LPH", "", ""),
     "TURU – bladder tumour": ("Planned", "TURU", "urīnpūšļa jaunveidojumu", "Urīnpūšļa jaunveidojums", "", ""),
+    "Re-TURU – bladder cancer after TURU": ("Planned", "atkārtota TURU (re-TURU)",
+                                            "urīnpūšļa uroteliālo karcinomu, st. pēc TURU",
+                                            "Urīnpūšļa CA, st. pēc TURU", "", ""),
     "Circumcision – phimosis": ("Planned", "cirkumcīzija", "fimozi", "Fimoze", "", ""),
     "Hydrocele plasty": ("Planned", "{adj} puses hidrocēles plastika", "{adj} puses hidrocēli",
                          "{Adj} puses hidrocēle", "", ""),
@@ -5381,6 +5384,10 @@ PE_PRESETS = {
         "Izmeklēts NMC. Veic CT ar i/v kontrastvielu."),
     "Acute admission, other (no operation)": ("Acute", "", "", "", "", "Izmeklēts NMC."),
     "Other (type it)": ("Planned", "", "", "", "", ""),
+}
+PE_INDICATIONS = {  # default indication text for these presets (EAU: second resection within 2–6 weeks)
+    "Re-TURU – bladder cancer after TURU": "atkārtota rezekcija pēc TURU (pT1 audzējs / nepilnīga rezekcija / "
+                                           "paraugā nav detruzora muskuļa)",
 }
 PE_GENITALS = {"Hydrocele plasty": "{adj} puses hidrocēle"}  # 'Ārējie dzimumorgāni' for these presets
 PE_SIDE_WORDS = {"Right": {"adj": "labās", "Adj": "Labās", "lat": "dxt."},
@@ -5633,7 +5640,8 @@ def render_primary_evaluation(sex):
         genitals = c3.text_input("Ārējie dzimumorgāni", genitals_d, key=f"pe-genitals-{tag}")
     with st.expander("4. Conclusion and plan", expanded=True):
         if operation.strip():
-            indication = st.text_input("Indication (empty = the diagnosis)", key="pe-indication",
+            indication = st.text_input("Indication (empty = the diagnosis)", PE_INDICATIONS.get(preset, ""),
+                                       key=f"pe-indication-{tag}",
                                        placeholder="e.g. ekskrēcijas traucējumi; operabls prostatas CA")
             consent = st.checkbox(f"{f['Pacients']} operācijai piekrīt", True, key="pe-consent")
             no_contra = st.checkbox("Kontrindikāciju nav", True, key="pe-contra")
@@ -5788,9 +5796,30 @@ def _dec_remove_day():
     st.session_state["dd-count"] = max(1, st.session_state.get("dd-count", 1) - 1)
 
 
+DEC_PRESETS = {  # typical findings filled into every day card (you can still change each day)
+    "(none)": {},
+    "TURU / re-TURU": {"cath_look": "viegli sārts", "drain_look": "(no drain)", "dressing": "(no dressing)",
+                       "abdomen": "Vēders palpatori mīksts, nesāpīgs.",
+                       "notes": "Urīnpūšļa skalošana nav nepieciešama."},
+    "TURP": {"cath_look": "viegli sārts", "drain_look": "(no drain)", "dressing": "(no dressing)",
+             "abdomen": "Vēders palpatori mīksts, nesāpīgs.", "notes": "Turpina urīnpūšļa skalošanu."},
+    "Laparoscopic operation": {"cath_look": "dzeltens", "drain_look": "serosangvinozi", "dressing": "Clean (short)",
+                               "abdomen": "Vēders palpatori mīksts, nesāpīgs. Peristaltika izklausāma.", "notes": ""},
+}
+
+
+def _dec_apply_preset():
+    values = DEC_PRESETS.get(st.session_state.get("dec-preset"), {})
+    for i in range(st.session_state.get("dd-count", 1)):
+        for field, value in values.items():
+            st.session_state[f"dd{i}-{field}"] = value
+
+
 def render_decursus_cards(sex):
     """The decursus as cards (one per day). Returns the decursus text."""
     st.session_state.setdefault("dd-count", 1)
+    st.selectbox("Typical course (fills the day cards; you can still change each day)", list(DEC_PRESETS),
+                 key="dec-preset", on_change=_dec_apply_preset)
     op_date = st.date_input("Operation date (optional, fills the day type)", value=None, format="DD.MM.YYYY",
                             key="dec-opdate")
     days = []
@@ -6314,7 +6343,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-22-returu · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-22-returu2 · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
