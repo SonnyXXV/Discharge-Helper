@@ -5441,6 +5441,21 @@ def _docx_line(doc, segments, indent=Cm(0.6), space_after=Pt(4)):
     return p
 
 
+def _docx_page_header(doc, h, skip_first_page=False):
+    """'Pacients … · Slimības vēstures nr. …' in small letters at the top right of every page."""
+    parts = [f"Pacients: {h['patient']}" if h.get("patient") else "",
+             f"Slimības vēstures nr.: {h['history']}" if h.get("history") else ""]
+    text = "   ".join(p for p in parts if p)
+    if not text:
+        return
+    section = doc.sections[0]
+    section.different_first_page_header_footer = skip_first_page  # first page: it is already in the title
+    p = section.header.paragraphs[0]
+    p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    run = p.add_run(text)
+    run.font.size = Pt(8)
+
+
 def _docx_rule(doc):
     """A horizontal line (bottom border of an empty paragraph)."""
     p = doc.add_paragraph()
@@ -5499,6 +5514,7 @@ def evaluation_docx(h, reason, history, objective, diagnosis, conclusion, decurs
     """Like the department's 'Urologa apskate': title, date and patient, a line, bold underlined labels;
     the decursus follows on a new page."""
     doc = _docx_new()
+    _docx_page_header(doc, h, skip_first_page=True)
     title = doc.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = title.add_run("Urologa apskate")
@@ -5878,10 +5894,7 @@ def render_decursus(sex):
         if text:
             def make():
                 doc = _docx_new()
-                if header.get("patient") or header.get("history"):
-                    _docx_line(doc, [("Pacients", header.get("patient", ""))], indent=Cm(0))
-                    _docx_line(doc, [("Slimības vēstures nr.", header.get("history", ""))], indent=Cm(0))
-                    _docx_rule(doc)
+                _docx_page_header(doc, header)  # name and number at the top right of every page
                 decursus_docx(doc, text)
                 return _docx_bytes(doc)
             word_button("Word file (decursus)", make, "Decursus.docx", "dec-word")
@@ -5903,7 +5916,7 @@ def render_operation(sex):
     pt_dat = "pacientei" if woman else "pacientam"
     pt_acc = "Pacienti" if woman else "Pacientu"
     st.subheader("Operācijas apraksts")
-    op = st.selectbox("Operation", ["TURP", "TURU", "Circumcision", "Cystoscopy, stent removal", "URS / FURS",
+    op = st.selectbox("Operation", ["TURP", "TURU", "Re-TURU (scar resection)", "Circumcision", "Cystoscopy, stent removal", "URS / FURS",
                                     "Epididymal tumour extirpation", "Hydrocele plasty",
                                     "Laparoscopic radical prostatectomy", "Laparoscopic nephrectomy",
                                     "Laparoscopic kidney resection",
@@ -5965,6 +5978,35 @@ def render_operation(sex):
             ]
             if instill and drug.strip():
                 text.append(f"Agrīnā pēcoperācijas periodā saņēma {drug.strip()} intravezikālu instilāciju.")
+        elif op == "Re-TURU (scar resection)":
+            st.caption("EAU NMIBC: a second resection 2–6 weeks after the first (T1, incomplete resection, no detrusor "
+                       "muscle); it must include the primary tumour site. A single early instillation is meant for the "
+                       "first TURU, not routinely for re-TURU.")
+            scope = c1.selectbox("Rezektoskops (Ch)", ["24", "26"], index=1, key="op-rt-scope")
+            where = st.multiselect("Rētas lokalizācija", list(TURU_LOCATION_LOC), default=["Right lateral wall"],
+                                   key="op-rt-where")
+            finding = c2.selectbox("Rētas atrade", ["bez redzama atlikušā audzēja", "ar atlikušiem papillāriem audiem",
+                                                    "ar aizdomīgu, sārtu gļotādu"], key="op-rt-find")
+            new = c3.text_input("Jauni veidojumi (empty = nav)", key="op-rt-new",
+                                placeholder="e.g. jumtā papillārs veidojums 5 mm")
+            separate = c1.checkbox("Rezekcijas pamatne atsevišķi", True, key="op-rt-sep")
+            fr = c2.selectbox("Katetrs (Fr)", ["18", "20", "22"], index=1, key="op-rt-fr")
+            balloon = c3.number_input("Balons (ml)", 5, 60, 20, key="op-rt-balloon")
+            ward = c1.text_input("Pārved uz", "nodaļu", key="op-rt-ward")
+            name = "Atkārtota TURU (re-TURU)"
+            place = lv_list([TURU_LOCATION_LOC[w] for w in where]) or "—"
+            mucosa = (f"Konstatēti jauni veidojumi: {new.strip().rstrip('.')}; tie rezecēti." if new.strip()
+                      else "Pārējā urīnpūšļa gļotāda bez jauniem veidojumiem.")
+            text = [
+                f"Pēc operācijas lauka tualetes, {pt_dat} atrodoties dorsālas litotomijas guļā urīnpūslī ievada "
+                f"{scope} Ch rezektoskopu. Urīnpūšļa gļotādu pārskata sistemātiski. Urīnpūšļa {place} vizualizē "
+                f"iepriekšējās rezekcijas rētu {finding}. {mucosa}",
+                "Veic rētaudu un primārā audzēja vietas rezekciju dziļumā līdz detruzora muskulim, iegūstot detruzora "
+                "muskuļa paraugu." + (" Rezekcijas pamatnes paraugu nosūta atsevišķi." if separate else "")
+                + " Rūpīga hemostāze.",
+                f"{fr} Fr 3-kanālu ilgkatetrs, balons uzpildīts līdz {balloon} ml. {pt_acc} apmierinošā stāvoklī "
+                f"pārved uz {ward.strip()}. Rezekcijas materiāls nosūtīts histoloģiskai izmeklēšanai.",
+            ]
         elif op == "Cystoscopy, stent removal":
             side = c1.radio("Puse", ["Kreisā", "Labā", "Abas"], horizontal=True, key="op-cs-side")
             findings = st.text_input("Atrade", "uretra normāla platuma, urīnpūšļa gļotāda nav izmainīta, urēteru ostijas "
@@ -6272,7 +6314,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-22-hdr · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-22-returu · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
