@@ -5404,7 +5404,8 @@ def sexed(text, sex):
 # ----- Word (.docx) versions, formatted like the department's documents -----
 
 DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-HDR_KEYS = ["hdr-patient", "hdr-history", "hdr-dept", "hdr-surgeons", "hdr-nurse", "hdr-date-op", "hdr-date-pe"]
+HDR_KEYS = ["hdr-patient", "hdr-history", "hdr-dept", "hdr-surgeons", "hdr-nurse", "hdr-anesth", "hdr-date-op",
+            "hdr-date-pe", "hdr-date-dec"]
 
 
 def _docx_new():
@@ -5467,6 +5468,8 @@ def operation_docx(h, name, paragraphs):
     rows = [("Nodaļa:", h.get("dept", "")), ("Pacients:", h.get("patient", "")), ("Vēstures nr:", h.get("history", "")),
             ("Operācija:", name), ("Datums:", h.get("date", "")), ("", ""),
             ("Ķirurgs/ Asistents:", h.get("surgeons", "")), ("Operācijas māsa:", h.get("nurse", ""))]
+    if h.get("anesth"):
+        rows.append(("Anesteziologs:", h["anesth"]))
     table = doc.add_table(rows=len(rows), cols=2)
     table.autofit = False
     table.columns[0].width, table.columns[1].width = Cm(4.5), Cm(12)
@@ -5502,6 +5505,7 @@ def evaluation_docx(h, reason, history, objective, diagnosis, conclusion, decurs
     run.bold, run.font.size = True, Pt(14)
     _docx_line(doc, [("Datums", h.get("date", ""))])
     _docx_line(doc, [("Pacients", h.get("patient", ""))], indent=Cm(0))
+    _docx_line(doc, [("Slimības vēstures nr.", h.get("history", ""))], indent=Cm(0))
     _docx_rule(doc)
     _docx_text_block(doc, reason, justify=True, indent=Cm(0.6))
     doc.add_paragraph()
@@ -5527,7 +5531,7 @@ def evaluation_docx(h, reason, history, objective, diagnosis, conclusion, decurs
 
 
 def render_doc_header(kind):
-    """Header fields that only go into the Word file. kind: "op" or "pe"."""
+    """Header fields that only go into the Word file. kind: "op", "pe" or "dec"."""
     st.session_state.setdefault("hdr-dept", "4.Uroloģijas")
     st.session_state.setdefault(f"hdr-date-{kind}", datetime.date.today())
     st.session_state.setdefault("hdr-surgeons", st.session_state.get("pe-surgeons", ""))
@@ -5539,11 +5543,12 @@ def render_doc_header(kind):
         h = {"patient": c1.text_input("Pacients", key="hdr-patient").strip()}
         day = c2.date_input("Datums", format="DD.MM.YYYY", key=f"hdr-date-{kind}")
         h["date"] = fmt_date(day) + ("." if kind == "op" else "") if day else ""
+        h["history"] = c1.text_input("Slimības vēstures nr.", key="hdr-history").strip()
         if kind == "op":
-            h["history"] = c1.text_input("Vēstures nr", key="hdr-history").strip()
             h["dept"] = c2.text_input("Nodaļa", key="hdr-dept").strip()
             h["surgeons"] = c1.text_input("Ķirurgs/ Asistents", key="hdr-surgeons").strip()
             h["nurse"] = c2.text_input("Operācijas māsa", key="hdr-nurse").strip()
+            h["anesth"] = c1.text_input("Anesteziologs (optional)", key="hdr-anesth").strip()
     return h
 
 
@@ -5868,10 +5873,15 @@ def render_decursus(sex):
     with left:
         text = render_decursus_cards(sex)
     with right:
+        header = render_doc_header("dec")
         st.text_area("Decursus text", text, height=900, key=f"dec-out-{hash(text)}")
         if text:
             def make():
                 doc = _docx_new()
+                if header.get("patient") or header.get("history"):
+                    _docx_line(doc, [("Pacients", header.get("patient", ""))], indent=Cm(0))
+                    _docx_line(doc, [("Slimības vēstures nr.", header.get("history", ""))], indent=Cm(0))
+                    _docx_rule(doc)
                 decursus_docx(doc, text)
                 return _docx_bytes(doc)
             word_button("Word file (decursus)", make, "Decursus.docx", "dec-word")
@@ -6245,8 +6255,10 @@ def render_operation(sex):
     if op == "TURU" and not st.session_state.get("op-turu-where"):
         st.info("Choose where the tumour is.")
         return
-    output = (f"Operācija: {name}\n\n" if name else "") + "Operācijas apraksts:\n\n" + "\n".join(text)
     header = render_doc_header("op")
+    output = ((f"Operācija: {name}\n" if name else "")
+              + (f"Anesteziologs: {header['anesth']}\n" if header.get("anesth") else "")
+              + ("\n" if name or header.get("anesth") else "") + "Operācijas apraksts:\n\n" + "\n".join(text))
     st.divider()
     st.text_area("Operācijas apraksts", output, height=420, key=f"op-out-{hash(output)}")
     word_button("Word file (Operācijas apraksts)", lambda: operation_docx(header, name, text),
@@ -6260,7 +6272,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-22-side · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-22-hdr · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
