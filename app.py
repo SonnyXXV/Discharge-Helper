@@ -39,6 +39,7 @@ DIAGNOSES = {
     "N10": "Acute tubulo-interstitial nephritis (acute pyelonephritis)",
     "N13.3": "Other and unspecified hydronephrosis",
     "N13.0": "Hydronephrosis with ureteropelvic junction obstruction (PUJ stricture)",
+    "D29.4": "Scrotal mass – benign tumour / cyst of the scrotum (excision)",
     "N20": "Calculus of kidney and ureter (kidney stone disease)",
     "N23": "Unspecified renal colic",
     "N30.0": "Acute cystitis",
@@ -686,6 +687,26 @@ MODIFIERS = {
                        "show_if": {"Operation": "Radical prostatectomy"}},
     # ----- N43 hydrocele (hydrocele plasty in 4. Urology) -----
     "PUJ side": {"type": "single", "options": ["Right", "Left"]},
+    # ----- D29.4 scrotal mass (excision in 4. Urology) -----
+    "Scrotal mass location": {"type": "single", "default_index": 0,
+                              "options": ["Scrotal wall (subcutaneous)", "Scrotum and perineum", "Scrotal skin",
+                                          "Spermatic cord / paratesticular"]},
+    "Scrotal mass side": {"type": "single", "options": ["Right", "Left", "Midline (raphe)", "Both sides"]},
+    "Scrotal mass number": {"type": "single", "default_index": 0, "options": ["Single", "Multiple"]},
+    "Scrotal mass size (cm)": {"type": "number", "min": 0.0, "max": 30.0, "step": 0.5, "optional": True},
+    "Scrotal mass type": {"type": "single", "default_index": 0,
+                          "options": ["Not specified", "Epidermoid (sebaceous) cyst", "Lipoma", "Fibroma",
+                                      "Scrotal calcinosis", "Other (type below)"]},
+    "Scrotal mass type (other)": {"type": "text", "placeholder": "in Latvian, nominative, e.g. hemangioma",
+                                  "show_if": {"Scrotal mass type": "Other (type below)"}},
+    "Inflamed / infected lesion": {"type": "toggle"},
+    "Scrotal anesthesia": {"type": "single", "options": ["Spinal", "General", "Local"]},
+    "Scrotal drain": {"type": "toggle"},
+    "Scrotal histology result": {"type": "text", "placeholder": "in Latvian, e.g. epidermoidāla cista",
+                                 "show_if": {"Histology": "Known"}},
+    "Histology expected (date)": {"type": "date", "optional": True, "show_if": {"Histology": "Pending"}},
+    "Other diagnoses (optional)": {"type": "text", "optional": True,
+                                   "placeholder": "in Latvian, one line, e.g. Simptomātiska LPH"},
     "PUJ cause": {"type": "single", "default_index": 0,
                   "options": ["Not specified", "Intrinsic (congenital) stenosis", "Crossing lower-pole vessel",
                               "Secondary (after stones or surgery)"]},
@@ -908,6 +929,17 @@ DIAGNOSIS_MODIFIERS = {
         ("4. Recommendations",
          ["Discharge paper", "Activity restriction", "Skin sutures", "Stent removal plan", "Stent removal date (N13)",
           "Urology visit"]),
+    ],
+    "D29.4": [
+        ("1. Admission and the mass",
+         ["Admission", "Scrotal mass location", "Scrotal mass side", "Scrotal mass number", "Scrotal mass size (cm)",
+          "Scrotal mass type", "Scrotal mass type (other)", "Scrotal ultrasound before surgery",
+          "Inflamed / infected lesion", "Other diagnoses (optional)"]),
+        ("2. Operation and course",
+         ["Scrotal anesthesia", "Procedure date", "Intraoperative course", "Intraoperative complications",
+          "Scrotal drain", "Postoperative course", "Postoperative complications", "Scrotal hematoma"]),
+        ("3. Histology", ["Histology", "Scrotal histology result", "Histology expected (date)"]),
+        ("4. Recommendations", ["Discharge paper", "Activity restriction", "Skin sutures", "Urology visit"]),
     ],
 }
 
@@ -1699,6 +1731,11 @@ TAMSULOSIN_STENT_BLOCK = {
 BLOCKS["N13.0"] = [_c61_blocks["paracetamol"], _c61_blocks["ultracod"], TAMSULOSIN_STENT_BLOCK, SOLIFENACIN_BLOCK,
                    FRAXIPARINE_BLOCK, FRAXIPARINE_04_BLOCK, _c61_blocks["macrogol"]]
 BLOCK_WARNINGS["N13.0"] = BLOCK_WARNINGS["N10"]
+BLOCKS["D29.4"] = [_c61_blocks["paracetamol"], IBUPROFEN_BLOCK, _c61_blocks["ultracod"],
+                   dict(AMOXICLAV_10_BLOCK, note="From your scrotal mass example. Clean scrotal surgery rarely needs "
+                        "antibiotics (EAU / German S3 guideline: low evidence); keep it for an inflamed or infected "
+                        "cyst or wound.")]
+BLOCK_WARNINGS["D29.4"] = BLOCK_WARNINGS["N10"]
 BLOCK_WARNINGS["N10"].append({"ids": ["tadalafil", "tadalafil-quarter"], "text": "Two tadalafil regimens are chosen: keep one."})
 BLOCK_WARNINGS["N10"] += [
     {"ids": ["fraxiparine", "fraxiparine-04"], "text": "Two Fraxiparine doses are chosen (0,3 ml and 0,4 ml): keep one."},
@@ -1710,6 +1747,14 @@ BLOCK_WARNINGS["N10"] += [
 # match AND every modifier listed under "when" has that value.
 # Each template has: clinical_diagnosis (optional), epicrisis, recommendations.
 TEMPLATES = [
+    {
+        # Scrotal mass excision in 4. Urology. Written by scrotal_parts.
+        "id": "D29.4-4",
+        "diagnosis": "D29.4",
+        "department": "4",
+        "when": {},
+        "builder": "scrotal",
+    },
     {
         # PUJ stricture, pyeloplasty in 4. Urology. Written by n13_parts.
         "id": "N13.0-4",
@@ -4342,6 +4387,162 @@ CHECKS["N13.0"] = n13_checks
 
 
 # ---------------------------------------------------------------
+# 2p. SCROTAL MASS (D29.4): excision in 4. Urology
+# ---------------------------------------------------------------
+# Scrotal wall lesions (epidermoid cysts, lipomas, calcinosis) are nearly always benign; every scrotal mass needs an
+# ultrasound first (EAU testicular cancer guideline): a solid INTRAtesticular mass means inguinal orchidectomy, and a
+# solid paratesticular / spermatic cord mass can be a sarcoma (MRI, inguinal approach, wide excision).
+
+SCROTAL_PLACE = {  # (diagnosis, after 'sakarā ar ...' / in the operation name, genitive)
+    "Scrotal wall (subcutaneous)": ("Scrotum zemādas", "sēklinieka maisiņa zemādas", "scrotum zemādas"),
+    "Scrotum and perineum": ("Scrotum un starpenes zemādas", "sēklinieka maisiņa un starpenes zemādas",
+                             "scrotum un starpenes zemādas"),
+    "Scrotal skin": ("Scrotum ādas", "sēklinieka maisiņa ādas", "scrotum ādas"),
+    "Spermatic cord / paratesticular": ("Paratestikulārs (sēklas virvītes)", "paratestikulāru (sēklas virvītes)",
+                                        "paratestikulāra (sēklas virvītes)"),
+}
+SCROTAL_SIDE = {"Right": "labajā pusē", "Left": "kreisajā pusē", "Midline (raphe)": "viduslīnijā",
+                "Both sides": "abās pusēs"}
+SCROTAL_TYPE = {"Epidermoid (sebaceous) cyst": "epidermoidāla cista/ateroma", "Lipoma": "lipoma",
+                "Fibroma": "fibroma", "Scrotal calcinosis": "scrotum kalcinoze"}
+SCROTAL_ANESTHESIA = {"Spinal": "spinālā anestēzijā", "General": "vispārējā anestēzijā",
+                      "Local": "vietējā anestēzijā"}
+MALIGNANT_WORDS = ("karcinom", "sarkom", "melanom", "paget", "ļaundabīg", "malign")
+
+
+def scrotal_words(v):
+    """(diagnosis words, 'sakarā ar ...' words, operation name) for the mass(es)."""
+    dx_place, acc_place, gen_place = SCROTAL_PLACE[v["Scrotal mass location"]]
+    many = v.get("Scrotal mass number") == "Multiple"
+    if v["Scrotal mass location"] == "Spermatic cord / paratesticular":  # the adjective agrees with the noun
+        dx = dx_place + (" veidojumi" if many else " veidojums")
+        acc = acc_place.replace("paratestikulāru", "paratestikulārus" if many else "paratestikulāru") \
+            + (" veidojumus" if many else " veidojumu")
+        name = gen_place.replace("paratestikulāra", "paratestikulāru" if many else "paratestikulāra") \
+            + (" veidojumu ekscīzija" if many else " veidojuma ekscīzija")
+    else:
+        dx = dx_place + (" veidojumi" if many else " veidojums")
+        acc = acc_place + (" veidojumus" if many else " veidojumu")
+        name = gen_place + (" veidojumu ekscīzija" if many else " veidojuma ekscīzija")
+    return dx, acc, name
+
+
+def scrotal_parts(sex, v, blocks=()):
+    f = SEX_FORMS["Man"]  # scrotum: always male wording
+    dx_words, acc_words, op_name = scrotal_words(v)
+    day = fmt_date(v["Procedure date"])
+    admission = "akūtā kārtā" if v["Admission"] == "Acute" else "plānveida kārtā"
+    intraop, postop = c61_courses(v)
+
+    details = [SCROTAL_SIDE[v["Scrotal mass side"]]]
+    size = v.get("Scrotal mass size (cm)")
+    if size not in (None, ""):
+        details.append(f"Ø {size:g} cm".replace(".", ","))
+    kind = v.get("Scrotal mass type")
+    clinical = ""
+    if kind in SCROTAL_TYPE:
+        clinical = "; klīniski – " + SCROTAL_TYPE[kind]
+    elif kind == "Other (type below)" and not blank(v.get("Scrotal mass type (other)")):
+        clinical = "; klīniski – " + v["Scrotal mass type (other)"].strip().rstrip(".")
+
+    # Clinical diagnosis
+    diagnosis = f"{dx_words} ({', '.join(details)}{clinical}), st. pēc {op_name.replace('ekscīzija', 'ekscīzijas')} ({day})."
+    if v["Histology"] == "Known":
+        diagnosis += f" Histoloģiski: {v['Scrotal histology result'].strip().rstrip('.')}."
+    if not blank(v.get("Other diagnoses (optional)")):
+        diagnosis += "\n" + v["Other diagnoses (optional)"].strip().rstrip(".") + "."
+
+    # Epicrisis
+    reason = acc_words + f" ({SCROTAL_SIDE[v['Scrotal mass side']]})"
+    if v.get("Scrotal ultrasound before surgery"):
+        reason += "; USS: ekstratestikulārs veidojums, sēklinieki bez patoloģiskas atrades"
+    sentences = [
+        f"{f['Pacients']} {f['stacionets']} P. Stradiņa KUS 4. uroloģijas nodaļā {admission} operatīvai terapijai "
+        f"sakarā ar {reason}.",
+        f"{f['Pacients']} tiek {f['gatavots']} operācijai, {day} {SCROTAL_ANESTHESIA[v['Scrotal anesthesia']]} tiek "
+        f"veikta {op_name}. Operācija noritēja {intraop}.",
+        f"Pēcoperācijas periods {postop}."
+        + (" Gumijas strēmele evakuēta 1. pēcoperācijas dienā." if v.get("Scrotal drain") else "")
+        + (" Novērojama neliela sēklinieku maisiņa hematoma, dinamikā bez palielināšanās." if v.get("Scrotal hematoma")
+           else ""),
+    ]
+    if v["Histology"] == "Pending":
+        expected = v.get("Histology expected (date)")
+        sentences.append("Patohistoloģiskās izmeklēšanas slēdziens būs pieejams"
+                         + (f" no {fmt_date(expected)}." if expected else " pēc 2–3 nedēļām."))
+    else:
+        sentences.append(f"Patohistoloģiskās izmeklēšanas slēdziens: {v['Scrotal histology result'].strip().rstrip('.')}.")
+    sentences.append(f"Uzlabojoties vispārējam stāvoklim, {f['pacients']} {f['izrakstits']} turpmākai aprūpei ģimenes "
+                     "ārsta uzraudzībā, sniegtas rekomendācijas.")
+    epicrisis = (" ".join(sentences) + "\n\nIzmeklējumi: veikti ambulatori, pieļauj operāciju.\n\n"
+                 f"Operācijas: {op_name} ({day}).")
+
+    # Recommendations
+    recs = []
+    if v["Discharge paper"] == "Temporary":
+        recs.append("• " + TEMPORARY_PAPER_TEXT)
+    recs += [
+        "• Atrasties ģimenes ārsta uzraudzībā.",
+        f"• Režīms – saudzējošs {WEEKS_TEXT[v['Activity restriction']]} no operācijas dienas, atturēties no "
+        "pārmērīgas fiziskas slodzes, smagumu celšanas un riteņbraukšanas; pirts vai baseina apmeklējuma – 1 mēnesi "
+        "no operācijas dienas.",
+        "• Diēta – vispusīga, lietot šķidrumu ap 2,0 L/dnn.",
+        "• Pirmās 1–2 nedēļas valkāt cieši pieguļošu apakšveļu vai suspensoriju; pirmajās 48 stundās sēklinieku "
+        "maisiņam vairākas reizes dienā uz 15–20 minūtēm likt aukstu kompresi (caur drānu).",
+        "• Atturēties no dzimumdzīves līdz brūces sadzīšanai (ap 2 nedēļām).",
+        "• Ambulatori turpināt pēcoperācijas brūces apdari, šuves vietu apstrādājot ar Betadine 100 mg/ml vai "
+        "brilijantzaļo šķīdumu, pārsēja maiņa pēc nepieciešamības; dušā drīkst mazgāties 48 stundas pēc operācijas.",
+    ]
+    if v.get("Skin sutures") == "Absorbable":
+        recs.append("• Diegu evakuācija nav nepieciešama (uzsūcošās šuves).")
+    else:
+        recs.append("• Diegu evakuācija 10.–14. pēcoperācijas dienā ģimenes ārsta praksē.")
+    if blocks:
+        recs.append("• Nozīmē lietot:")
+        recs += ["    o " + b for b in blocks]
+    if v["Histology"] == "Pending":
+        recs.append("• Patohistoloģiskās izmeklēšanas rezultātu izvērtēs ārstējošais urologs.")
+    recs.append(f"• Kontrole pie urologa ambulatori {WEEKS_TEXT[v['Urology visit']]} pēc operācijas.")
+    recs += tests_lines(v, "bullet", after_op=True)
+    recs.append("• Ja sēklinieku maisiņš strauji palielinās vai kļūst sasprindzināts, pastiprinās sāpes, brūce asiņo vai "
+                "izdalās strutas, paaugstinās ķermeņa temperatūra, nekavējoties vērsties NMC.")
+    return {"clinical_diagnosis": diagnosis, "epicrisis": epicrisis, "recommendations": "\n".join(recs)}
+
+
+def scrotal_checks(v):
+    blockers, cautions = [], []
+    if v.get("Histology") == "Known" and blank(v.get("Scrotal histology result")):
+        blockers.append("Type the histology result.")
+    if not v.get("Scrotal ultrasound before surgery"):
+        cautions.append("No scrotal ultrasound before surgery: EAU – image every scrotal mass. A solid intratesticular "
+                        "mass needs an inguinal orchidectomy, not a scrotal excision.")
+    if v.get("Scrotal mass location") == "Spermatic cord / paratesticular" and v.get("Scrotal mass type") in (
+            "Not specified", "Fibroma", "Other (type below)"):
+        cautions.append("Solid paratesticular / spermatic cord mass: most are benign, but sarcoma (liposarcoma) is "
+                        "possible – MRI and an inguinal approach with wide excision are preferred when malignancy is "
+                        "suspected.")
+    result = (v.get("Scrotal histology result") or "").lower()
+    if v.get("Histology") == "Known" and any(w in result for w in MALIGNANT_WORDS):
+        cautions.append("Malignant histology: check the margins, plan staging and the oncology council; a re-excision "
+                        "with wider margins may be needed.")
+    if "amoxiclav-10" in (v.get("_blocks") or []) and not v.get("Inflamed / infected lesion"):
+        cautions.append("Amoksiklav after clean scrotal surgery: antibiotics are rarely needed without infection.")
+    if v.get("Histology") == "Pending" and v.get("Discharge paper") == "Final":
+        cautions.append("Histology is still pending, but the discharge paper is marked as final.")
+    if v.get("Histology") == "Known" and v.get("Discharge paper") == "Temporary":
+        cautions.append("Histology is already known, but the discharge paper is marked as temporary.")
+    if v.get("Scrotal hematoma"):
+        cautions.append("Scrotal hematoma: make sure it is not growing before discharge.")
+    if "With complications" in (v.get("Intraoperative course"), v.get("Postoperative course")):
+        cautions.append("Complications are recorded: check that the recommendations cover them.")
+    return blockers, cautions
+
+
+BUILDERS["scrotal"] = scrotal_parts
+CHECKS["D29.4"] = scrotal_checks
+
+
+# ---------------------------------------------------------------
 # 2m. FOLLOW-UP TESTS: catalogue, guideline-based suggestions, text
 # ---------------------------------------------------------------
 # Nothing here goes into a text by default. The doctor ticks tests in the
@@ -4892,6 +5093,25 @@ def n13_tests(v):
 TEST_ADVISORS["N13.0"] = n13_tests
 
 
+def scrotal_tests(v):
+    out = []
+    if not v.get("Scrotal ultrasound before surgery"):
+        out.append(_s("us_scrotum", "rec", "visit", "No ultrasound before surgery: image the testes and the operated "
+                                                    "area (EAU: ultrasound for every scrotal mass)."))
+    else:
+        out.append(_s("us_scrotum", "consider", "symptoms", "Only if swelling or a lump returns; routine imaging is "
+                                                            "not needed after excision of a benign lesion."))
+    result = (v.get("Scrotal histology result") or "").lower()
+    if v.get("Histology") == "Known" and any(w in result for w in MALIGNANT_WORDS):
+        out.append(_s("ct_ca", "rec", "asap", "Malignant histology: staging as decided by the oncology council."))
+    out.append(_s("panel", "avoid", "visit", "Blood tests are not needed after excision of a benign scrotal lesion."))
+    out.append(_s("ua", "avoid", "visit", "Not needed after scrotal wall surgery."))
+    return out
+
+
+TEST_ADVISORS["D29.4"] = scrotal_tests
+
+
 # ----- tables the doctor fills in (st.data_editor) -----
 
 def antibiotics_editor(key):
@@ -5377,6 +5597,9 @@ PE_PRESETS = {
                                     "{Adj} nieres jaunveidojums", "", ""),
     "Laparoscopic kidney resection – kidney tumour": ("Planned", "laparoskopiska {adj} puses nieres rezekcija",
                                                       "{adj} nieres audzēju", "Ca renis {lat}", "", ""),
+    "Scrotal mass – excision": ("Planned", "scrotum zemādas veidojuma ekscīzija",
+                                "sēklinieka maisiņa zemādas veidojumu ({loc} pusē)",
+                                "Scrotum zemādas veidojums ({loc} pusē)", "", ""),
     "Laparoscopic pyeloplasty – PUJ stricture": ("Planned", "{adj} puses laparoskopiska pieloplastika",
                                                  "{adj} puses pieloureterālā segmenta striktūru",
                                                  "{Adj} puses pieloureterālā segmenta striktūra", "", ""),
@@ -5392,9 +5615,12 @@ PE_INDICATIONS = {  # default indication text for these presets (EAU: second res
     "Re-TURU – bladder cancer after TURU": "atkārtota rezekcija pēc TURU (pT1 audzējs / nepilnīga rezekcija / "
                                            "paraugā nav detruzora muskuļa)",
 }
-PE_GENITALS = {"Hydrocele plasty": "{adj} puses hidrocēle"}  # 'Ārējie dzimumorgāni' for these presets
-PE_SIDE_WORDS = {"Right": {"adj": "labās", "Adj": "Labās", "lat": "dxt.", "m": "labā", "M": "Labā"},
-                 "Left": {"adj": "kreisās", "Adj": "Kreisās", "lat": "sin.", "m": "kreisā", "M": "Kreisā"}}
+PE_GENITALS = {"Hydrocele plasty": "{adj} puses hidrocēle",
+               "Scrotal mass – excision": "scrotum zemādā {loc} pusē palpējams nesāpīgs, kustīgs veidojums, sēklinieki "
+                                          "bez patoloģiskas atrades"}  # 'Ārējie dzimumorgāni' for these presets
+PE_SIDE_WORDS = {"Right": {"adj": "labās", "Adj": "Labās", "lat": "dxt.", "m": "labā", "M": "Labā", "loc": "labajā"},
+                 "Left": {"adj": "kreisās", "Adj": "Kreisās", "lat": "sin.", "m": "kreisā", "M": "Kreisā",
+                          "loc": "kreisajā"}}
 ORDINALS = ["Pirmā", "Otrā", "Trešā", "Ceturtā", "Piektā", "Sestā", "Septītā", "Astotā", "Devītā", "Desmitā"]
 DAY_TYPES = ["Iestāšanās diena", "Pirmsoperācijas diena", "Operācijas diena"] + \
             [f"{o} pēcoperācijas diena" for o in ORDINALS] + ["Izrakstīšanas diena"]
@@ -5809,6 +6035,10 @@ DEC_PRESETS = {  # typical findings filled into every day card (you can still ch
                    "voiding": "Mikcija brīva, spontāna, urīns ar nelielu asiņu piejaukumu.", "notes": ""},
     "TURP": {"cath_look": "viegli sārts", "drain_look": "(no drain)", "dressing": "(no dressing)",
              "abdomen": "Vēders palpatori mīksts, nesāpīgs.", "notes": "Turpina urīnpūšļa skalošanu."},
+    "Scrotal operation": {"cath_look": "(no catheter)", "drain_look": "(no drain)", "dressing": "Clean (short)",
+                          "abdomen": "Vēders palpatori mīksts, nesāpīgs.",
+                          "voiding": "Mikcija brīva, spontāna.",
+                          "notes": "Sēklinieka maisiņš bez izteiktas tūskas, hematomu nekonstatē."},
     "Laparoscopic operation": {"cath_look": "dzeltens", "drain_look": "serosangvinozi", "dressing": "Clean (short)",
                                "abdomen": "Vēders palpatori mīksts, nesāpīgs. Peristaltika izklausāma.", "notes": ""},
 }
@@ -6144,7 +6374,7 @@ def render_operation(sex):
     pt_acc = "Pacienti" if woman else "Pacientu"
     st.subheader("Operācijas apraksts")
     op = st.selectbox("Operation", ["TURP", "TURU", "Re-TURU (scar resection)", "Circumcision", "Cystoscopy, stent removal", "URS (semirigid)", "FURS (flexible)",
-                                    "Epididymal tumour extirpation", "Hydrocele plasty",
+                                    "Epididymal tumour extirpation", "Hydrocele plasty", "Scrotal mass excision",
                                     "Laparoscopic radical prostatectomy", "Laparoscopic nephrectomy",
                                     "Laparoscopic kidney resection",
                                     "Laparoscopic pyeloplasty",
@@ -6408,6 +6638,48 @@ def render_operation(sex):
                     "Evakuē troakārus. Brūces sašuj pa kārtām.",
                     f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz nodaļu.",
                 ]
+        elif op == "Scrotal mass excision":
+            st.caption("Every scrotal mass needs an ultrasound first. A solid intratesticular mass is treated with an "
+                       "inguinal orchidectomy (EAU), and a suspected paratesticular sarcoma with an inguinal approach – "
+                       "not with a scrotal excision.")
+            anesthesia = c1.selectbox("Anestēzija", ["spinālā anestēzijā", "vispārējā anestēzijā",
+                                                     "vietējā anestēzijā ar Sol. Lidocaini 1%"], key="op-sm-an")
+            position = c2.selectbox("Guļa", ["dorsālas litotomijas guļā", "muguras guļā"], key="op-sm-pos")
+            place = c3.selectbox("Vieta", list(SCROTAL_PLACE), key="op-sm-place")
+            side = c1.selectbox("Puse", list(SCROTAL_SIDE), key="op-sm-side")
+            many = c2.radio("Veidojumi", ["Viens", "Vairāki"], horizontal=True, key="op-sm-many") == "Vairāki"
+            size = c3.number_input("Izmērs (cm)", 0.0, 30.0, value=None, step=0.5, key="op-sm-size")
+            incision = c1.selectbox("Griezums", ["virs veidojuma", "pa scrotum viduslīniju (raphe)",
+                                                 "scrotum/perineālā rajonā", "elipsveida ādas griezums ap veidojumu"],
+                                    key="op-sm-inc")
+            looks = {  # (before the noun, singular / plural, after the noun)
+                "iekapsulēts, mīksti elastīgs": ("iekapsulētu, mīksti elastīgu", "iekapsulētus, mīksti elastīgus", ""),
+                "cistisks, ar biezu, baltu saturu": ("cistisku", "cistiskus", " ar biezu, baltu saturu"),
+                "mīksts, lipomatozs": ("mīkstu, lipomatozu", "mīkstus, lipomatozus", ""),
+                "blīvs, ar skaidrām robežām": ("blīvu", "blīvus", " ar skaidrām robežām"),
+            }
+            look = c2.selectbox("Veidojuma raksturs", list(looks), key="op-sm-look")
+            free = c3.checkbox("Nav saistīts ar sēklinieku un sēklas virvīti", True, key="op-sm-free")
+            drain = c1.checkbox("Drenāža (gumijas strēmele)", False, key="op-sm-drain")
+            closure = c2.selectbox("Šuves", ["Zemādas šuve. Ādas šuves.", "Zemādas šuve. Intrakutāna uzsūcoša šuve."],
+                                   key="op-sm-close")
+            name = scrotal_words({"Scrotal mass location": place, "Scrotal mass number": "Multiple" if many else "Single"})[2]
+            name = name[0].upper() + name[1:]
+            noun = "veidojumus" if many else "veidojumu"
+            size_text = (f" Ø {size:g} cm".replace(".", ",") if size else "")
+            where = "Zemādā" if place != "Spermatic cord / paratesticular" else "Paratestikulāri, sēklas virvītes apvidū,"
+            cut = ("veic elipsveida ādas griezienu ap veidojumu" if incision.startswith("elipsveida")
+                   else f"izdara griezienu {incision.replace('virs veidojuma', 'virs veidojumiem') if many else incision}")
+            text = [
+                f"{pt_acc.replace('Pacientu', 'Pacients').replace('Pacienti', 'Paciente')} atrodas {position}. Pēc "
+                f"operācijas lauka apdares {anesthesia} {cut} ({SCROTAL_SIDE[side]}). {where} vizualizē "
+                f"{looks[look][1 if many else 0]} {noun}{size_text}{looks[look][2]}"
+                + ((", kas nav saistīti ar sēklinieku un sēklas virvīti" if many else
+                    ", kas nav saistīts ar sēklinieku un sēklas virvīti") if free else "")
+                + f". Neasā ceļā {'tos' if many else 'to'} izdala un evakuē. Rūpīga hemostāze."
+                + (" Brūcē atstāj gumijas strēmeli." if drain else "") + f" {closure} Sterils pārsējs.",
+                f"{'Veidojumus' if many else 'Veidojumu'} nosūta patohistoloģiskai izmeklēšanai.",
+            ]
         elif op == "Hydrocele plasty":
             side = c1.radio("Puse", ["Labā", "Kreisā"], horizontal=True, key="op-h-side")
             technique = c2.selectbox("Tehnika", ["Izvēršana (Winkelmann)", "Ekscīzija (Bergmann)", "Plikācija (Lord)"],
@@ -6465,7 +6737,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-22-urs · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-22-scrotum · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
