@@ -5359,18 +5359,21 @@ PE_PRESETS = {
     "TURP – complicated BPH": ("Planned", "TURP", "komplicētu LPH", "Komplicēta LPH", "", ""),
     "TURU – bladder tumour": ("Planned", "TURU", "urīnpūšļa jaunveidojumu", "Urīnpūšļa jaunveidojums", "", ""),
     "Circumcision – phimosis": ("Planned", "cirkumcīzija", "fimozi", "Fimoze", "", ""),
-    "Hydrocele plasty": ("Planned", "kreisās puses hidrocēles plastika", "kreisās puses hidrocēli",
-                         "Kreisās puses hidrocēle", "", ""),
-    "URS/FURS – kidney stones": ("Planned", "URS/FURS ar kontakta litotripsiju", "nierakmeņu slimību",
-                                 "Nierakmeņu slimība", "", ""),
+    "Hydrocele plasty": ("Planned", "{adj} puses hidrocēles plastika", "{adj} puses hidrocēli",
+                         "{Adj} puses hidrocēle", "", ""),
+    "URS/FURS – kidney stones": ("Planned", "{adj} puses URS/FURS ar kontakta litotripsiju", "nierakmeņu slimību",
+                                 "Nierakmeņu slimība. {Adj} puses konkrements", "", ""),
+    "DJ stent removal – cystoscopy": ("Planned", "cistoskopija, {adj} puses DJ stenta evakuācija", "nierakmeņu slimību",
+                                      "Nierakmeņu slimība. St. pēc {adj} puses DJ stenta ievietošanas", "", ""),
     "Laparoscopic radical prostatectomy – prostate cancer": ("Planned", "laparoskopiska radikāla prostatektomija",
                                                              "prostatas CA", "Prostatas CA", "", ""),
-    "Nephrectomy – kidney tumour": ("Planned", "nefrektomija", "nieres jaunveidojumu", "Nieres jaunveidojums", "", ""),
-    "Laparoscopic kidney resection – kidney tumour": ("Planned", "laparoskopiska kreisās puses nieres rezekcija",
-                                                      "kreisās nieres audzēju", "Ca renis sin.", "", ""),
-    "Laparoscopic pyeloplasty – PUJ stricture": ("Planned", "laparoskopiska pieloplastika",
-                                                 "labās puses pieloureterālā segmenta striktūru",
-                                                 "Labā pieloureterālā segmenta striktūra", "", ""),
+    "Nephrectomy – kidney tumour": ("Planned", "laparoskopiska {adj} puses nefrektomija", "{adj} nieres jaunveidojumu",
+                                    "{Adj} nieres jaunveidojums", "", ""),
+    "Laparoscopic kidney resection – kidney tumour": ("Planned", "laparoskopiska {adj} puses nieres rezekcija",
+                                                      "{adj} nieres audzēju", "Ca renis {lat}", "", ""),
+    "Laparoscopic pyeloplasty – PUJ stricture": ("Planned", "{adj} puses laparoskopiska pieloplastika",
+                                                 "{adj} puses pieloureterālā segmenta striktūru",
+                                                 "{Adj} puses pieloureterālā segmenta striktūra", "", ""),
     "Urethroplasty – urethral stricture": ("Planned", "uretroplastika", "urīnizvadkanāla striktūru",
                                            "Urīnizvadkanāla striktūra", "", ""),
     "Hematuria – acute admission (no operation)": (
@@ -5379,6 +5382,9 @@ PE_PRESETS = {
     "Acute admission, other (no operation)": ("Acute", "", "", "", "", "Izmeklēts NMC."),
     "Other (type it)": ("Planned", "", "", "", "", ""),
 }
+PE_GENITALS = {"Hydrocele plasty": "{adj} puses hidrocēle"}  # 'Ārējie dzimumorgāni' for these presets
+PE_SIDE_WORDS = {"Right": {"adj": "labās", "Adj": "Labās", "lat": "dxt."},
+                 "Left": {"adj": "kreisās", "Adj": "Kreisās", "lat": "sin."}}
 ORDINALS = ["Pirmā", "Otrā", "Trešā", "Ceturtā", "Piektā", "Sestā", "Septītā", "Astotā", "Devītā", "Desmitā"]
 DAY_TYPES = ["Iestāšanās diena", "Pirmsoperācijas diena", "Operācijas diena"] + \
             [f"{o} pēcoperācijas diena" for o in ORDINALS] + ["Izrakstīšanas diena"]
@@ -5555,12 +5561,18 @@ def render_primary_evaluation(sex):
     with st.expander("1. Reason for admission", expanded=True):
         preset = st.selectbox("Preset", list(PE_PRESETS), key="pe-preset")
         adm_d, op_d, acc_d, dx_d, compl_d, course_d = PE_PRESETS[preset]
+        side = None
+        if "{" in op_d + acc_d + dx_d:  # this preset has a side: the side words change with it
+            side = st.radio("Side", ["Left", "Right"], horizontal=True, key="pe-side")
+            words = PE_SIDE_WORDS[side]
+            op_d, acc_d, dx_d = (t.format(**words) for t in (op_d, acc_d, dx_d))
+        tag = f"{preset}-{side}"  # new boxes (with the new side words) when the preset or the side changes
         admission = st.radio("Admission", ["Planned", "Acute"], index=0 if adm_d == "Planned" else 1,
                              horizontal=True, key=f"pe-admission-{preset}")
-        operation = st.text_input("Operation (empty if no operation)", op_d, key=f"pe-op-{preset}")
+        operation = st.text_input("Operation (empty if no operation)", op_d, key=f"pe-op-{tag}")
         if operation.strip():
             dx_acc = st.text_input("Reason, as it follows 'sakarā ar iepriekš diagnosticētu ...'", acc_d,
-                                   key=f"pe-dxacc-{preset}")
+                                   key=f"pe-dxacc-{tag}")
             complaints = st.text_input("Complaints (optional)", key=f"pe-compl-{preset}")
             course = ""
         else:
@@ -5569,7 +5581,7 @@ def render_primary_evaluation(sex):
                                        key=f"pe-compl-{preset}")
             course = st.text_area("Before admission (NMC, investigations, findings)", course_d,
                                   key=f"pe-course-{preset}", height=90)
-        diagnosis = st.text_area("Diagnosis (Slēdziens)", dx_d, key=f"pe-dx-{preset}", height=70)
+        diagnosis = st.text_area("Diagnosis (Slēdziens)", dx_d, key=f"pe-dx-{tag}", height=70)
     with st.expander("2. Past diseases", expanded=True):
         other = st.text_area("Citas slimības (empty = Noliedz)", key="pe-other", height=70)
         c1, c2, c3 = st.columns(3)
@@ -5596,7 +5608,8 @@ def render_primary_evaluation(sex):
         kidneys = c1.selectbox("Nieres apklauvējot", ["Nesāpīgas", "Sāpīga labā", "Sāpīga kreisā", "Sāpīgas abas"],
                                key="pe-kidneys")
         bladder = c2.selectbox("Urīnpūslis", ["Nepalpējas", "Palpējas, pilns"], key="pe-bladder")
-        genitals = c3.text_input("Ārējie dzimumorgāni", "neizmainīti", key="pe-genitals")
+        genitals_d = PE_GENITALS.get(preset, "neizmainīti").format(**PE_SIDE_WORDS[side or "Left"])
+        genitals = c3.text_input("Ārējie dzimumorgāni", genitals_d, key=f"pe-genitals-{tag}")
     with st.expander("4. Conclusion and plan", expanded=True):
         if operation.strip():
             indication = st.text_input("Indication (empty = the diagnosis)", key="pe-indication",
@@ -5943,16 +5956,22 @@ def render_operation(sex):
             if instill and drug.strip():
                 text.append(f"Agrīnā pēcoperācijas periodā saņēma {drug.strip()} intravezikālu instilāciju.")
         elif op == "Cystoscopy, stent removal":
-            side = c1.radio("Puse", ["Kreisā", "Labā"], horizontal=True, key="op-cs-side")
+            side = c1.radio("Puse", ["Kreisā", "Labā", "Abas"], horizontal=True, key="op-cs-side")
             findings = st.text_input("Atrade", "uretra normāla platuma, urīnpūšļa gļotāda nav izmainīta, urēteru ostijas "
                                      "normālas, simetriskas", key="op-cs-find")
             removal = c2.checkbox("Stenta evakuācija", True, key="op-cs-remove")
             ostium = "kreiso" if side == "Kreisā" else "labo"
-            name = ("Cistoskopija, " + ("kr." if side == "Kreisā" else "lb.") + " puses pielovezikāla stenta evakuācija"
-                    if removal else "Cistoskopija")
+            if side == "Abas":
+                name = "Cistoskopija, abpusēja pielovezikālo stentu evakuācija" if removal else "Cistoskopija"
+            else:
+                name = ("Cistoskopija, " + ("kr." if side == "Kreisā" else "lb.") + " puses pielovezikāla stenta "
+                        "evakuācija" if removal else "Cistoskopija")
             text = [f"Pēc operācijas lauka tualetes, {pt_dat} atrodoties dorsālas guļā tiek ievadīts cistoskops, "
                     f"{findings.strip().rstrip('.')}."]
-            if removal:
+            if removal and side == "Abas":
+                text.append("Vizualizē abas ostijas un pielovezikālo stentu galus. Ievada standziņas, stentus pēc kārtas "
+                            "evakuē. Evakuācija veiksmīga.")
+            elif removal:
                 text.append(f"Vizualizē {ostium} ostiju un pielovezikālā stenta galu. Ievada standziņas, stentu evakuē. "
                             "Evakuācija veiksmīga.")
             text.append("Evakuē instrumentu.")
@@ -5970,13 +5989,19 @@ def render_operation(sex):
                     "šķīduma. Fiksē katetru ar ādas šuvi. Pārsējs. "
                     f"Pa epicistostomu izdalās {volume} ml {look} urīna."]
         elif op == "Nephrostomy change under US (48)":
-            side = c1.radio("Puse", ["Kreisā", "Labā"], horizontal=True, key="op-nc-side")
+            side = c1.radio("Puse", ["Kreisā", "Labā", "Abas"], horizontal=True, key="op-nc-side")
             ch = c2.selectbox("Nefrostoma (Ch)", ["8", "10", "12", "14"], index=1, key="op-nc-ch")
             position = c3.selectbox("Novietojums", ["adekvāts", "neadekvāts – koriģēts"], key="op-nc-pos")
-            name = f"{'Kreisās' if side == 'Kreisā' else 'Labās'} nefrostomas nomaiņa USS kontrolē"
-            text = ["Pēc operācijas lauka apdares caur nefrostomu ievada stīgu. Uz stīgas evakuē nefrostomu. Uz stīgas "
-                    f"ievada Ch {ch} nefrostomas katetru. Evakuē stīgu. USS kontrolē konstatē nefrostomas novietojumu. "
-                    f"Nefrostomas novietojums {position}. Fiksē nefrostomas katetru."]
+            if side == "Abas":
+                name = "Abpusēja nefrostomu nomaiņa USS kontrolē"
+                text = ["Pēc operācijas lauka apdares abās pusēs secīgi caur nefrostomu ievada stīgu. Uz stīgas evakuē "
+                        f"nefrostomu. Uz stīgas ievada Ch {ch} nefrostomas katetru. Evakuē stīgu. USS kontrolē konstatē "
+                        f"nefrostomu novietojumu. Nefrostomu novietojums {position}. Fiksē nefrostomu katetrus."]
+            else:
+                name = f"{'Kreisās' if side == 'Kreisā' else 'Labās'} nefrostomas nomaiņa USS kontrolē"
+                text = ["Pēc operācijas lauka apdares caur nefrostomu ievada stīgu. Uz stīgas evakuē nefrostomu. Uz "
+                        f"stīgas ievada Ch {ch} nefrostomas katetru. Evakuē stīgu. USS kontrolē konstatē nefrostomas "
+                        f"novietojumu. Nefrostomas novietojums {position}. Fiksē nefrostomas katetru."]
         elif op == "Epididymal tumour extirpation":
             side = c1.radio("Puse", ["Labā", "Kreisā"], horizontal=True, key="op-ep-side")
             part = c2.selectbox("Daļa", ["Cauda epididimis", "Corpus epididimis", "Caput epididimis"], key="op-ep-part")
@@ -6235,7 +6260,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-22-pn · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-22-side · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
