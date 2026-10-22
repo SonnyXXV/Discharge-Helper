@@ -317,11 +317,11 @@ MODIFIERS = {
     "Renal colic": {"type": "toggle", "default": True},
     "Urinary tract infection": {"type": "single", "options": ["No", "Yes"], "default_index": 0},
     "Procedure": {"type": "single", "options": ["URS", "FURS", "PCNL"]},
-    "Lithotripsy": {
-        "type": "single",
-        "options": ["Laser lithotripsy", "Pneumatic lithotripsy", "Basket extraction", "None"],
+    "Lithotripsy": {  # what was done with the stone; empty = nothing (e.g. URS with a stent only)
+        "type": "multi", "optional": True,
+        "options": ["Laser lithotripsy", "Pneumatic lithotripsy", "Basket extraction"],
     },
-    "DJ stent placed": {"type": "toggle"},
+    "DJ stent placed": {"type": "toggle", "default": True},
     "Procedure date": {"type": "date"},
     "Intraoperative course": {"type": "single", "options": ["Without complications", "With complications"]},
     "Intraoperative complications": {
@@ -1127,7 +1127,7 @@ COLIC_TEXT = {
 }
 PROCEDURE_SIDE = {"Right": "labās puses", "Left": "kreisās puses", "Both": "abpusēja"}
 PROCEDURE_TEXT = {
-    "URS": "ureterorenoskopija",
+    "URS": "ureterorenoskopija (URS)",
     "FURS": "fleksibla ureterorenoskopija (FURS)",
     "PCNL": "perkutāna nefrolitotomija (PCNL)",
 }
@@ -2619,9 +2619,9 @@ def n20_planned_parts(sex, v, blocks=()):
     # The operation, as a sentence and as a short name
     procedure = PROCEDURE_TEXT[v["Procedure"]]
     with_parts, name_parts = [], []
-    if v["Lithotripsy"] in LITHO_TEXT:
-        with_parts.append(LITHO_TEXT[v["Lithotripsy"]][0])
-        name_parts.append(LITHO_TEXT[v["Lithotripsy"]][1])
+    for done in v.get("Lithotripsy") or []:
+        with_parts.append(LITHO_TEXT[done][0])
+        name_parts.append(LITHO_TEXT[done][1])
     if v.get("DJ stent placed"):
         stent_words = STENTS_TEXT if side == "Both" else STENT_TEXT
         with_parts.append(stent_words[0])
@@ -5364,8 +5364,11 @@ PE_PRESETS = {
     "Circumcision – phimosis": ("Planned", "cirkumcīzija", "fimozi", "Fimoze", "", ""),
     "Hydrocele plasty": ("Planned", "{adj} puses hidrocēles plastika", "{adj} puses hidrocēli",
                          "{Adj} puses hidrocēle", "", ""),
-    "URS/FURS – kidney stones": ("Planned", "{adj} puses URS/FURS ar kontakta litotripsiju", "nierakmeņu slimību",
-                                 "Nierakmeņu slimība. {Adj} puses konkrements", "", ""),
+    "URS + DJ stent – ureteral stone": ("Planned", "{adj} puses ureterorenoskopija (URS), DJ stenta ievietošana",
+                                        "{m} urīnvada konkrementu", "Nierakmeņu slimība. {M} urīnvada konkrements",
+                                        "", ""),
+    "FURS – kidney stone": ("Planned", "{adj} puses fleksibla ureterorenoskopija (FURS) ar kontakta lāzerlitotripsiju",
+                            "{adj} nieres konkrementu", "Nierakmeņu slimība. {Adj} nieres konkrements", "", ""),
     "DJ stent removal – cystoscopy": ("Planned", "cistoskopija, {adj} puses DJ stenta evakuācija", "nierakmeņu slimību",
                                       "Nierakmeņu slimība. St. pēc {adj} puses DJ stenta ievietošanas", "", ""),
     "Laparoscopic radical prostatectomy – prostate cancer": ("Planned", "laparoskopiska radikāla prostatektomija",
@@ -5390,8 +5393,8 @@ PE_INDICATIONS = {  # default indication text for these presets (EAU: second res
                                            "paraugā nav detruzora muskuļa)",
 }
 PE_GENITALS = {"Hydrocele plasty": "{adj} puses hidrocēle"}  # 'Ārējie dzimumorgāni' for these presets
-PE_SIDE_WORDS = {"Right": {"adj": "labās", "Adj": "Labās", "lat": "dxt."},
-                 "Left": {"adj": "kreisās", "Adj": "Kreisās", "lat": "sin."}}
+PE_SIDE_WORDS = {"Right": {"adj": "labās", "Adj": "Labās", "lat": "dxt.", "m": "labā", "M": "Labā"},
+                 "Left": {"adj": "kreisās", "Adj": "Kreisās", "lat": "sin.", "m": "kreisā", "M": "Kreisā"}}
 ORDINALS = ["Pirmā", "Otrā", "Trešā", "Ceturtā", "Piektā", "Sestā", "Septītā", "Astotā", "Devītā", "Desmitā"]
 DAY_TYPES = ["Iestāšanās diena", "Pirmsoperācijas diena", "Operācijas diena"] + \
             [f"{o} pēcoperācijas diena" for o in ORDINALS] + ["Izrakstīšanas diena"]
@@ -5611,13 +5614,13 @@ def render_primary_evaluation(sex):
                                   key=f"pe-course-{preset}", height=90)
         diagnosis = st.text_area("Diagnosis (Slēdziens)", dx_d, key=f"pe-dx-{tag}", height=70)
     with st.expander("2. Past diseases", expanded=True):
-        other = st.text_area("Citas slimības (empty = Noliedz)", key="pe-other", height=70)
+        other = st.text_area("Citas slimības (empty = Nav datu)", key="pe-other", height=70)
         c1, c2, c3 = st.columns(3)
-        tbc = c1.radio("TBC", ["Noliedz", "Apstiprina"], key="pe-tbc")
-        hep = c2.radio("Hepatīti", ["Noliedz", "Apstiprina"], key="pe-hep")
-        allergy = c3.radio("Medikamentu nepanesība", ["Noliedz", "Ir"], key="pe-allergy")
+        tbc = c1.radio("TBC", ["Noliedz", "Apstiprina", "Nav datu"], key="pe-tbc")
+        hep = c2.radio("Hepatīti", ["Noliedz", "Apstiprina", "Nav datu"], key="pe-hep")
+        allergy = c3.radio("Medikamentu nepanesība", ["Noliedz", "Ir", "Nav datu"], key="pe-allergy")
         allergy_text = st.text_input("Which medications", key="pe-allergy-text") if allergy == "Ir" else ""
-        operations = st.text_area("Pārciestas operācijas (empty = Nav)", key="pe-ops", height=70)
+        operations = st.text_area("Pārciestas operācijas (empty = Nav datu)", key="pe-ops", height=70)
     with st.expander("3. Objective status", expanded=True):
         c1, c2, c3 = st.columns(3)
         general = c1.selectbox("Vispārējais stāvoklis", ["Apmierinošs", "Vidēji smags", "Smags"], key="pe-general")
@@ -5677,11 +5680,11 @@ def render_primary_evaluation(sex):
         reason += f" {f['stacionets'].capitalize()} 4. uroloģijas nodaļā."
     # Each line is a list of (label, value) pairs: plain text here, bold underlined labels in the Word file
     history = [
-        [("Citas slimības:", other.strip() or "Noliedz")],
+        [("Citas slimības:", other.strip() or "Nav datu")],
         [("TBC", tbc)],
         [("Hepatīti", hep)],
-        [("Medikamentu nepanesība", "Noliedz" if allergy == "Noliedz" else (allergy_text.strip() or "Ir"))],
-        [("Pārciestas operācijas:", operations.strip() or "Nav")],
+        [("Medikamentu nepanesība", allergy if allergy != "Ir" else (allergy_text.strip() or "Ir"))],
+        [("Pārciestas operācijas:", operations.strip() or "Nav datu")],
     ]
     objective = [
         [("Vispārējais stāvoklis", general)],
@@ -5801,6 +5804,9 @@ DEC_PRESETS = {  # typical findings filled into every day card (you can still ch
     "TURU / re-TURU": {"cath_look": "viegli sārts", "drain_look": "(no drain)", "dressing": "(no dressing)",
                        "abdomen": "Vēders palpatori mīksts, nesāpīgs.",
                        "notes": "Urīnpūšļa skalošana nav nepieciešama."},
+    "URS / FURS": {"cath_look": "(no catheter)", "drain_look": "(no drain)", "dressing": "(no dressing)",
+                   "abdomen": "Vēders palpatori mīksts, nesāpīgs. Nieres apklauvējot nesāpīgas.",
+                   "voiding": "Mikcija brīva, spontāna, urīns ar nelielu asiņu piejaukumu.", "notes": ""},
     "TURP": {"cath_look": "viegli sārts", "drain_look": "(no drain)", "dressing": "(no dressing)",
              "abdomen": "Vēders palpatori mīksts, nesāpīgs.", "notes": "Turpina urīnpūšļa skalošanu."},
     "Laparoscopic operation": {"cath_look": "dzeltens", "drain_look": "serosangvinozi", "dressing": "Clean (short)",
@@ -5940,12 +5946,204 @@ TURU_LOCATION_LOC = {  # where in the bladder (locative)
 }
 
 
+# ----- URS and FURS, assembled from what was actually done -----
+
+URS_LOCATIONS = {  # where in the ureter (locative)
+    "Lower third": "apakšējā trešdaļā", "Middle third": "vidējā trešdaļā", "Upper third": "augšējā trešdaļā",
+    "Intramural part": "intramurālajā daļā", "Pelviureteric junction": "pieloureterālajā segmentā",
+}
+URS_REACH = ["To the stone", "Whole ureter, up to the renal pelvis", "Not possible (narrow ureter)",
+             "No URS – stent only"]
+URS_FINDINGS = ["Stone", "No stone (passed)", "Stricture", "Oedema / inflamed mucosa"]
+URS_ACTIONS = ["Laser lithotripsy", "Pneumatic lithotripsy", "Basket extraction", "Loop (cilpa) extraction",
+               "Stone migrated to the kidney"]
+URS_RESULTS = {"Stone-free": "Kontrolē atlieku konkrementus nekonstatē.",
+               "Small fragments (< 2 mm)": "Kontrolē saglabājas sīki konkrementa fragmenti (< 2 mm).",
+               "Stone remains": "Konkrementu pilnībā evakuēt neizdodas."}
+FURS_PLACES = {"Renal pelvis": "nieres bļodiņā", "Upper calyx group": "augšējā kausiņu grupā",
+               "Middle calyx group": "vidējā kausiņu grupā", "Lower calyx group": "apakšējā kausiņu grupā"}
+FURS_ACTIONS = ["Laser lithotripsy", "Basket extraction", "Move lower-pole stone up (basket)"]
+LASER_MODE = {"Fragmenting": "fragmentācijas režīmā", "Dusting": "pulverizācijas (dusting) režīmā"}
+
+
+def urs_operation(flexible, c1, c2, c3, pt_dat, pt_acc):
+    """Operation description of URS or FURS, from the steps that were done. Returns (paragraphs, name)."""
+    st.caption("EAU urolithiasis: use a safety wire, take stones out only under direct vision, and a stent is not "
+               "needed after an uncomplicated, complete URS (place one for residual fragments, ureteral injury, "
+               "oedema, infection or when in doubt). Tick only what was done.")
+    side = c1.radio("Puse", ["Kreisā", "Labā"], horizontal=True, key="op-u-side")
+    left = side == "Kreisā"
+    ost, ost_loc, adj, m_acc = (("kreiso", "kreisajā", "kreisās", "kreiso") if left
+                                else ("labo", "labajā", "labās", "labo"))
+    tag = "f" if flexible else "s"
+    anesthesia = c2.selectbox("Anestēzija", ["vispārējā anestēzijā", "spinālā anestēzijā"],
+                              index=0 if flexible else 1, key=f"op-u{tag}-an")
+    stent_out = c3.checkbox("Iepriekšējā stenta evakuācija sākumā", flexible, key=f"op-u{tag}-stentout")
+    cysto = st.text_input("Cistoskopijas atrade", "Urīnpūšļa gļotāda neizmainīta, ostijas simetriskas.",
+                          key=f"op-u{tag}-cysto")
+    a1, a2, a3 = st.columns(3)
+    wire = a1.checkbox("Drošības stīga", True, key=f"op-u{tag}-wire")
+    pyelo = a2.checkbox("Retrogrāda pielogrāfija", False, key=f"op-u{tag}-pyelo")
+    analysis = a3.checkbox("Fragmenti ķīmiskai analīzei", True, key=f"op-u{tag}-analysis")
+
+    text = [f"{anesthesia[0].upper() + anesthesia[1:]}, {pt_dat} atrodoties dorsālās litotomijas guļā, pēc operācijas "
+            f"lauka apdares urīnpūslī ievada cistoskopu. Instrumenta ievadīšana brīva. {cysto.strip().rstrip('.')}."]
+    name_parts, extracted = [], False
+    if stent_out:
+        text.append(f"Vizualizē {ost} ostiju un DJ stenta distālo galu. Ar standziņām satver stenta galu un "
+                    "evakuē stentu.")
+        name_parts.append(f"{adj} puses DJ stenta evakuācija")
+    access = []
+    if wire:
+        access.append(f"Rentgenoskopijas kontrolē caur {ost} ostiju urīnvadā līdz nieres bļodiņai ievada hidrofilo "
+                      "drošības stīgu.")
+    if pyelo:
+        access.append("Veic retrogrādu pielogrāfiju: kontrastviela aizpilda nieres bļodiņu un kausiņus, "
+                      "ekstravazāciju nekonstatē.")
+    if access:
+        text.append(" ".join(access))
+    along = "Gar drošības stīgu" if wire else "Vizuālā kontrolē"
+
+    if not flexible:
+        st.markdown("**Ureterorenoskopija**")
+        b1, b2, b3 = st.columns(3)
+        reach = b1.selectbox("Cik tālu veikta URS", URS_REACH, key="op-us-reach")
+        finding = b2.selectbox("Atrade", URS_FINDINGS, key="op-us-find") if reach in URS_REACH[:2] else None
+        where = b3.selectbox("Vieta urīnvadā", list(URS_LOCATIONS), key="op-us-where") \
+            if finding in ("Stone", "Stricture") else None
+        actions, size, impacted = [], None, False
+        if finding == "Stone":
+            d1, d2 = st.columns([1, 2])
+            size = d1.number_input("Konkrements (mm)", 0, 50, value=None, key="op-us-size")
+            impacted = d1.checkbox("Iesprūdis", key="op-us-impacted")
+            actions = d2.pills("Ko darīja ar konkrementu", URS_ACTIONS, selection_mode="multi", key="op-us-actions") or []
+            result = d2.selectbox("Rezultāts", list(URS_RESULTS), key="op-us-result") if actions else None
+        side_word = "" if stent_out else f"{adj} puses "
+        if reach == "No URS – stent only":
+            name_parts.append(f"cistoskopija, {side_word}retrogrāda DJ stenta ievietošana")
+        else:
+            name_parts.append(f"{side_word}ureterorenoskopija (URS)")
+        if reach == "Not possible (narrow ureter)":
+            text.append(f"{along} {ost_loc} ostijā ievada semirigīdo ureterorenoskopu. Šaura urīnvada dēļ instrumentu "
+                        "tālāk virzīt nav iespējams. Evakuē ureterorenoskopu.")
+        elif reach in URS_REACH[:2]:
+            urs = [f"{along} {ost_loc} ostijā ievada semirigīdo ureterorenoskopu un to virza pa urīnvadu."]
+            if finding == "Stone":
+                stone = ("iesprūdušu konkrementu" if impacted else "konkrementu") + (f" Ø {size} mm" if size else "")
+                urs.append(f"Urīnvada {URS_LOCATIONS[where]} vizualizē {stone}.")
+                broken = any(a in actions for a in ("Laser lithotripsy", "Pneumatic lithotripsy"))
+                if "Laser lithotripsy" in actions:
+                    urs.append("Caur darba kanālu ievada lāzera šķiedru un veic konkrementa kontakta lāzerlitotripsiju.")
+                if "Pneumatic lithotripsy" in actions:
+                    urs.append("Veic konkrementa pneimatisko litotripsiju.")
+                if "Stone migrated to the kidney" in actions:
+                    urs.append("Konkrements (tā fragments) migrē uz nieres bļodiņu.")
+                what = "konkrementa fragmentu" if broken else "konkrementa"
+                for action, tool in (("Basket extraction", "Dormia grozu"), ("Loop (cilpa) extraction", "cilpu")):
+                    if action in actions:
+                        urs.append(f"Ievada {tool} un vizuālā kontrolē veic {what} litoekstrakciju.")
+                        extracted = True
+                if actions:  # nothing done with the stone (e.g. URS only to place a stent): no result line
+                    urs.append(URS_RESULTS[result])
+                if "Laser lithotripsy" in actions:
+                    name_parts.append("kontakta lāzerlitotripsija")
+                if "Pneumatic lithotripsy" in actions:
+                    name_parts.append("pneimatiskā litotripsija")
+                if extracted:
+                    name_parts.append("litoekstrakcija")
+            elif finding == "No stone (passed)":
+                urs.append("Pa urīnvada gaitu konkrementu nekonstatē (iespējams, izdalījies spontāni).")
+            elif finding == "Stricture":
+                urs.append(f"Urīnvada {URS_LOCATIONS[where]} konstatē sašaurinājumu (striktūru).")
+            else:
+                urs.append("Urīnvada gļotāda tūskaina, ar kontaktasiņošanu.")
+            if reach == "Whole ureter, up to the renal pelvis":
+                urs.append("Ureterorenoskopu virza līdz nieres bļodiņai; pa urīnvada gaitu "
+                           + ("citus konkrementus nekonstatē." if finding == "Stone" else "patoloģiju nekonstatē."))
+            urs.append("Evakuē ureterorenoskopu.")
+            text.append(" ".join(urs))
+        stent_default = True
+    else:
+        st.markdown("**Fleksibla ureterorenoskopija**")
+        b1, b2, b3 = st.columns(3)
+        semirigid = b1.checkbox("Sākumā semirigīda URS", True, key="op-uf-semi")
+        sheath = b2.checkbox("Piekļuves apvalks (UAS)", True, key="op-uf-uas")
+        sheath_size = b3.selectbox("UAS izmērs", ["9,5/11,5 Fr", "10/12 Fr", "11/13 Fr", "12/14 Fr"], index=1,
+                                   key="op-uf-uas-size") if sheath else ""
+        places = st.multiselect("Konkrementa vieta", list(FURS_PLACES), default=["Renal pelvis"], key="op-uf-places")
+        d1, d2, d3 = st.columns(3)
+        several = d1.checkbox("Vairāki konkrementi", key="op-uf-several")
+        size = d1.number_input("Lielākais (mm)", 0, 60, value=None, key="op-uf-size")
+        actions = d2.pills("Ko darīja ar konkrementu", FURS_ACTIONS, selection_mode="multi",
+                           default=["Laser lithotripsy"], key="op-uf-actions") or []
+        mode = d3.selectbox("Lāzera režīms", list(LASER_MODE), key="op-uf-mode") if "Laser lithotripsy" in actions else None
+        result = d3.selectbox("Rezultāts", list(URS_RESULTS), key="op-uf-result")
+        name_parts.append(("" if stent_out else f"{adj} puses ") + "fleksibla ureterorenoskopija (FURS)")
+        if semirigid:
+            text.append(f"{along} {ost_loc} ostijā ievada semirigīdo ureterorenoskopu un izmeklē {m_acc} urīnvadu – "
+                        "konkrementus un sašaurinājumus nekonstatē. Ievada darba stīgu, evakuē ureterorenoskopu.")
+        kidney = []
+        if sheath:
+            kidney.append(f"Pa darba stīgu rentgenoskopijas kontrolē ievada uretera piekļuves apvalku {sheath_size}.")
+        kidney.append("Ievada fleksiblo ureterorenoskopu un sistemātiski apskata nieres bļodiņu un kausiņu sistēmu.")
+        where = lv_list([FURS_PLACES[p] for p in places]) or "nieres bļodiņā"
+        stone = ("konkrementus" if several else "konkrementu") + (
+            (f" Ø līdz {size} mm" if several else f" Ø {size} mm") if size else "")
+        kidney.append(f"{where[0].upper() + where[1:]} vizualizē {stone}.")
+        if "Move lower-pole stone up (basket)" in actions:
+            kidney.append(f"Ar Dormia grozu {'konkrementus' if several else 'konkrementu'} pārvieto uz augšējo "
+                          "kausiņu grupu.")
+        if "Laser lithotripsy" in actions:
+            kidney.append("Caur darba kanālu ievada lāzera šķiedru un veic "
+                          f"{'konkrementu' if several else 'konkrementa'} kontakta lāzerlitotripsiju {LASER_MODE[mode]}.")
+            name_parts.append("kontakta lāzerlitotripsija")
+        if "Basket extraction" in actions:
+            what = ("konkrementu fragmentus" if several else "konkrementa fragmentus") if "Laser lithotripsy" in actions \
+                else ("konkrementus" if several else "konkrementu")
+            kidney.append(f"Ar Dormia grozu vizuālā kontrolē evakuē {what}.")
+            name_parts.append("litoekstrakcija")
+            extracted = True
+        kidney.append(URS_RESULTS[result].replace("Kontrolē", "Kontroles apskatē kausiņu sistēmā"))
+        kidney.append("Evakuē fleksiblo ureterorenoskopu" + (" un piekļuves apvalku, apskatot urīnvadu – bojājumus "
+                                                             "nekonstatē." if sheath else "."))
+        text.append(" ".join(kidney))
+        stent_default = True
+
+    st.markdown("**Beigās**")
+    e1, e2, e3 = st.columns(3)
+    stent_in = e1.checkbox("DJ stenta ievietošana", stent_default, key=f"op-u{tag}-stent")
+    if stent_in:
+        fr = e2.selectbox("Stents (Fr)", ["4,8", "6", "7"], index=1, key=f"op-u{tag}-stent-fr")
+        cm = e3.selectbox("Garums (cm)", ["22", "24", "26", "28"], index=2, key=f"op-u{tag}-stent-cm")
+        string = e1.checkbox("Ar diegu (izņemšanai)", False, key=f"op-u{tag}-string")
+    foley = e2.checkbox("Foley katetrs", False, key=f"op-u{tag}-foley")
+    if foley:
+        foley_fr = e3.selectbox("Katetrs (Fr)", ["14", "16", "18", "20"], index=1, key=f"op-u{tag}-foley-fr")
+    end = []
+    if stent_in:
+        end.append(f"{'Gar drošības stīgu' if wire else 'Pa stīgu'} rentgenoskopijas kontrolē ievada DJ stentu "
+                   f"{fr} Fr / {cm} cm" + (" ar diegu" if string else "") + ". Stenta proksimālā cilpa nieres bļodiņā, "
+                   "distālā – urīnpūslī. Evakuē stīgu.")
+        name_parts.append("DJ stenta ievietošana" if not any("retrogrāda DJ" in p for p in name_parts) else "")
+    elif wire:
+        end.append("Evakuē drošības stīgu.")
+    if foley:
+        end.append(f"Urīnpūslī ievada Foley {foley_fr} Fr katetru.")
+    if extracted and analysis:
+        end.append("Konkrementa fragmentus nosūta ķīmiskā sastāva analīzei.")
+    if end:
+        text.append(" ".join(end))
+    text.append(f"Vispārēji apmierinošā stāvoklī {pt_acc.lower()} pārved uz nodaļu.")
+    name = ", ".join(p for p in name_parts if p)
+    return text, name[0].upper() + name[1:]
+
+
 def render_operation(sex):
     woman = sex == "Woman"
     pt_dat = "pacientei" if woman else "pacientam"
     pt_acc = "Pacienti" if woman else "Pacientu"
     st.subheader("Operācijas apraksts")
-    op = st.selectbox("Operation", ["TURP", "TURU", "Re-TURU (scar resection)", "Circumcision", "Cystoscopy, stent removal", "URS / FURS",
+    op = st.selectbox("Operation", ["TURP", "TURU", "Re-TURU (scar resection)", "Circumcision", "Cystoscopy, stent removal", "URS (semirigid)", "FURS (flexible)",
                                     "Epididymal tumour extirpation", "Hydrocele plasty",
                                     "Laparoscopic radical prostatectomy", "Laparoscopic nephrectomy",
                                     "Laparoscopic kidney resection",
@@ -6097,84 +6295,8 @@ def render_operation(sex):
                     f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz nodaļu."]
             if histology.strip():
                 text.append(f"\nHistoloģija: {histology.strip()}")
-        elif op == "URS / FURS":
-            side = c1.radio("Puse", ["Kreisā", "Labā"], horizontal=True, key="op-u-side")
-            stent_out = c2.checkbox("Stenta evakuācija sākumā", True, key="op-u-stentout")
-            ureter_stone = c3.checkbox("Konkrements urīnvadā", key="op-u-ustone")
-            u_laser = c1.checkbox("Urīnvadā: lāzera litotripsija", key="op-u-ulaser") if ureter_stone else False
-            u_extract = c2.checkbox("Urīnvadā: šķembu ekstrakcija", True, key="op-u-uext") if ureter_stone else False
-            flexible = c3.checkbox("Fleksibla ureterorenoskopija (nierē)", True, key="op-u-flex")
-            if flexible:
-                place = c1.selectbox("Konkrements(-i) nierē", ["Nieres bļodiņā vizualizē konkrementu",
-                                     "Nieres bļodiņā vizualizē vairākus konkrementus",
-                                     "Nieres kausiņos vizualizē multiplus konkrementus"], key="op-u-place")
-                k_laser = c2.checkbox("Nierē: lāzera litotripsija", True, key="op-u-klaser")
-                k_extract = c3.checkbox("Nierē: ekstrakcija", True, key="op-u-kext")
-            else:
-                place, k_laser, k_extract = "", False, False
-            tool = c1.selectbox("Ekstrakcijas instruments", ["cilpu", "Dormia grozu"], key="op-u-tool") \
-                if (u_extract or k_extract) else "cilpu"
-            difficulty = st.text_input("Papildus atrade / grūtības (optional)",
-                                       placeholder="e.g. Kontaktsangvinācijas dēļ ir apgrūtināta vizualizācija.", key="op-u-diff")
-            stent_in = c2.checkbox("Stenta reintubācija beigās", key="op-u-stentin")
-            contrast = c3.checkbox("RTG kontrole ar kontrastvielu", True, key="op-u-contrast") if stent_in else False
-            ostium = "kreiso" if side == "Kreisā" else "labo"
-            short = "Kr." if side == "Kreisā" else "Lb."
-            tool_gen = "cilpas" if tool == "cilpu" else "groza"
-
-            name_parts = []
-            if stent_out:
-                name_parts.append(f"{short} puses pielovezikāla stenta evakuācija")
-            main = "fleksibla ureterorenoskopija" if flexible else "ureterorenoskopija"
-            withs = []
-            if u_laser or k_laser:
-                withs.append("lāzera litotripsiju (LLT)")
-            if u_extract or k_extract:
-                withs.append(f"{tool_gen} litoekstrakciju")
-            name_parts.append(main + (" ar " + lv_list(withs) if withs else ""))
-            if stent_in:
-                name_parts.append("pielovezikāla stenta reintubācija")
-            name = "; ".join(name_parts)
-            name = name[0].upper() + name[1:]
-
-            text = [f"Pēc operācijas lauka tualetes, {pt_dat} atrodoties dorsālas guļā urīnpūslī ievadīts cistoskops. "
-                    "Cistoskopa ievadīšana brīva, ostijas vizualizē. Gļotāda neizmainīta. Ostijas brīvas."]
-            if stent_out:
-                text.append(f"Vizualizē {ostium} ostiju, stenta galu. Stenta galu satver ar standziņām, evakuē stentu.")
-            if ureter_stone:
-                ureter = [f"Ievada semirigīdo ureterorenoskopu. Kanulē {ostium} ostiju, ievada semirigīdo instrumentu "
-                          "ureterī. Vizualizē konkrementu."]
-                if u_laser:
-                    ureter.append("Ievieto lāzera stīgu. Vizuālā kontrolē veic konkrementa skaldīšanu. Evakuē lāzera stīgu.")
-                if u_extract:
-                    ureter.append(f"Ievieto {tool}. Vizuālā kontrolē veic konkrementa šķembu ekstrakciju. "
-                                  f"Evakuē {tool}.")
-                ureter.append("Aiziet līdz nierei, vairāk konkrementu pa urētera gaitu nevizualizē.")
-                text.append(" ".join(ureter))
-            else:
-                text.append(f"Atkārtoti ievada instrumentu. Kanulē {ostium} ostiju, ievada semirigīdo instrumentu "
-                            "ureterī līdz nierei.")
-            if flexible:
-                kidney = ["Ievada stīgu nierē, evakuē semirigīdo instrumentu un uz stīgas ievada vadītāju. Ievada "
-                          "fleksiblo endoskopu. Eksplorē nieri.", place + "."]
-                if k_laser:
-                    kidney.append("Ievada lāzera stīgu. Vizuālā kontrolē veic konkrementa skaldīšanu ar lāzeri. "
-                                  "Evakuē lāzera stīgu.")
-                if k_extract:
-                    kidney.append(f"Ievada {tool}. Vizuālā kontrolē veic konkrementa ekstrakciju ar {tool}. "
-                                  f"Evakuē {tool}.")
-                text.append(" ".join(kidney))
-            if difficulty.strip():
-                text.append(difficulty.strip().rstrip(".") + ".")
-            if stent_in:
-                end = (f"Ievada semirigīdo ureterorenoskopu, vizualizē {ostium} ostiju. Uz stīgas ievada stentu vizuālā "
-                       "kontrolē.")
-                if contrast:
-                    end += " RTG kontrolē ievada kontrastvielu. Ekstravazāciju nekonstatē."
-                text.append(end + " Evakuē instrumentu, darba un drošības stīgu.")
-            else:
-                text.append("Evakuē instrumentu.")
-            text.append(f"Pēc operācijas vispārēji apmierinošā stāvoklī {pt_acc.lower()} pārved uz nodaļu.")
+        elif op in ("URS (semirigid)", "FURS (flexible)"):
+            text, name = urs_operation(op == "FURS (flexible)", c1, c2, c3, pt_dat, pt_acc)
         elif op == "Laparoscopic radical prostatectomy":
             lnd = c1.checkbox("Iegurņa limfadenektomija", True, key="op-rp-lnd")
             nerve = c2.selectbox("Nervu saudzēšana", ["Nav", "Labajā pusē", "Kreisajā pusē", "Abās pusēs"],
@@ -6343,7 +6465,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-22-returu2 · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-22-urs · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
