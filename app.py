@@ -40,6 +40,7 @@ DIAGNOSES = {
     "N13.3": "Other and unspecified hydronephrosis",
     "N13.0": "Hydronephrosis with ureteropelvic junction obstruction (PUJ stricture)",
     "D29.4": "Scrotal mass – benign tumour / cyst of the scrotum (excision)",
+    "N21.0": "Bladder stone (cystolithotripsy)",
     "N20": "Calculus of kidney and ureter (kidney stone disease)",
     "N23": "Unspecified renal colic",
     "N30.0": "Acute cystitis",
@@ -705,6 +706,27 @@ MODIFIERS = {
     # ----- N43 hydrocele (hydrocele plasty in 4. Urology) -----
     "PUJ side": {"type": "single", "options": ["Right", "Left"]},
     # ----- D29.4 scrotal mass (excision in 4. Urology) -----
+    # ----- N21.0 bladder stone (cystolithotripsy in 4. Urology) -----
+    "Bladder stone number": {"type": "single", "default_index": 0, "options": ["Single", "Multiple"]},
+    "Bladder stone size (cm)": {"type": "number", "min": 0.0, "max": 20.0, "step": 0.5, "optional": True},
+    "Bladder stone found by": {"type": "multi", "optional": True, "options": ["Ultrasound", "CT", "KUB X-ray", "Cystoscopy"],
+                               "default_selected": ["Ultrasound"]},
+    "Bladder stone cause": {"type": "multi", "optional": True,
+                            "options": ["BPH / bladder outlet obstruction", "Urethral stricture", "Neurogenic bladder",
+                                        "Long-term catheter", "Foreign body / clips or sutures after surgery",
+                                        "Augmented bladder / reservoir", "Not found"]},
+    "Cystolithotripsy method": {"type": "single",
+                                "options": ["Transurethral – laser (Ho:YAG)", "Transurethral – pneumatic",
+                                            "Transurethral – mechanical lithotriptor", "Percutaneous cystolithotripsy",
+                                            "Open cystolithotomy"]},
+    "Done at the same time (N21)": {"type": "multi", "optional": True,
+                                    "options": ["TURP", "Optical urethrotomy", "Foreign body removal"]},
+    "Anesthesia (N21)": {"type": "single", "options": ["Spinal", "General"]},
+    "Urine culture (N21)": {"type": "single", "default_index": 0,
+                            "options": ["Not taken", "Negative", "Positive", "Result pending"]},
+    "Culture organism (N21)": {"type": "text", "optional": True, "placeholder": "optional, e.g. E. coli",
+                               "show_if": {"Urine culture (N21)": "Positive"}},
+    "Stone sent for analysis": {"type": "toggle", "default": True},
     "Scrotal mass location": {"type": "single", "default_index": 0,
                               "options": ["Scrotal wall (subcutaneous)", "Scrotum and perineum", "Scrotal skin",
                                           "Spermatic cord / paratesticular"]},
@@ -959,6 +981,19 @@ DIAGNOSIS_MODIFIERS = {
           "Scrotal drain", "Postoperative course", "Postoperative complications", "Scrotal hematoma"]),
         ("3. Histology", ["Histology", "Scrotal histology result", "Histology expected (date)"]),
         ("4. Recommendations", ["Discharge paper", "Activity restriction", "Skin sutures", "Urology visit"]),
+    ],
+    "N21.0": [
+        ("1. Admission and the stone",
+         ["Admission", "Bladder stone number", "Bladder stone size (cm)", "Bladder stone found by",
+          "Bladder stone cause", "Urine culture (N21)", "Culture organism (N21)", "Other diagnoses (optional)"]),
+        ("2. Operation",
+         ["Cystolithotripsy method", "Done at the same time (N21)", "Anesthesia (N21)", "Procedure date",
+          "Intraoperative course", "Intraoperative complications", "Stone sent for analysis",
+          "Bladder irrigation after surgery"]),
+        ("3. Course",
+         ["Postoperative course", "Postoperative complications", "Catheter removal", "Catheter removed on",
+          "Planned catheter removal (optional)", "Voiding after catheter removal"]),
+        ("4. Recommendations", ["Activity restriction", "Urology visit"]),
     ],
 }
 
@@ -1763,11 +1798,17 @@ BLOCKS["D29.4"] = [_c61_blocks["paracetamol"], IBUPROFEN_BLOCK, _c61_blocks["ult
                         "antibiotics (EAU / German S3 guideline: low evidence); keep it for an inflamed or infected "
                         "cyst or wound.")]
 BLOCK_WARNINGS["D29.4"] = BLOCK_WARNINGS["N10"]
+BLOCKS["N21.0"] = [_c61_blocks["paracetamol"], _c61_blocks["ultracod"], SOLIFENACIN_BLOCK,
+                   dict(AMOXICLAV_10_BLOCK, note="Only for a positive urine culture or clinical infection, ideally "
+                        "chosen by the culture result. Bladder stones are often infected (struvite)."),
+                   _c61_blocks["macrogol"]]
+BLOCK_WARNINGS["N21.0"] = BLOCK_WARNINGS["N10"]
 TAMSULOSIN_LONG_BLOCK = {
     "id": "tamsulosin-long", "group": G_ALPHA, "title": "Tamsulosin 0.4 mg once daily (long-term)",
     "text": "Caps. Tamsulosin 0,4 mg 1 reizi dienā p/o (ilgstoši).",
     "note": "From your urethrotomy example, for coexisting BPH symptoms. It does not treat the stricture itself.",
 }
+BLOCKS["N21.0"].insert(2, TAMSULOSIN_LONG_BLOCK)
 BLOCKS["N35"] = BLOCKS["N35"] + [TAMSULOSIN_LONG_BLOCK,
                                  dict({b["id"]: b for b in BLOCKS["N10"]}["canephron"],
                                       text="Tab. Canephron pa 2 tabletēm 3 reizes dienā 1 mēnesi.",
@@ -1784,6 +1825,14 @@ BLOCK_WARNINGS["N10"] += [
 # match AND every modifier listed under "when" has that value.
 # Each template has: clinical_diagnosis (optional), epicrisis, recommendations.
 TEMPLATES = [
+    {
+        # Bladder stone, cystolithotripsy in 4. Urology. Written by n21_parts.
+        "id": "N21.0-4",
+        "diagnosis": "N21.0",
+        "department": "4",
+        "when": {},
+        "builder": "n21",
+    },
     {
         # Scrotal mass excision in 4. Urology. Written by scrotal_parts.
         "id": "D29.4-4",
@@ -4613,6 +4662,158 @@ CHECKS["D29.4"] = scrotal_checks
 
 
 # ---------------------------------------------------------------
+# 2q. BLADDER STONE (N21.0): cystolithotripsy in 4. Urology
+# ---------------------------------------------------------------
+# EAU urolithiasis – bladder stones: transurethral cystolithotripsy where possible (strong), percutaneous where
+# transurethral is not possible (strong), open for very large stones (weak); laser, pneumatic and mechanical are
+# equivalent; look for the cause in every patient (flow rate, residual urine, dipstick/culture, stone analysis).
+
+CYSTOLITHO = {  # (as done, after "St. pēc ...")
+    "Transurethral – laser (Ho:YAG)": ("cistoskopija, kontakta lāzera cistolitotripsija",
+                                       "cistoskopijas, kontakta lāzera cistolitotripsijas"),
+    "Transurethral – pneumatic": ("cistoskopija, pneimatiskā cistolitotripsija",
+                                  "cistoskopijas, pneimatiskās cistolitotripsijas"),
+    "Transurethral – mechanical lithotriptor": ("cistoskopija, mehāniska cistolitotripsija",
+                                                "cistoskopijas, mehāniskas cistolitotripsijas"),
+    "Percutaneous cystolithotripsy": ("perkutāna cistolitotripsija", "perkutānas cistolitotripsijas"),
+    "Open cystolithotomy": ("atvērta cistolitotomija", "atvērtas cistolitotomijas"),
+}
+N21_ALSO = {"TURP": "TURP", "Optical urethrotomy": "optiskā uretrotomija", "Foreign body removal": "svešķermeņa evakuācija"}
+N21_CAUSE = {
+    "BPH / bladder outlet obstruction": "LPH ar infravezikālu obstrukciju",
+    "Urethral stricture": "uretras striktūra",
+    "Neurogenic bladder": "neirogēns urīnpūslis",
+    "Long-term catheter": "ilgstošs urīnpūšļa katetrs",
+    "Foreign body / clips or sutures after surgery": "svešķermenis (klipši/šuves pēc operācijas)",
+    "Augmented bladder / reservoir": "augmentēts urīnpūslis / rezervuārs",
+}
+N21_FOUND = {"Ultrasound": "ultrasonogrāfiski", "CT": "datortomogrāfiski", "KUB X-ray": "rentgenoloģiski",
+             "Cystoscopy": "cistoskopiski"}
+N21_ANESTHESIA = {"Spinal": "spinālā anestēzijā", "General": "vispārējā anestēzijā"}
+
+
+def n21_parts(sex, v, blocks=()):
+    f = SEX_FORMS[sex]
+    many = v["Bladder stone number"] == "Multiple"
+    size = v.get("Bladder stone size (cm)")
+    size_text = ""
+    if size not in (None, ""):
+        size_text = (f" (lielākais Ø {size:g} cm)" if many else f" (Ø {size:g} cm)").replace(".", ",")
+    op_nom, op_gen = CYSTOLITHO[v["Cystolithotripsy method"]]
+    also = [N21_ALSO[x] for x in (v.get("Done at the same time (N21)") or []) if x in N21_ALSO]
+    day = fmt_date(v["Procedure date"])
+    admission = "akūtā kārtā" if v["Admission"] == "Acute" else "plānveida kārtā"
+    intraop, postop = c61_courses(v)
+    causes = [N21_CAUSE[c] for c in (v.get("Bladder stone cause") or []) if c in N21_CAUSE]
+    culture = v.get("Urine culture (N21)")
+
+    # Clinical diagnosis
+    diagnosis = ("Urīnpūšļa konkrementi" if many else "Urīnpūšļa konkrements") + size_text + "."
+    if culture == "Positive":
+        diagnosis += " Urīnceļu infekcija."
+    diagnosis += f"\nSt. pēc {op_gen}" + (" un " + lv_list(also) if also else "") + f" ({day})."
+    if causes:
+        diagnosis += "\nKonkrementu veidošanās iemesls – " + lv_list(causes) + "."
+    if not blank(v.get("Other diagnoses (optional)")):
+        diagnosis += "\n" + v["Other diagnoses (optional)"].strip().rstrip(".") + "."
+
+    # Epicrisis
+    found = [N21_FOUND[x] for x in (v.get("Bladder stone found by") or []) if x in N21_FOUND]
+    stone_acc = "urīnpūšļa konkrementiem" if many else "urīnpūšļa konkrementu"
+    reason = (f"{lv_list(found)} verificētu{'iem' if many else ''} {stone_acc}" if found else stone_acc) + size_text
+    if many and found:
+        reason = f"{lv_list(found)} verificētiem {stone_acc}{size_text}"
+    course = []
+    if v.get("Bladder irrigation after surgery"):
+        course.append("Pēcoperācijas periodā veikta urīnpūšļa skalošana.")
+    course.append(f"Pēcoperācijas periods {postop}.")
+    course.append(c61_catheter_sentence(f, v))
+    extra = []
+    if v.get("Stone sent for analysis"):
+        extra.append("Konkrementa fragmenti nosūtīti ķīmiskā sastāva analīzei.")
+    if culture == "Positive":
+        organism = (v.get("Culture organism (N21)") or "").strip()
+        extra.append("Urīna uzsējums – pozitīvs" + (f" ({organism})" if organism else "") + ".")
+    elif culture == "Negative":
+        extra.append("Urīna uzsējums – negatīvs.")
+    elif culture == "Result pending":
+        extra.append("Urīna uzsējuma rezultāts izrakstīšanas brīdī vēl nav zināms.")
+    epicrisis = "\n".join(p for p in [
+        f"{f['Pacients']} {f['stacionets']} P. Stradiņa KUS 4. uroloģijas nodaļā {admission} operatīvai ārstēšanai "
+        f"sakarā ar {reason}. {f['Pacients']} tiek {f['gatavots']} operācijai.",
+        f"{day} {N21_ANESTHESIA[v['Anesthesia (N21)']]} veikta {op_nom}" + (" un " + lv_list(also) if also else "")
+        + f". Operācija noritēja {intraop}.",
+        " ".join(course),
+        " ".join(extra),
+        f"Uzlabojoties vispārējam stāvoklim, {f['pacients']} {f['izrakstits']} turpmākai aprūpei ģimenes ārsta "
+        "uzraudzībā. Sniegtas rekomendācijas.",
+    ] if p)
+
+    # Recommendations
+    recs = [
+        "Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā.",
+        "Diēta: vispusīga. Lietot šķidrumu 2,0–2,5 L diennaktī, ja nav medicīnisku kontrindikāciju.",
+        f"Režīms: saudzējošs {WEEKS_TEXT[v['Activity restriction']]} no operācijas dienas, izvairīties no pārmērīgas "
+        "fiziskas slodzes un smagumu celšanas.",
+        "Pirmajās dienās iespējams neliels asiņu piejaukums urīnā un dedzināšana urinējot; šādā gadījumā palielināt "
+        "šķidruma uzņemšanu.",
+    ]
+    if v["Catheter removal"] == "Discharged with catheter":
+        if v.get("Planned catheter removal (optional)"):
+            recs.append("Kopt urīnpūšļa ilgkatetru; " + CATHETER_CARE_LINES[1][0].lower() + CATHETER_CARE_LINES[1][1:])
+            recs.append(f"Katetra evakuācija plānota {fmt_date(v['Planned catheter removal (optional)'])}.")
+        else:
+            recs += CATHETER_CARE_LINES
+    else:
+        recs.append("Regulāri un pilnībā iztukšot urīnpūsli, nenoturēt urīnu ilgstoši.")
+    cause_set = set(v.get("Bladder stone cause") or [])
+    if "BPH / bladder outlet obstruction" in cause_set and "TURP" not in (v.get("Done at the same time (N21)") or []):
+        recs.append("Turpināt infravezikālās obstrukcijas (LPH) ārstēšanu pie urologa – bez tās konkrementi var "
+                    "veidoties atkārtoti.")
+    if cause_set & {"Neurogenic bladder", "Augmented bladder / reservoir"}:
+        recs.append("Regulāra urīnpūšļa skalošana ar fizioloģisko šķīdumu pēc ārstējošā urologa norādījumiem.")
+    if v.get("Stone sent for analysis"):
+        recs.append("Konkrementa ķīmiskās analīzes rezultātu izvērtēs ārstējošais urologs; turpmākā profilakse "
+                    "atbilstoši konkrementa sastāvam.")
+    if culture == "Result pending":
+        recs.append("Urīna uzsējuma rezultātu pārbauda ģimenes ārsts, nepieciešamības gadījumā koriģējot terapiju.")
+    if blocks:
+        recs.append("Terapijā lietot:")
+        recs += ["• " + b for b in blocks]
+    recs.append(f"Vizīte pie urologa ambulatori: {WEEKS_TEXT[v['Urology visit']]} pēc operācijas.")
+    recs += tests_lines(v, "plain", after_op=True)
+    recs.append("Ja parādās izteikta hematūrija ar asins recekļiem, nav iespējams urinēt, katetrs nefunkcionē, rodas "
+                "drudzis vai drebuļi, nekavējoties vērsties NMC.")
+    return {"clinical_diagnosis": diagnosis, "epicrisis": epicrisis, "recommendations": "\n".join(recs)}
+
+
+def n21_checks(v):
+    blockers, cautions = [], []
+    if v.get("Voiding after catheter removal") == "Urinary retention":
+        blockers.append("Urinary retention after catheter removal.")
+    causes = v.get("Bladder stone cause") or []
+    if not causes:
+        cautions.append("EAU (weak): look for the cause of every bladder stone – flow rate and residual urine, urine "
+                        "dipstick/culture, stone analysis; choose 'Not found' if the work-up was negative.")
+    if "BPH / bladder outlet obstruction" in causes and "TURP" not in (v.get("Done at the same time (N21)") or []):
+        cautions.append("Bladder stone with BPO and no TURP: plan treatment of the obstruction (treating both at once "
+                        "is safe; EAU notes slightly more short-term incontinence and UTI).")
+    if v.get("Urine culture (N21)") == "Positive" and not any(b in (v.get("_blocks") or []) for b in
+                                                              ("amoxiclav-10",)):
+        cautions.append("Positive urine culture: check whether an antibiotic is needed (by susceptibility).")
+    if v.get("Cystolithotripsy method") == "Open cystolithotomy":
+        cautions.append("EAU: open cystolithotomy is meant for very large stones; transurethral or percutaneous "
+                        "cystolithotripsy is preferred where possible.")
+    if "With complications" in (v.get("Intraoperative course"), v.get("Postoperative course")):
+        cautions.append("Complications are recorded: check that the recommendations cover them.")
+    return blockers, cautions
+
+
+BUILDERS["n21"] = n21_parts
+CHECKS["N21.0"] = n21_checks
+
+
+# ---------------------------------------------------------------
 # 2m. FOLLOW-UP TESTS: catalogue, guideline-based suggestions, text
 # ---------------------------------------------------------------
 # Nothing here goes into a text by default. The doctor ticks tests in the
@@ -5184,6 +5385,34 @@ def scrotal_tests(v):
 TEST_ADVISORS["D29.4"] = scrotal_tests
 
 
+def n21_tests(v):
+    out = []
+    why = "EAU (weak): look for the cause of bladder stones – flow rate and residual urine."
+    out.append(_s("uroflow", "rec", "at_visit", why))
+    out.append(_s("pvr", "rec", "at_visit", why))
+    if not v.get("Stone sent for analysis"):
+        out.append(_s("stone", "consider", "none", "EAU: stone analysis for all first-time stone formers – if no "
+                                                   "fragments were sent, analyse any that pass.",
+                      text="izdalīto konkrementa fragmentu ķīmiskā sastāva analīze"))
+    out.append(_s("ua", "rec", "visit", "EAU: urine dipstick and pH as part of the cause work-up."))
+    out.append(_s("uc", "consider", "visit", "EAU: urine culture is optional in the work-up; take it if there were "
+                                            "infection signs or the stone may be an infection stone."))
+    persisting = set(v.get("Bladder stone cause") or []) & {"Neurogenic bladder", "Long-term catheter",
+                                                            "Augmented bladder / reservoir"}
+    out.append(_s("us_kb", "rec" if persisting else "consider", "6m",
+                  "EAU (weak): individualise imaging follow-up; check for recurrence when the cause persists."))
+    out.append(_s("stone_blood", "consider", "visit", "EAU: metabolic assessment is part of the work-up, mainly when "
+                                                      "there is no clear obstructive cause."))
+    if "Urethral stricture" not in (v.get("Bladder stone cause") or []):
+        out.append(_s("urethrocysto", "consider", "visit", "EAU (weak): cystourethroscopy or urethrogram in selected "
+                                                           "patients (suspected stricture or bladder neck problem)."))
+    out.append(_s("us_k", "consider", "visit", "EAU (weak): upper tract imaging in selected patients."))
+    return out
+
+
+TEST_ADVISORS["N21.0"] = n21_tests
+
+
 # ----- tables the doctor fills in (st.data_editor) -----
 
 def antibiotics_editor(key):
@@ -5675,6 +5904,8 @@ PE_PRESETS = {
     "Laparoscopic pyeloplasty – PUJ stricture": ("Planned", "{adj} puses laparoskopiska pieloplastika",
                                                  "{adj} puses pieloureterālā segmenta striktūru",
                                                  "{Adj} puses pieloureterālā segmenta striktūra", "", ""),
+    "Cystolithotripsy – bladder stone": ("Planned", "cistolitotripsija", "urīnpūšļa konkrementu",
+                                         "Urīnpūšļa konkrements", "", ""),
     "Optical urethrotomy – urethral stricture": ("Planned", "optiskā uretrotomija", "{part_acc}", "{part_dx}", "", ""),
     "Laser urethrotomy – urethral stricture": ("Planned", "lāzeruretrotomija", "{part_acc}", "{part_dx}", "", ""),
     "Urethral dilation – urethral stricture": ("Planned", "uretras dilatācija", "{part_acc}", "{part_dx}", "", ""),
@@ -6059,7 +6290,7 @@ DEC_FIELDS = {  # widget name -> default value of a new day
     "dressing": "(no dressing)",
     "ending": "Turpina ārstēšanu stacionārā.",
 }
-CATH_LOOKS = ["(no catheter)", "dzeltens", "dzidrs", "sarkans", "viegli sārts", "viegli sangvinozs", "sangvinozs", "ar recekļiem", "duļķains"]
+CATH_LOOKS = ["(no catheter)", "dzeltens", "dzidrs", "sarkanīgs", "sarkans", "viegli sārts", "viegli sangvinozs", "sangvinozs", "ar recekļiem", "duļķains"]
 DRAIN_LOOKS = ["(no drain)", "serozi", "serozi-sangvinozi", "sangvinozi-serozi", "serosangvinozi", "sangvinozi"]
 DRESSINGS = {  # "Pārsiešana" choice -> text
     "(no dressing)": "",
@@ -6120,6 +6351,9 @@ DEC_PRESETS = {  # typical findings filled into every day card (you can still ch
                    "voiding": "Mikcija brīva, spontāna, urīns ar nelielu asiņu piejaukumu.", "notes": ""},
     "TURP": {"cath_look": "viegli sārts", "drain_look": "(no drain)", "dressing": "(no dressing)",
              "abdomen": "Vēders palpatori mīksts, nesāpīgs.", "notes": "Turpina urīnpūšļa skalošanu."},
+    "Cystolithotripsy (3-way catheter)": {"cath_look": "sarkanīgs", "drain_look": "(no drain)",
+                                          "dressing": "(no dressing)", "abdomen": "Vēders palpatori mīksts, nesāpīgs.",
+                                          "voiding": "", "notes": "Urīnpūšļa skalošana nav nepieciešama."},
     "Urethrotomy / dilation (catheter)": {"cath_look": "dzeltens", "drain_look": "(no drain)",
                                           "dressing": "(no dressing)", "abdomen": "Vēders palpatori mīksts, nesāpīgs.",
                                           "voiding": "", "notes": "Urīnpūšļa ilgkatetrs funkcionē."},
@@ -6287,6 +6521,65 @@ FURS_PLACES = {"Renal pelvis": "nieres bļodiņā", "Upper calyx group": "augš�
                "Middle calyx group": "vidējā kausiņu grupā", "Lower calyx group": "apakšējā kausiņu grupā"}
 FURS_ACTIONS = ["Laser lithotripsy", "Basket extraction", "Move lower-pole stone up (basket)"]
 LASER_MODE = {"Fragmenting": "fragmentācijas režīmā", "Dusting": "pulverizācijas (dusting) režīmā"}
+
+
+def cystolithotripsy_operation(c1, c2, c3, pt_acc):
+    """Transurethral cystolithotripsy (department format). Returns (paragraphs, name)."""
+    st.caption("EAU: transurethral cystolithotripsy where possible (strong), preferably with a continuous-flow "
+               "instrument (nephroscope or resectoscope, weak); laser, pneumatic and mechanical lithotripsy are "
+               "equivalent. Send the stone for analysis.")
+    pt_nom = "Paciente" if pt_acc == "Pacienti" else "Pacients"
+    anesthesia = c1.selectbox("Anestēzija", ["Intubācijas narkozē", "Spinālā anestēzijā"], key="op-cl-an")
+    scope = c2.selectbox("Instruments", ["cistoskopu", "nefroskopu (nepārtrauktas plūsmas)",
+                                         "rezektoskopu (nepārtrauktas plūsmas)"], key="op-cl-scope")
+    energy = c3.selectbox("Litotripsija", ["lāzers (Ho:YAG)", "pneimatiskā", "mehāniskais litotriptors"],
+                          key="op-cl-energy")
+    mucosa = c1.selectbox("Gļotāda", ["neizmainīta", "hiperemēta", "trabekulāra", "trabekulāra, ar pseidodivertikuliem"],
+                          key="op-cl-mucosa")
+    urine = c2.selectbox("Urīns", ["dzidrs", "duļķains"], key="op-cl-urine")
+    many = c3.radio("Konkrementi", ["Viens", "Vairāki"], horizontal=True, key="op-cl-many") == "Vairāki"
+    size = c1.number_input("Izmērs (cm)", 0.0, 15.0, value=None, step=0.5, key="op-cl-size")
+    shape = c2.selectbox("Forma", ["ovālas formas", "apaļas formas", "neregulāras formas"], key="op-cl-shape")
+    fr = c3.selectbox("3-kanālu katetrs (Fr)", ["18", "20", "22", "24"], index=2, key="op-cl-fr")
+    balloon = c1.number_input("Balons (ml)", 5, 60, 15, key="op-cl-balloon")
+    colour = c2.selectbox("Urīns pa katetru", ["viegli rozīgas krāsas", "dzidrs", "sārtas krāsas"], key="op-cl-colour")
+    ward = c3.text_input("Pārved uz", "4. nodaļu", key="op-cl-ward")
+    prostate = st.text_input("Papildu atrade (optional)", key="op-cl-extra",
+                             placeholder="e.g. Prostatas vidējā daiva izvirzās urīnpūslī.")
+    codes = st.checkbox("Manipulāciju kodi tekstā", True, key="op-cl-codes")
+    k1, k2 = st.columns(2)
+    code_scope = k1.text_input("Cistoskopijas kods", "19161", key="op-cl-code1") if codes else ""
+    code_laser = k2.text_input("Litotripsijas kods", "19175", key="op-cl-code2") if codes else ""
+    tag = lambda code: f" ({code.strip()})" if codes and code.strip() else ""
+    laser = energy.startswith("lāzers")
+    size_text = (f" ~{size:g} cm lielu" if size else "").replace(".", ",")
+    if many:
+        stones = f"vairākus{(' līdz' + size_text.replace(' lielu', ' lielus')) if size else ''} konkrementus"
+    else:
+        stones = f"vienu{size_text} {shape} konkrementu"
+    if laser:
+        litho = (f"Caur {scope.split(' ')[0]} ievada lāzera stīgu{tag(code_laser)}. Vizuālā kontrolē veic "
+                 f"{'konkrementu' if many else 'konkrementa'} fragmentāciju līdz sīkām šķembām. Evakuē lāzera stīgu.")
+    elif energy == "pneimatiskā":
+        litho = (f"Caur {scope.split(' ')[0]} ievada pneimatiskā litotriptora zondi{tag(code_laser)}. Vizuālā kontrolē "
+                 f"veic {'konkrementu' if many else 'konkrementa'} fragmentāciju līdz sīkām šķembām. Evakuē zondi.")
+    else:
+        litho = (f"Ievada mehānisko litotriptoru{tag(code_laser)} un vizuālā kontrolē fragmentē "
+                 f"{'konkrementus' if many else 'konkrementu'} līdz sīkām šķembām.")
+    text = [
+        f"{pt_nom} atrodas dorsālās litotomijas guļā. {anesthesia}, pēc operācijas lauka apdares ar polispirtu "
+        f"šķīdumu urīnpūslī ievada {scope.split(' (')[0]}{tag(code_scope)}. Instrumenta ievadīšana brīva. "
+        f"Urīnpūšļa gļotāda {mucosa}, urīns {urine}. Urīnpūšļa lūmenā vizualizē {stones}."
+        + (f" {prostate.strip().rstrip('.')}." if prostate.strip() else "")
+        + f" {litho} Atskalo šķembas; kontroles cistoskopijā atlieku konkrementus nekonstatē. Hemostāze apmierinoša. "
+        "Evakuē instrumentu.",
+        f"Operāciju nobeidzot urīnpūslī ievada {fr} Fr izmēra 3-kanālu Foley katetru, balons uzpildīts līdz "
+        f"{balloon} ml. Pa katetru {colour if colour == 'dzidrs' else colour + ' urīns'}"
+        + (" urīns" if colour == "dzidrs" else "") + ".",
+        f"{pt_nom} vispārēji apmierinošā stāvoklī pārved uz {ward.strip()}. Konkrementa fragmentus nosūta ķīmiskā "
+        "sastāva analīzei.",
+    ]
+    return text, "Cistoskopija, cistolitotripsija"
 
 
 def stricture_operation(op, c1, c2, c3, pt_dat, pt_acc):
@@ -6576,7 +6869,7 @@ def render_operation(sex):
     pt_acc = "Pacienti" if woman else "Pacientu"
     st.subheader("Operācijas apraksts")
     op = st.selectbox("Operation", ["TURP", "TURU", "Re-TURU (scar resection)", "Circumcision", "Cystoscopy, stent removal", "URS (semirigid)", "FURS (flexible)",
-                                    "Optical urethrotomy (DVIU)", "Urethral dilation", "Meatotomy",
+                                    "Cystolithotripsy", "Optical urethrotomy (DVIU)", "Urethral dilation", "Meatotomy",
                                     "Urethroplasty (EPA / buccal graft)",
                                     "Epididymal tumour extirpation", "Hydrocele plasty", "Scrotal mass excision",
                                     "Laparoscopic radical prostatectomy", "Laparoscopic nephrectomy",
@@ -6729,6 +7022,8 @@ def render_operation(sex):
                     f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz nodaļu."]
             if histology.strip():
                 text.append(f"\nHistoloģija: {histology.strip()}")
+        elif op == "Cystolithotripsy":
+            text, name = cystolithotripsy_operation(c1, c2, c3, pt_acc)
         elif op in ("Optical urethrotomy (DVIU)", "Urethral dilation", "Meatotomy", "Urethroplasty (EPA / buccal graft)"):
             text, name = stricture_operation(op, c1, c2, c3, pt_dat, pt_acc)
         elif op in ("URS (semirigid)", "FURS (flexible)"):
@@ -6943,7 +7238,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-23-stricture2 · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-23-bladderstone · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
