@@ -613,6 +613,23 @@ MODIFIERS = {
         "options": ["Unknown", "Iatrogenic (catheter / transurethral surgery)", "Lichen sclerosus", "Trauma", "Infection"],
     },
     "Previous stricture treatment": {"type": "toggle"},
+    "Stricture compensation": {"type": "single", "default_index": 0,
+                               "options": ["Not stated", "Compensated", "Subcompensated", "Decompensated"]},
+    "Stricture verified by": {"type": "multi", "optional": True, "options": ["Cystoscopy", "Urethrography"],
+                              "default_selected": ["Cystoscopy"]},
+    "Urethrotomy instrument": {"type": "single", "options": ["Cold knife (Sachse)", "Laser"],
+                               "show_if": {"Stricture operation": "Internal urethrotomy (DVIU)"}},
+    "Also performed (N35)": {"type": "text", "optional": True,
+                             "placeholder": "optional, in Latvian, e.g. urīnpūšļa konkrementa evakuācija"},
+    "Rest after endoscopic treatment": {"type": "single", "default_index": 0,
+                                        "options": ["1 week", "2 weeks", "4 weeks", "1 month"],
+                                        "show_if": {"Stricture operation": ["Urethral dilation",
+                                                                            "Internal urethrotomy (DVIU)"]}},
+    "Catheter removal place (N35)": {"type": "single", "default_index": 0,
+                                     "options": ["PSKUS outpatient clinic", "Family doctor's practice", "Not stated"],
+                                     "show_if": {"Catheter at discharge (N35)": "In place"}},
+    "Catheter removal time (N35)": {"type": "text", "optional": True, "placeholder": "optional, e.g. 12:45",
+                                    "show_if": {"Catheter at discharge (N35)": "In place"}},
     "Stricture operation": {
         "type": "single",
         "options": ["Meatotomy", "Meatoplasty", "Urethral dilation", "Internal urethrotomy (DVIU)",
@@ -874,20 +891,22 @@ DIAGNOSIS_MODIFIERS = {
     ],
     "N35": [
         ("1. Admission and stricture",
-         ["Admission", "Stricture location", "Stricture length (cm)", "Stricture cause", "Previous stricture treatment"]),
+         ["Admission", "Stricture location", "Stricture length (cm)", "Stricture compensation", "Stricture cause",
+          "Previous stricture treatment", "Stricture verified by", "Other diagnoses (optional)"]),
         ("2. Epicystostomy at NMC",
          ["Failed urethral catheterisation", "Ultrasound guided", "Procedure date", "Catheter Fr (N35)",
           "Drained volume (ml)", "Urine appearance", "Creatinine raised (N35)", "Fever at NMC", "Urology consultation"],
          {"_department": "NMC"}),
         ("2. Operation",
-         ["Stricture operation", "N35 anesthesia", "Procedure date", "Postoperative course",
-          "Postoperative complications", "Tissue for histology", "Histology result (N35)"],
+         ["Stricture operation", "Urethrotomy instrument", "Also performed (N35)", "N35 anesthesia", "Procedure date",
+          "Postoperative course", "Postoperative complications", "Tissue for histology", "Histology result (N35)"],
          {"_department": "4"}),
         ("3. Catheter and voiding",
          ["Catheter Fr (N35)", "Catheter at discharge (N35)", "Planned catheter removal (N35)",
-          "Voiding after removal (N35)", "Self-dilation taught"],
+          "Catheter removal place (N35)", "Catheter removal time (N35)", "Voiding after removal (N35)",
+          "Self-dilation taught"],
          {"_department": "4"}),
-        ("4. Other", ["Investigations (N35)"], {"_department": "4"}),
+        ("4. Other", ["Investigations (N35)", "Rest after endoscopic treatment"], {"_department": "4"}),
     ],
     "Z43.6": [
         ("1. Nephrostomy and co-diagnoses", ["Nephrostomy side", "Nephrostomy co-diagnoses"]),
@@ -1304,20 +1323,28 @@ IMAGING_TEXT = {"Ultrasound": "USS nierēm un urīnpūslim", "CT": "CT vēdera d
 HYDRO_TEXT = {"Right": "labās puses", "Left": "kreisās puses", "Both": "abpusēja"}
 
 # ----- Wording for urethral stricture (N35) -----
-STRICTURE_DX = {"Meatus": "Meatus striktūra", "Penile urethra": "Urīnizvadkanāla penilās daļas striktūra",
-                "Bulbar urethra": "Urīnizvadkanāla bulbārās daļas striktūra",
-                "Membranous (posterior) urethra": "Urīnizvadkanāla membranozās daļas striktūra",
-                "Not specified": "Urīnizvadkanāla striktūra"}
-STRICTURE_EPI = {"Meatus": "urīnizvadkanāla ārējās atveres sašaurinājumu",
-                 "Penile urethra": "urīnizvadkanāla penilās daļas striktūru",
-                 "Bulbar urethra": "urīnizvadkanāla bulbārās daļas striktūru",
-                 "Membranous (posterior) urethra": "urīnizvadkanāla membranozās daļas striktūru",
-                 "Not specified": "urīnizvadkanāla striktūru"}
+STRICTURE_DX = {"Meatus": "Meatus striktūra", "Penile urethra": "Uretras brīvās daļas striktūra",
+                "Bulbar urethra": "Uretras bulbārās daļas striktūra",
+                "Membranous (posterior) urethra": "Uretras membranozās daļas striktūra",
+                "Not specified": "Uretras striktūra"}
+STRICTURE_EPI = {"Meatus": "uretras ārējās atveres (meatus) striktūru",
+                 "Penile urethra": "uretras brīvās daļas striktūru",
+                 "Bulbar urethra": "uretras bulbārās daļas striktūru",
+                 "Membranous (posterior) urethra": "uretras membranozās daļas striktūru",
+                 "Not specified": "uretras striktūru"}
+STRICTURE_LOC = {"Meatus": "ārējā atverē (meatus)", "Penile urethra": "brīvajā daļā",
+                 "Bulbar urethra": "bulbārajā daļā", "Membranous (posterior) urethra": "membranozajā daļā",
+                 "Not specified": ""}  # "Uretras ... konstatē striktūru"
+COMPENSATION = {"Compensated": ("kompensēta", "kompensētu"), "Subcompensated": ("subkompensēta", "subkompensētu"),
+                "Decompensated": ("dekompensēta", "dekompensētu")}
+VERIFIED_BY = {"Cystoscopy": "cistoskopiski", "Urethrography": "uretrogrāfiski"}
+CATHETER_PLACE_N35 = {"PSKUS outpatient clinic": " P. Stradiņa KUS poliklīnikā",
+                      "Family doctor's practice": " ģimenes ārsta praksē", "Not stated": ""}
 STRICTURE_OP = {  # (as done, after "st. pēc")
     "Meatotomy": ("meatotomija", "meatotomijas"),
     "Meatoplasty": ("meatoplastika", "meatoplastikas"),
-    "Urethral dilation": ("urīnizvadkanāla dilatācija", "urīnizvadkanāla dilatācijas"),
-    "Internal urethrotomy (DVIU)": ("iekšējā optiskā uretrotomija", "iekšējās optiskās uretrotomijas"),
+    "Urethral dilation": ("uretras dilatācija", "uretras dilatācijas"),
+    "Internal urethrotomy (DVIU)": ("optiskā uretrotomija", "optiskās uretrotomijas"),
     "Urethroplasty – excision and primary anastomosis": (
         "uretroplastika ar striktūras ekscīziju un primāru anastomozi",
         "uretroplastikas ar striktūras ekscīziju un primāru anastomozi"),
@@ -1736,6 +1763,16 @@ BLOCKS["D29.4"] = [_c61_blocks["paracetamol"], IBUPROFEN_BLOCK, _c61_blocks["ult
                         "antibiotics (EAU / German S3 guideline: low evidence); keep it for an inflamed or infected "
                         "cyst or wound.")]
 BLOCK_WARNINGS["D29.4"] = BLOCK_WARNINGS["N10"]
+TAMSULOSIN_LONG_BLOCK = {
+    "id": "tamsulosin-long", "group": G_ALPHA, "title": "Tamsulosin 0.4 mg once daily (long-term)",
+    "text": "Caps. Tamsulosin 0,4 mg 1 reizi dienā p/o (ilgstoši).",
+    "note": "From your urethrotomy example, for coexisting BPH symptoms. It does not treat the stricture itself.",
+}
+BLOCKS["N35"] = BLOCKS["N35"] + [TAMSULOSIN_LONG_BLOCK,
+                                 dict({b["id"]: b for b in BLOCKS["N10"]}["canephron"],
+                                      text="Tab. Canephron pa 2 tabletēm 3 reizes dienā 1 mēnesi.",
+                                      note="From your urethrotomy example. Herbal supportive product; there is no "
+                                           "evidence that it prevents infection or stricture recurrence.")]
 BLOCK_WARNINGS["N10"].append({"ids": ["tadalafil", "tadalafil-quarter"], "text": "Two tadalafil regimens are chosen: keep one."})
 BLOCK_WARNINGS["N10"] += [
     {"ids": ["fraxiparine", "fraxiparine-04"], "text": "Two Fraxiparine doses are chosen (0,3 ml and 0,4 ml): keep one."},
@@ -3764,23 +3801,39 @@ def n35_parts(sex, v, blocks=()):
     f = SEX_FORMS["Man"]
     op = v["Stricture operation"]
     op_nom, op_gen = STRICTURE_OP[op]
+    if op == "Internal urethrotomy (DVIU)" and v.get("Urethrotomy instrument") == "Laser":
+        op_nom, op_gen = "lāzeruretrotomija", "lāzeruretrotomijas"
+    elif op == "Internal urethrotomy (DVIU)":
+        op_nom, op_gen = "optiskā uretrotomija (pēc Sachse)", "optiskās uretrotomijas (pēc Sachse)"
+    also = (v.get("Also performed (N35)") or "").strip().rstrip(".")
     day = fmt_date(v["Procedure date"])
     length = v.get("Stricture length (cm)")
     catheter_in = v["Catheter at discharge (N35)"] == "In place"
+    comp = COMPENSATION.get(v.get("Stricture compensation"))
 
     # Clinical diagnosis (department format: "Meatus striktūra, st. pēc meatotomijas, urīna ilgkatetrs (date).")
     first = STRICTURE_DX[v["Stricture location"]]
+    if comp:
+        first = first.replace("striktūra", f"{comp[0]} striktūra")
     if v.get("Previous stricture treatment"):
         first = "Recidivējoša " + first[0].lower() + first[1:]
     if length not in (None, ""):
         first += f" ({length:g} cm)"
-    diagnosis = f"{first}, st. pēc {op_gen}" + (", urīna ilgkatetrs" if catheter_in else "") + f" ({day})."
+    diagnosis = (f"{first}, st. pēc {op_gen}" + (f" un {also}" if also else "")
+                 + (", urīna ilgkatetrs" if catheter_in else "") + f" ({day}).")
     cause = v.get("Stricture cause")
     if cause in STRICTURE_CAUSE_DX:
         diagnosis += "\n" + STRICTURE_CAUSE_DX[cause]
+    if not blank(v.get("Other diagnoses (optional)")):
+        diagnosis += "\n" + v["Other diagnoses (optional)"].strip().rstrip(".") + "."
 
     # Epicrisis
     reason = STRICTURE_EPI[v["Stricture location"]]
+    if comp:
+        reason = reason.replace("striktūru", f"{comp[1]} striktūru")
+    verified = [VERIFIED_BY[x] for x in (v.get("Stricture verified by") or []) if x in VERIFIED_BY]
+    if verified:
+        reason = f"{lv_list(verified)} verificētu {reason}"
     if length not in (None, ""):
         reason += f" (garums ap {length:g} cm)"
     if v.get("Previous stricture treatment"):
@@ -3792,8 +3845,9 @@ def n35_parts(sex, v, blocks=()):
         postop = "ar komplikācijām: " + v["Postoperative complications"].strip().rstrip(".")
     sentences = [
         f"{f['Pacients']} {f['stacionets']} P. Stradiņa KUS 4. uroloģijas nodaļā {admission} sakarā ar {reason}.",
-        f"{f['Pacients']} tiek {f['gatavots']} operatīvai terapijai, {day} {N35_ANESTHESIA[v['N35 anesthesia']]} tiek "
-        f"veikta {op_nom}, tiek ievadīts Fr{v['Catheter Fr (N35)']} izmēra urīna ilgkatetrs.",
+        f"{f['Pacients']} tiek {f['gatavots']} {'endoskopiskai manipulācijai' if op in ENDOSCOPIC else 'operatīvai terapijai'}"
+        f", {day} {N35_ANESTHESIA[v['N35 anesthesia']]} tiek veikta {op_nom}" + (f" un {also}" if also else "")
+        + f", tiek ievadīts Fr{v['Catheter Fr (N35)']} izmēra urīna ilgkatetrs.",
         f"Pēcoperācijas periods {postop}.",
     ]
     if v["Tissue for histology"] == "Pending":
@@ -3806,7 +3860,8 @@ def n35_parts(sex, v, blocks=()):
                      "ģimenes ārsta uzraudzībā" + (" ar funkcionējošu urīna ilgkatetru" if catheter_in else "")
                      + ", sniegtas rekomendācijas.")
     investigations = (v.get("Investigations (N35)") or "").strip().rstrip(".") or "veikti ambulatorā kārtā, pieļauj operāciju"
-    epicrisis = " ".join(sentences) + f"\n\nIzmeklējumi: {investigations}.\n\nOperācijas: {op_nom} ({day})."
+    epicrisis = (" ".join(sentences) + f"\n\nIzmeklējumi: {investigations}.\n\nOperācijas: {op_nom}"
+                 + (f", {also}" if also else "") + f" ({day}).")
 
     # Recommendations
     recs = ["• Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā.",
@@ -3822,13 +3877,20 @@ def n35_parts(sex, v, blocks=()):
                  "• Brūces apstrāde: apmazgāt ar viegli sārtas krāsas kālija permanganāta šķīdumu un apstrādāt ar "
                  "Betadine 100 mg/ml; diegu evakuācija nav nepieciešama, ja lietoti uzsūcošie diegi."]
     else:
-        recs += ["• Režīms – saudzējošs 1 nedēļu no operācijas dienas, izvairīties no pārmērīgas fiziskas slodzes."]
+        rest = WEEKS_TEXT.get(v.get("Rest after endoscopic treatment") or "", "1 nedēļu")
+        recs += [f"• Režīms – saudzējošs {rest} no operācijas dienas, izvairīties no pārmērīgas fiziskas slodzes, "
+                 "necelt smagumus virs 10 kg."]
     if catheter_in:
-        recs += ["• Urīna ilgkatetra aprūpe: uzturēt noslēgtu drenāžas sistēmu, maisu novietot zem urīnpūšļa līmeņa, "
-                 "sekot urīna attecei."]
+        recs += ["• Kopt urīna ilgkatetru: uzturēt noslēgtu drenāžas sistēmu, maisu novietot zem urīnpūšļa līmeņa, "
+                 "sekot urīna attecei; urīna savākšanas maisa maiņa ik pēc 3–7 dienām."]
         removal = v.get("Planned catheter removal (N35)")
-        when = fmt_date(removal) if removal else "pēc ārstējošā urologa norādījumiem"
-        recs.append(f"• Urīna ilgkatetra evakuācija plānota {when}.")
+        if removal:
+            place = CATHETER_PLACE_N35.get(v.get("Catheter removal place (N35)"), "")
+            time = (v.get("Catheter removal time (N35)") or "").strip()
+            recs.append(f"• Urīna ilgkatetra evakuācija plānota{place} {fmt_date(removal)}"
+                        + (f" plkst. {time}" if time else "") + ".")
+        else:
+            recs.append("• Urīna ilgkatetra evakuācija plānota pēc ārstējošā urologa norādījumiem.")
     if v.get("Self-dilation taught"):
         recs.append("• Turpināt urīnizvadkanāla pašdilatāciju (pašbužēšanu) saskaņā ar sniegtajām instrukcijām.")
     if cause == "Lichen sclerosus":
@@ -3865,11 +3927,19 @@ def n35_checks(v):
                 and (removal - v["Procedure date"]).days > 3):
             cautions.append("EAU: remove the catheter within 72 hours after uncomplicated urethrotomy or dilation.")
         if v.get("Previous stricture treatment"):
-            cautions.append("Recurrent stricture after endoscopic treatment: repeat urethrotomy/dilation rarely "
-                            "succeeds; EAU advises offering urethroplasty.")
-        if location in ("Penile urethra", "Membranous (posterior) urethra") or (length not in (None, "") and length > 2):
-            cautions.append("Urethrotomy works best for short (under 2 cm) bulbar strictures; for penile or longer "
-                            "strictures EAU favours urethroplasty.")
+            cautions.append("Recurrent stricture: EAU (strong) – do not repeat DVIU/dilatation more than twice if "
+                            "urethroplasty is a viable option.")
+        if location == "Penile urethra" and op == "Internal urethrotomy (DVIU)":
+            cautions.append("EAU (strong): do not use DVIU for penile strictures – augmentation urethroplasty is the "
+                            "standard.")
+        if length not in (None, "") and length > 2:
+            cautions.append("EAU (strong): do not use DVIU/dilatation as the only treatment for strictures longer "
+                            "than 2 cm.")
+        if location == "Membranous (posterior) urethra":
+            cautions.append("EAU: DVIU/dilatation is meant for short bulbar strictures; membranous strictures carry a "
+                            "risk of incontinence – check the indication.")
+        if location == "Penile urethra" and op == "Urethral dilation":
+            cautions.append("Penile stricture: EAU (strong) recommends augmentation urethroplasty.")
     if (op in URETHROPLASTY and v.get("Catheter at discharge (N35)") == "In place"
             and "rug_pericath" not in (v.get("_test_ids") or [])):
         cautions.append("EAU (strong recommendation): perform a urethrogram before catheter removal after urethroplasty "
@@ -4987,7 +5057,9 @@ def n35_tests(v):
                                               "with a symptom score is the usual check for an early recurrence."))
         out.append(_s("pvr", "consider", "3m", "Helpful together with uroflowmetry."))
         out.append(_s("proms", "consider", "3m", "A symptom questionnaire to follow the result."))
-        out.append(_s("urethrocysto", "consider", "symptoms", "If the stream weakens or the symptoms return."))
+        out.append(_s("urethrocysto", "consider", "3m", "No EAU schedule after urethrotomy/dilation; a control "
+                                                        "cystoscopy at 3 months is your department's practice – or only "
+                                                        "if the stream weakens."))
     return out
 
 
@@ -5603,13 +5675,23 @@ PE_PRESETS = {
     "Laparoscopic pyeloplasty – PUJ stricture": ("Planned", "{adj} puses laparoskopiska pieloplastika",
                                                  "{adj} puses pieloureterālā segmenta striktūru",
                                                  "{Adj} puses pieloureterālā segmenta striktūra", "", ""),
-    "Urethroplasty – urethral stricture": ("Planned", "uretroplastika", "urīnizvadkanāla striktūru",
-                                           "Urīnizvadkanāla striktūra", "", ""),
+    "Optical urethrotomy – urethral stricture": ("Planned", "optiskā uretrotomija", "{part_acc}", "{part_dx}", "", ""),
+    "Laser urethrotomy – urethral stricture": ("Planned", "lāzeruretrotomija", "{part_acc}", "{part_dx}", "", ""),
+    "Urethral dilation – urethral stricture": ("Planned", "uretras dilatācija", "{part_acc}", "{part_dx}", "", ""),
+    "Meatotomy – meatal stricture": ("Planned", "meatotomija", "uretras ārējās atveres (meatus) striktūru",
+                                     "Meatus striktūra", "", ""),
+    "Urethroplasty – urethral stricture": ("Planned", "uretroplastika", "{part_acc}", "{part_dx}", "", ""),
     "Hematuria – acute admission (no operation)": (
         "Acute", "", "", "Makrohematūrija", "asins piejaukumu urīnā",
         "Izmeklēts NMC. Veic CT ar i/v kontrastvielu."),
     "Acute admission, other (no operation)": ("Acute", "", "", "", "", "Izmeklēts NMC."),
     "Other (type it)": ("Planned", "", "", "", "", ""),
+}
+PE_PARTS = {  # urethral stricture location -> words for the presets with {part_...}
+    "Penile (brīvā daļa)": {"part_acc": "uretras brīvās daļas striktūru", "part_dx": "Uretras brīvās daļas striktūra"},
+    "Bulbar": {"part_acc": "uretras bulbārās daļas striktūru", "part_dx": "Uretras bulbārās daļas striktūra"},
+    "Membranous": {"part_acc": "uretras membranozās daļas striktūru", "part_dx": "Uretras membranozās daļas striktūra"},
+    "Not specified": {"part_acc": "uretras striktūru", "part_dx": "Uretras striktūra"},
 }
 PE_INDICATIONS = {  # default indication text for these presets (EAU: second resection within 2–6 weeks)
     "Re-TURU – bladder cancer after TURU": "atkārtota rezekcija pēc TURU (pT1 audzējs / nepilnīga rezekcija / "
@@ -5819,7 +5901,10 @@ def render_primary_evaluation(sex):
         preset = st.selectbox("Preset", list(PE_PRESETS), key="pe-preset")
         adm_d, op_d, acc_d, dx_d, compl_d, course_d = PE_PRESETS[preset]
         side = None
-        if "{" in op_d + acc_d + dx_d:  # this preset has a side: the side words change with it
+        if "{part" in op_d + acc_d + dx_d:  # urethral stricture: the location words change
+            side = st.radio("Stricture location", list(PE_PARTS), horizontal=True, key="pe-part")
+            op_d, acc_d, dx_d = (t.format(**PE_PARTS[side]) for t in (op_d, acc_d, dx_d))
+        elif "{" in op_d + acc_d + dx_d:  # this preset has a side: the side words change with it
             side = st.radio("Side", ["Left", "Right"], horizontal=True, key="pe-side")
             words = PE_SIDE_WORDS[side]
             op_d, acc_d, dx_d = (t.format(**words) for t in (op_d, acc_d, dx_d))
@@ -5865,7 +5950,7 @@ def render_primary_evaluation(sex):
         kidneys = c1.selectbox("Nieres apklauvējot", ["Nesāpīgas", "Sāpīga labā", "Sāpīga kreisā", "Sāpīgas abas"],
                                key="pe-kidneys")
         bladder = c2.selectbox("Urīnpūslis", ["Nepalpējas", "Palpējas, pilns"], key="pe-bladder")
-        genitals_d = PE_GENITALS.get(preset, "neizmainīti").format(**PE_SIDE_WORDS[side or "Left"])
+        genitals_d = PE_GENITALS.get(preset, "neizmainīti").format(**PE_SIDE_WORDS.get(side, PE_SIDE_WORDS["Left"]))
         genitals = c3.text_input("Ārējie dzimumorgāni", genitals_d, key=f"pe-genitals-{tag}")
     with st.expander("4. Conclusion and plan", expanded=True):
         if operation.strip():
@@ -5974,7 +6059,7 @@ DEC_FIELDS = {  # widget name -> default value of a new day
     "dressing": "(no dressing)",
     "ending": "Turpina ārstēšanu stacionārā.",
 }
-CATH_LOOKS = ["(no catheter)", "dzeltens", "dzidrs", "viegli sārts", "viegli sangvinozs", "sangvinozs", "ar recekļiem", "duļķains"]
+CATH_LOOKS = ["(no catheter)", "dzeltens", "dzidrs", "sarkans", "viegli sārts", "viegli sangvinozs", "sangvinozs", "ar recekļiem", "duļķains"]
 DRAIN_LOOKS = ["(no drain)", "serozi", "serozi-sangvinozi", "sangvinozi-serozi", "serosangvinozi", "sangvinozi"]
 DRESSINGS = {  # "Pārsiešana" choice -> text
     "(no dressing)": "",
@@ -6035,6 +6120,14 @@ DEC_PRESETS = {  # typical findings filled into every day card (you can still ch
                    "voiding": "Mikcija brīva, spontāna, urīns ar nelielu asiņu piejaukumu.", "notes": ""},
     "TURP": {"cath_look": "viegli sārts", "drain_look": "(no drain)", "dressing": "(no dressing)",
              "abdomen": "Vēders palpatori mīksts, nesāpīgs.", "notes": "Turpina urīnpūšļa skalošanu."},
+    "Urethrotomy / dilation (catheter)": {"cath_look": "dzeltens", "drain_look": "(no drain)",
+                                          "dressing": "(no dressing)", "abdomen": "Vēders palpatori mīksts, nesāpīgs.",
+                                          "voiding": "", "notes": "Urīnpūšļa ilgkatetrs funkcionē."},
+    "Urethroplasty (catheter, perineal wound)": {"cath_look": "dzeltens", "drain_look": "(no drain)",
+                                                 "dressing": "Clean (short)",
+                                                 "abdomen": "Vēders palpatori mīksts, nesāpīgs.", "voiding": "",
+                                                 "notes": "Urīnpūšļa ilgkatetrs funkcionē. Starpenes brūce bez "
+                                                          "hematomas."},
     "Scrotal operation": {"cath_look": "(no catheter)", "drain_look": "(no drain)", "dressing": "Clean (short)",
                           "abdomen": "Vēders palpatori mīksts, nesāpīgs.",
                           "voiding": "Mikcija brīva, spontāna.",
@@ -6194,6 +6287,115 @@ FURS_PLACES = {"Renal pelvis": "nieres bļodiņā", "Upper calyx group": "augš�
                "Middle calyx group": "vidējā kausiņu grupā", "Lower calyx group": "apakšējā kausiņu grupā"}
 FURS_ACTIONS = ["Laser lithotripsy", "Basket extraction", "Move lower-pole stone up (basket)"]
 LASER_MODE = {"Fragmenting": "fragmentācijas režīmā", "Dusting": "pulverizācijas (dusting) režīmā"}
+
+
+def stricture_operation(op, c1, c2, c3, pt_dat, pt_acc):
+    """Operation descriptions for urethral strictures. Returns (paragraphs, name)."""
+    notes = {
+        "Optical urethrotomy (DVIU)": "EAU: DVIU/dilatation for a primary, single, short (< 2 cm) bulbar stricture; not "
+                                      "for penile strictures (strong); not more than twice if urethroplasty is possible "
+                                      "(strong); laser and cold knife are equivalent. Catheter ≤ 72 h after an "
+                                      "uncomplicated DVIU (weak).",
+        "Urethral dilation": "EAU: visually controlled dilatation rather than blind dilatation (weak); same indications "
+                             "as DVIU.",
+        "Meatotomy": "EAU: meatoplasty or distal urethroplasty for meatal stenosis (weak); send tissue if lichen "
+                     "sclerosus is suspected.",
+        "Urethroplasty (EPA / buccal graft)": "EAU: transecting EPA for short post-traumatic bulbar strictures (strong); "
+                                              "free graft for bulbar strictures not suitable for EPA (strong); dorsal or "
+                                              "ventral graft as per expertise; urethrogram before catheter removal "
+                                              "(strong). Check this template against your surgeons' practice.",
+    }
+    st.caption(notes[op])
+    anesthesia = c1.selectbox("Anestēzija", ["spinālā anestēzijā", "vispārējā anestēzijā", "vietējā anestēzijā"],
+                              key=f"op-st-an-{op}")
+    an = anesthesia[0].upper() + anesthesia[1:]
+    fr = c2.selectbox("Katetrs (Ch)", ["14", "16", "18", "20"], index=2 if op != "Urethroplasty (EPA / buccal graft)"
+                      else 1, key=f"op-st-fr-{op}")
+    if op != "Meatotomy":
+        loc_key = c3.selectbox("Striktūras vieta", [k for k in STRICTURE_LOC if k != "Meatus"],
+                               index=1 if op == "Urethroplasty (EPA / buccal graft)" else 0, key=f"op-st-loc-{op}")
+        loc = STRICTURE_LOC[loc_key]
+    if op == "Optical urethrotomy (DVIU)":
+        tool = c1.selectbox("Instruments", ["Sachse nazis (aukstais nazis)", "lāzers (Ho:YAG)", "lāzers (tūlija)"],
+                            key="op-st-tool")
+        clock = c2.selectbox("Incīzija", ["pl. 12", "pl. 11 un 1", "pl. 12 un 6"], key="op-st-clock")
+        wire = c3.checkbox("Drošības stīga", True, key="op-st-wire")
+        bladder = st.text_input("Urīnpūšļa atrade (optional)", key="op-st-bladder",
+                                placeholder="e.g. urīnpūslī konkrements Ø 1 cm – evakuē")
+        laser = tool.startswith("lāzers")
+        name = "Lāzeruretrotomija" if laser else "Optiskā uretrotomija (pēc Sachse)"
+        cut = (f"Ievada lāzera šķiedru ({tool.split('(')[1].rstrip(')')}) un veic striktūras pārdalīšanu {clock}"
+               if laser else f"Ar Sachse nazi veic striktūras pārdalīšanu {clock}")
+        text = [f"Pēc operācijas lauka tualetes {anesthesia}, {pt_dat} atrodoties dorsālās litotomijas guļā, uretrā "
+                f"ievada uretrotomu. Uretras distālā daļa neizmainīta. Uretras {loc} konstatē striktūru."
+                + (" Caur striktūru urīnpūslī ievada drošības stīgu." if wire else "")
+                + f" {cut} līdz veseliem audiem, rētaudus pārdalot pilnā biezumā. Instrumentu brīvi ievada "
+                "urīnpūslī; proksimāli citas striktūras nekonstatē."
+                + (f" {bladder.strip().rstrip('.')[0].upper() + bladder.strip().rstrip('.')[1:]}." if bladder.strip()
+                   else " Urīnpūšļa gļotāda bez patoloģiskas atrades.")
+                + " Evakuē instrumentu" + (" un drošības stīgu" if wire else "") + ".",
+                f"Operāciju nobeidzot urīnpūslī ievada Ch{fr} Foley tipa urīnpūšļa ilgkatetru.",
+                f"Vispārējā apmierinošā stāvoklī ar funkcionējošu urīnpūšļa ilgkatetru {pt_acc.lower()} pārved uz "
+                "nodaļu."]
+    elif op == "Urethral dilation":
+        method = c1.selectbox("Dilatācija", ["ar metāla bužiem", "ar fasciālajiem dilatatoriem pa stīgu",
+                                             "ar balona dilatatoru"], key="op-st-method")
+        upto = c2.selectbox("Līdz (Ch)", ["18", "20", "22", "24", "26"], index=2, key="op-st-upto")
+        name = "Uretras dilatācija"
+        text = [f"Pēc operācijas lauka tualetes {anesthesia}, {pt_dat} atrodoties dorsālās litotomijas guļā, uretrā "
+                f"ievada cistoskopu. Uretras {loc} konstatē striktūru. Caur striktūru urīnpūslī ievada vadītājstīgu. "
+                f"Vizuālā kontrolē veic pakāpenisku striktūras dilatāciju {method} līdz Ch{upto}. Kontroles "
+                "uretroskopijā lūmenis brīvs, dziļus gļotādas plīsumus un viltus ceļu nekonstatē. Evakuē instrumentu.",
+                f"Urīnpūslī ievada Ch{fr} Foley tipa urīnpūšļa ilgkatetru.",
+                f"Vispārējā apmierinošā stāvoklī {pt_acc.lower()} pārved uz nodaļu."]
+    elif op == "Meatotomy":
+        length = c3.number_input("Incīzija (mm)", 2, 20, 8, key="op-st-mm")
+        calibre = c1.selectbox("Kalibrē līdz (Ch)", ["18", "20", "22", "24"], index=2, key="op-st-cal")
+        catheter = c2.checkbox("Ilgkatetrs", True, key="op-st-mcath")
+        biopsy = c3.checkbox("Audi histoloģijai", False, key="op-st-mbiopsy")
+        name = "Meatotomija"
+        text = [f"Pēc operācijas lauka apdares {anesthesia} vizualizē sašaurinātu uretras ārējo atveri (meatus). Veic "
+                f"meatus ventrālo incīziju {length} mm garumā līdz normāla platuma uretras lūmenim. Uretras gļotādas "
+                "malas ar atsevišķām uzsūcošām šuvēm (Vicryl 5-0) piešuj glans ādai. Uretru brīvi kalibrē līdz "
+                f"Ch{calibre}. Rūpīga hemostāze."
+                + (f" Urīnpūslī ievada Ch{fr} Foley tipa ilgkatetru." if catheter else "") + " Sterils pārsējs.",
+                f"Vispārējā apmierinošā stāvoklī {pt_acc.lower()} pārved uz nodaļu."]
+        if biopsy:
+            text.append("Izgrieztos audus nosūta histoloģiskai izmeklēšanai.")
+    else:  # urethroplasty
+        kind = c1.selectbox("Tehnika", ["Ekscīzija un primāra anastomoze (EPA)",
+                                        "Vaiga gļotādas transplantāts – dorsāls onlay",
+                                        "Vaiga gļotādas transplantāts – ventrāls onlay"], key="op-st-kind")
+        length = c2.number_input("Striktūras garums (cm)", 0.5, 20.0, 2.0, step=0.5, key="op-st-len")
+        drain = c3.checkbox("Drena", True, key="op-st-drain")
+        cheek = c1.radio("Vaigs", ["Kreisais", "Labais"], horizontal=True, key="op-st-cheek") if "Vaiga" in kind else ""
+        donor = c2.selectbox("Donorvieta", ["šuj ar Vicryl 4-0", "atstāj atvērtu"], key="op-st-donor")             if "Vaiga" in kind else ""
+        len_text = f"{length:g}".replace(".", ",")
+        opening = (f"{an}, {pt_dat} atrodoties litotomijas guļā, pēc operācijas lauka apdares veic perineālu griezienu "
+                   "pa viduslīniju. Pārdala m. bulbospongiosus, izdala un mobilizē bulbāro uretru. Uretrā ievadītā "
+                   f"katetra līmenī lokalizē striktūru (garums ~{len_text} cm).")
+        if kind.startswith("Ekscīzija"):
+            name = "Uretroplastika ar striktūras ekscīziju un primāru anastomozi (EPA)"
+            body = ("Striktūras segmentu pilnībā ekscidē līdz veseliem, labi apasiņotiem uretras galiem. Abus galus "
+                    "spatulē un veido beztensijas anastomozi ar atsevišķām uzsūcošām šuvēm (PDS 5-0). Pirms "
+                    f"anastomozes priekšējās sienas slēgšanas urīnpūslī ievada Ch{fr} silikona katetru.")
+        else:
+            dorsal = "dorsāls" in kind
+            name = f"Uretroplastika ar vaiga gļotādas transplantātu ({'dorsāls' if dorsal else 'ventrāls'} onlay)"
+            body = (f"No {'kreisā' if cheek == 'Kreisais' else 'labā'} vaiga iekšējās virsmas, saudzējot Stenona vada "
+                    f"atveri, izgriež gļotādas transplantātu atbilstoši striktūras garumam; donorvietu {donor}. "
+                    "Transplantātu atbrīvo no zemgļotādas audiem. Uretru atver striktūras garumā "
+                    + ("pa dorsālo sienu (pēc Barbagli)" if dorsal else "pa ventrālo sienu") + " līdz veseliem audiem. "
+                    "Transplantātu novieto " + ("dorsāli uz corpora cavernosa" if dorsal else "ventrāli") + " un fiksē "
+                    "ar nepārtrauktu uzsūcošu šuvi (PDS 5-0), papildinot uretras lūmenu. Pirms uretras slēgšanas "
+                    f"urīnpūslī ievada Ch{fr} silikona katetru.")
+        text = [opening + " " + body,
+                "Rūpīga hemostāze." + (" Brūcē atstāj drenu." if drain else "")
+                + " M. bulbospongiosus un brūci slēdz pa kārtām ar uzsūcošām šuvēm. Sterils spiedošs pārsējs.",
+                f"Vispārējā apmierinošā stāvoklī {pt_acc.lower()} pārved uz nodaļu.",
+                "Izgrieztos audus nosūta histoloģiskai izmeklēšanai." if kind.startswith("Ekscīzija") else ""]
+        text = [t for t in text if t]
+    return text, name
 
 
 def urs_operation(flexible, c1, c2, c3, pt_dat, pt_acc):
@@ -6374,6 +6576,8 @@ def render_operation(sex):
     pt_acc = "Pacienti" if woman else "Pacientu"
     st.subheader("Operācijas apraksts")
     op = st.selectbox("Operation", ["TURP", "TURU", "Re-TURU (scar resection)", "Circumcision", "Cystoscopy, stent removal", "URS (semirigid)", "FURS (flexible)",
+                                    "Optical urethrotomy (DVIU)", "Urethral dilation", "Meatotomy",
+                                    "Urethroplasty (EPA / buccal graft)",
                                     "Epididymal tumour extirpation", "Hydrocele plasty", "Scrotal mass excision",
                                     "Laparoscopic radical prostatectomy", "Laparoscopic nephrectomy",
                                     "Laparoscopic kidney resection",
@@ -6525,6 +6729,8 @@ def render_operation(sex):
                     f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz nodaļu."]
             if histology.strip():
                 text.append(f"\nHistoloģija: {histology.strip()}")
+        elif op in ("Optical urethrotomy (DVIU)", "Urethral dilation", "Meatotomy", "Urethroplasty (EPA / buccal graft)"):
+            text, name = stricture_operation(op, c1, c2, c3, pt_dat, pt_acc)
         elif op in ("URS (semirigid)", "FURS (flexible)"):
             text, name = urs_operation(op == "FURS (flexible)", c1, c2, c3, pt_dat, pt_acc)
         elif op == "Laparoscopic radical prostatectomy":
@@ -6737,7 +6943,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-22-scrotum · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-23-stricture2 · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
