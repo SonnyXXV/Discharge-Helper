@@ -41,6 +41,7 @@ DIAGNOSES = {
     "N13.0": "Hydronephrosis with ureteropelvic junction obstruction (PUJ stricture)",
     "D29.4": "Scrotal mass – benign tumour / cyst of the scrotum (excision)",
     "N21.0": "Bladder stone (cystolithotripsy)",
+    "R33": "Urinary retention – acute (NMC: catheter, sent home)",
     "N20": "Calculus of kidney and ureter (kidney stone disease)",
     "N23": "Unspecified renal colic",
     "N30.0": "Acute cystitis",
@@ -707,6 +708,40 @@ MODIFIERS = {
     "PUJ side": {"type": "single", "options": ["Right", "Left"]},
     # ----- D29.4 scrotal mass (excision in 4. Urology) -----
     # ----- N21.0 bladder stone (cystolithotripsy in 4. Urology) -----
+    # ----- R33 acute urinary retention (NMC, sent home) -----
+    "Retention cause": {"type": "multi", "optional": True,
+                        "options": ["BPH", "Prostate cancer", "Urethral stricture", "Blocked indwelling catheter",
+                                    "Clot retention (hematuria)", "Drug-induced", "After surgery / anaesthesia",
+                                    "Constipation", "Urinary tract infection / prostatitis", "Neurogenic bladder",
+                                    "Bladder hypotonia suspected", "Not clear yet"]},
+    "Retention type": {"type": "single", "default_index": 0,
+                       "options": ["Acute", "Acute-on-chronic (large volume)", "Chronic (overflow)"]},
+    "Retention duration": {"type": "single", "default_index": 2,
+                           "options": ["Hours", "1 day", "2 days", "3 days", "More than 3 days"]},
+    "Previous retention episodes": {"type": "toggle"},
+    "Ultrasound at NMC": {"type": "toggle", "default": True},
+    "Enlarged prostate on US": {"type": "toggle", "show_if": {"Ultrasound at NMC": True, "_sex": "Man"}},
+    "Upper tract dilatation": {"type": "single", "default_index": 0, "options": ["None", "Present"],
+                               "show_if": {"Ultrasound at NMC": True}},
+    "Labs at NMC": {"type": "single", "default_index": 0,
+                    "options": ["Not stated", "No inflammatory changes", "Urinary tract infection", "Raised creatinine",
+                                "UTI and raised creatinine"]},
+    "Other NMC findings (optional)": {"type": "text", "optional": True,
+                                      "placeholder": "optional, full sentence in Latvian, e.g. Veic CT m/k jostas daļai…"},
+    "Back pain or neurological symptoms": {"type": "toggle"},
+    "Retention drainage": {"type": "single",
+                           "options": ["Urethral Foley catheter", "Urethral Tiemann (coudé) catheter",
+                                       "Catheter changed (blocked catheter)", "Suprapubic catheter (epicystostomy)",
+                                       "In-out catheterisation (no catheter left)"]},
+    "Retention catheter Fr": {"type": "single", "default_index": 2, "options": ["12", "14", "16", "18", "20", "22"]},
+    "Catheter plan (R33)": {"type": "single",
+                            "options": ["Trial without catheter in 2–3 days", "Trial without catheter in 1 week",
+                                        "Trial without catheter in 2 weeks", "Urologist decides",
+                                        "Long-term catheter"],
+                            "show_if": {"Retention drainage": ["Urethral Foley catheter",
+                                                               "Urethral Tiemann (coudé) catheter",
+                                                               "Catheter changed (blocked catheter)",
+                                                               "Suprapubic catheter (epicystostomy)"]}},
     "Bladder stone number": {"type": "single", "default_index": 0, "options": ["Single", "Multiple"]},
     "Bladder stone size (cm)": {"type": "number", "min": 0.0, "max": 20.0, "step": 0.5, "optional": True},
     "Bladder stone found by": {"type": "multi", "optional": True, "options": ["Ultrasound", "CT", "KUB X-ray", "Cystoscopy"],
@@ -981,6 +1016,17 @@ DIAGNOSIS_MODIFIERS = {
           "Scrotal drain", "Postoperative course", "Postoperative complications", "Scrotal hematoma"]),
         ("3. Histology", ["Histology", "Scrotal histology result", "Histology expected (date)"]),
         ("4. Recommendations", ["Discharge paper", "Activity restriction", "Skin sutures", "Urology visit"]),
+    ],
+    "R33": [
+        ("1. Complaints and cause",
+         ["Retention type", "Retention cause", "Retention duration", "Previous retention episodes",
+          "Back pain or neurological symptoms", "Fever at NMC", "Other diagnoses (optional)"]),
+        ("2. NMC findings",
+         ["Ultrasound at NMC", "Enlarged prostate on US", "Upper tract dilatation", "Labs at NMC",
+          "Other NMC findings (optional)"]),
+        ("3. Drainage",
+         ["Procedure date", "Retention drainage", "Retention catheter Fr", "Drained volume (ml)", "Urine appearance"]),
+        ("4. Plan", ["Catheter plan (R33)", "Urology consultation"]),
     ],
     "N21.0": [
         ("1. Admission and the stone",
@@ -1803,6 +1849,47 @@ BLOCKS["N21.0"] = [_c61_blocks["paracetamol"], _c61_blocks["ultracod"], SOLIFENA
                         "chosen by the culture result. Bladder stones are often infected (struvite)."),
                    _c61_blocks["macrogol"]]
 BLOCK_WARNINGS["N21.0"] = BLOCK_WARNINGS["N10"]
+RETENTION_ALPHA_NOTE = ("Cochrane review: an alpha-blocker started 1–3 days before the trial without catheter raises "
+                        "the success rate (about 60% vs 38%) and lowers re-retention. Warn about dizziness / "
+                        "orthostatic hypotension and tell the eye surgeon before cataract surgery (IFIS).")
+BLOCKS["R33"] = [
+    {"id": "tamsulosin-twoc", "group": G_ALPHA, "title": "Tamsulosin 0.4 mg once daily (before and after TWOC)",
+     "text": "Caps. Tamsulosin 0,4 mg 1 reizi dienā pēc brokastīm – sākt tūlīt, turpināt arī pēc katetra evakuācijas.",
+     "note": RETENTION_ALPHA_NOTE},
+    {"id": "alfuzosin", "group": G_ALPHA, "title": "Alfuzosin 10 mg once daily (prolonged release)",
+     "text": "Tab. Alfuzosin 10 mg (ilgstošās darbības) 1 reizi dienā pēc vakariņām.",
+     "note": RETENTION_ALPHA_NOTE + " Alfuzosin is the best studied drug for TWOC."},
+    UROREC_BLOCK,
+    {"id": "dutasteride-tamsulosin", "group": G_ALPHA, "title": "Dutasteride 0.5 mg / tamsulosin 0.4 mg once daily",
+     "text": "Caps. Dutasteridum 0,5 mg / Tamsulosinum 0,4 mg 1 reizi dienā p/o (ilgstoši).",
+     "note": "EAU (strong): combination therapy for men with an enlarged prostate (> ~40 ml) reduces the long-term "
+             "risk of AUR and surgery; the 5-ARI effect needs 6+ months. It halves PSA – double the PSA value when "
+             "interpreting it."},
+    {"id": "finasteride", "group": G_ALPHA, "title": "Finasteride 5 mg once daily (add to an alpha-blocker)",
+     "text": "Tab. Finasteride 5 mg 1 reizi dienā p/o (ilgstoši).",
+     "note": "5-ARI for a large prostate: reduces AUR risk and need for surgery long-term (EAU strong); halves PSA."},
+    _c61_blocks["paracetamol"], _c61_blocks["macrogol"],
+    {"id": "amoxiclav-7", "group": G_ABX, "title": "Amoksiklav 875/125 mg twice daily, 7 days (UTI)",
+     "text": "Tab. Amoksiklav 875/125 mg pa 1 tabletei 2 reizes dienā 7 dienas; terapiju koriģēt pēc urīna "
+             "uzsējuma rezultāta.",
+     "note": "Only with a UTI. EAU: catheter-associated UTI – 7 days when symptoms settle quickly, 10–14 days if slow; "
+             "take the culture from the new catheter before starting."},
+    {"id": "cefuroxime-7", "group": G_ABX, "title": "Cefuroxime 500 mg twice daily, 7 days (UTI)",
+     "text": "Tab. Cefuroxime 500 mg pa 1 tabletei 2 reizes dienā 7 dienas; terapiju koriģēt pēc urīna uzsējuma "
+             "rezultāta.",
+     "note": "Alternative oral option for a UTI with retention; adjust to the culture."},
+    dict({b["id"]: b for b in BLOCKS["N10"]}["cipro"],
+         note="Fluoroquinolones: EMA restricts their use (tendon, nerve, aortic and QT risks) – only if other options "
+              "are unsuitable and local resistance is acceptable; adjust to the culture."),
+]
+BLOCK_WARNINGS["R33"] = BLOCK_WARNINGS["N10"]
+BLOCK_WARNINGS["N10"].extend([
+    {"ids": ["tamsulosin-twoc", "alfuzosin"], "text": "Two alpha-blockers are chosen: keep one."},
+    {"ids": ["tamsulosin-twoc", "urorec"], "text": "Two alpha-blockers are chosen: keep one."},
+    {"ids": ["alfuzosin", "urorec"], "text": "Two alpha-blockers are chosen: keep one."},
+    {"ids": ["dutasteride-tamsulosin", "tamsulosin-twoc"], "text": "The combination capsule already contains tamsulosin."},
+    {"ids": ["dutasteride-tamsulosin", "finasteride"], "text": "Two 5-ARIs are chosen: keep one."},
+])
 TAMSULOSIN_LONG_BLOCK = {
     "id": "tamsulosin-long", "group": G_ALPHA, "title": "Tamsulosin 0.4 mg once daily (long-term)",
     "text": "Caps. Tamsulosin 0,4 mg 1 reizi dienā p/o (ilgstoši).",
@@ -1825,6 +1912,14 @@ BLOCK_WARNINGS["N10"] += [
 # match AND every modifier listed under "when" has that value.
 # Each template has: clinical_diagnosis (optional), epicrisis, recommendations.
 TEMPLATES = [
+    {
+        # Acute urinary retention at NMC, catheter, sent home. Written by r33_parts.
+        "id": "R33-NMC",
+        "diagnosis": "R33",
+        "department": "NMC",
+        "when": {},
+        "builder": "r33",
+    },
     {
         # Bladder stone, cystolithotripsy in 4. Urology. Written by n21_parts.
         "id": "N21.0-4",
@@ -4814,6 +4909,202 @@ CHECKS["N21.0"] = n21_checks
 
 
 # ---------------------------------------------------------------
+# 2r. ACUTE URINARY RETENTION (R33) at NMC, sent home with a catheter
+# ---------------------------------------------------------------
+# Drain the bladder (urethral catheter, suprapubic if that fails), record the volume, check renal function,
+# start an alpha-blocker before a trial without catheter (Cochrane: success ~60% vs ~38%), look for and treat the
+# cause (BPH, drugs, constipation, UTI, stricture, neurogenic). Admit with renal impairment, upper tract dilatation,
+# sepsis, suspected cauda equina or a large volume with risk of post-obstructive diuresis. EAU: 5-ARIs/combination
+# reduce long-term AUR risk; recurrent or refractory retention is an indication for surgery.
+
+RETENTION_CAUSE_DX = {
+    "BPH": "Labdabīga prostatas hiperplāzija.", "Prostate cancer": "Prostatas CA.",
+    "Urethral stricture": "Uretras striktūra.", "Blocked indwelling catheter": "Urīnpūšļa ilgkatetra disfunkcija.",
+    "Clot retention (hematuria)": "Makrohematūrija, urīnpūšļa tamponāde ar asins recekļiem.",
+    "Drug-induced": "Medikamentu izraisīta urīna retence.",
+    "After surgery / anaesthesia": "Pēcoperācijas urīna retence.",
+    "Constipation": "Aizcietējums.", "Urinary tract infection / prostatitis": "Urīnceļu infekcija.",
+    "Neurogenic bladder": "Neirogēns urīnpūslis.", "Bladder hypotonia suspected": "Urīnpūšļa atonija susp.",
+}
+RETENTION_HISTORY = {
+    "BPH": "LPH", "Prostate cancer": "prostatas CA", "Urethral stricture": "uretras striktūra",
+    "Neurogenic bladder": "neirogēns urīnpūslis", "Blocked indwelling catheter": "urīnpūšļa ilgkatetrs",
+}
+RETENTION_TYPE_DX = {"Acute": "Akūta urīna retence.",
+                     "Acute-on-chronic (large volume)": "Hroniska urīna retence ar akūtu paasinājumu.",
+                     "Chronic (overflow)": "Hroniska urīna retence ar pārplūdes nesaturēšanu."}
+RETENTION_DURATION = {"Hours": "dažas stundas", "1 day": "1 dienu", "2 days": "2 dienas", "3 days": "3 dienas",
+                      "More than 3 days": "ilgāk par 3 dienām"}
+URINE_LOOK_R33 = {"Clear": " dzidra, dzeltena", "Cloudy": " duļķaina", "Blood-tinged": " ar asiņu piejaukumu",
+                  "With clots": " ar asins recekļiem", "Not documented": ""}
+RETENTION_TWOC = {
+    "Trial without catheter in 2–3 days": "Pēc 2–3 dienām, turpinot alfa blokatoru, ambulatori lemt par urīnpūšļa "
+                                          "katetra evakuāciju (urinācijas mēģinājums bez katetra).",
+    "Trial without catheter in 1 week": "Pēc 1 nedēļas, turpinot alfa blokatoru, ambulatori lemt par urīnpūšļa "
+                                        "katetra evakuāciju (urinācijas mēģinājums bez katetra).",
+    "Trial without catheter in 2 weeks": "Pēc 2 nedēļām, turpinot alfa blokatoru, ambulatori lemt par urīnpūšļa "
+                                         "katetra evakuāciju (urinācijas mēģinājums bez katetra).",
+    "Urologist decides": "Par urīnpūšļa katetra evakuāciju lems ārstējošais urologs.",
+    "Long-term catheter": "Ilgstošs urīnpūšļa katetrs; tā maiņa ik pēc 4–6 nedēļām ģimenes ārsta praksē.",
+}
+
+
+def r33_parts(sex, v, blocks=()):
+    f = SEX_FORMS[sex]
+    causes = v.get("Retention cause") or []
+    blocked = "Blocked indwelling catheter" in causes
+    drainage = v["Retention drainage"]
+    fr, volume = v["Retention catheter Fr"], v.get("Drained volume (ml)")
+    day = fmt_date(v["Procedure date"])
+
+    # Clinical diagnosis
+    lines = [RETENTION_CAUSE_DX[c] for c in causes if c in RETENTION_CAUSE_DX]
+    lines.append(RETENTION_TYPE_DX[v["Retention type"]])
+    act = {"Urethral Foley catheter": "Urīnpūšļa kateterizācija", "Urethral Tiemann (coudé) catheter":
+           "Urīnpūšļa kateterizācija ar Tīmana katetru", "Catheter changed (blocked catheter)": "Urīnpūšļa katetra maiņa",
+           "Suprapubic catheter (epicystostomy)": "Epicistostomija",
+           "In-out catheterisation (no catheter left)": "Vienreizēja urīnpūšļa kateterizācija"}[drainage]
+    lines.append(f"{act} ({day}).")
+    labs = v.get("Labs at NMC")
+    if labs in ("Urinary tract infection", "UTI and raised creatinine") and \
+            "Urinary tract infection / prostatitis" not in causes:
+        lines.append("Urīnceļu infekcija.")
+    if not blank(v.get("Other diagnoses (optional)")):
+        lines.append(v["Other diagnoses (optional)"].strip().rstrip(".") + ".")
+    diagnosis = "\n".join(lines)
+
+    # Epicrisis
+    duration = RETENTION_DURATION[v["Retention duration"]]
+    if blocked:
+        complaint = f"urīnpūšļa ilgkatetra disfunkciju, urīna neizdalīšanos pa katetru {duration}"
+    else:
+        complaint = f"stiprām sāpēm virs simfīzes, urīna neizdalīšanos {duration}"
+    sentences = [f"{f['Pacients']} {f['iestajies']} akūtā kārtā PSKUS NMC ar sūdzībām par {complaint}."]
+    history = [RETENTION_HISTORY[c] for c in causes if c in RETENTION_HISTORY and c != "Blocked indwelling catheter"]
+    if history:
+        sentences.append(f"Anamnēzē – {lv_list(history)}.")
+    if v.get("Previous retention episodes"):
+        sentences.append("Anamnēzē atkārtotas urīna retences epizodes.")
+    if v.get("Ultrasound at NMC"):
+        us = f"NMC etapā vispusīgi {f['izmekleta']}, veikta USS vēdera dobumam"
+        found = []
+        if v.get("Enlarged prostate on US"):
+            found.append("palielinātu prostatu")
+        found.append("pildītu urīnpūsli")
+        us += ", kur vizualizē " + lv_list(found)
+        us += "; augšējo urīnceļu dilatācija" if v.get("Upper tract dilatation") == "Present" else \
+              "; augšējo urīnceļu dilatāciju nekonstatē"
+        sentences.append(us + ".")
+    else:
+        sentences.append(f"NMC etapā vispusīgi {f['izmekleta']}.")
+    look = URINE_LOOK_R33.get(v.get("Urine appearance"), "")
+    drained = f"izdalās ap {volume:g} ml{look} urīna" if volume not in (None, "") else "izdalās urīns"
+    if drainage == "Urethral Foley catheter":
+        sentences.append(f"Sterilos apstākļos veic urīnpūšļa intubāciju ar Foley {fr} Fr katetru, {drained}.")
+    elif drainage == "Urethral Tiemann (coudé) catheter":
+        sentences.append(f"Foley katetru ievadīt neizdodas; sterilos apstākļos ievada Tīmana {fr} Fr katetru, {drained}.")
+    elif drainage == "Catheter changed (blocked catheter)":
+        sentences.append(f"Sterilos apstākļos veic urīnpūšļa katetra maiņu, ievada Foley {fr} Fr katetru, {drained}.")
+    elif drainage == "Suprapubic catheter (epicystostomy)":
+        sentences.append("Uretrālu katetru ievadīt neizdodas; vietējā anestēzijā USS kontrolē veic perkutānu "
+                         f"epicistostomiju, ievada Ch {fr} epicistostomas katetru, {drained}.")
+    else:
+        sentences.append(f"Sterilos apstākļos veic vienreizēju urīnpūšļa kateterizāciju ar {fr} Fr katetru, {drained}; "
+                         "katetru evakuē.")
+    sentences.append("Sūdzības par spiedošo sajūtu pāriet.")
+    lab_text = {"No inflammatory changes": "Laboratoriski bez iekaisuma izmaiņām.",
+                "Urinary tract infection": "Laboratoriski – urīnceļu infekcija, paņemts urīna uzsējums.",
+                "Raised creatinine": "Laboratoriski – paaugstināts kreatinīna līmenis.",
+                "UTI and raised creatinine": "Laboratoriski – urīnceļu infekcija, paaugstināts kreatinīna līmenis; "
+                                             "paņemts urīna uzsējums."}.get(labs)
+    if lab_text:
+        sentences.append(lab_text)
+    if not blank(v.get("Other NMC findings (optional)")):
+        extra = v["Other NMC findings (optional)"].strip()
+        sentences.append(extra if extra.endswith(".") else extra + ".")
+    sentences.append("Dotajā brīdī nav indikāciju neatliekamai stacionēšanai. Vispārēji apmierinošā stāvoklī un ar "
+                     "rekomendācijām izraksta tālākai ambulatorai ārstēšanai.")
+
+    # Recommendations
+    numbered = make_counter()
+    recs = [numbered("Atrasties ģimenes ārsta uzraudzībā."),
+            numbered("Lietot šķidrumu 1,5–2 l/DN, ja nav medicīnisku kontrindikāciju; izvairīties no alkohola un liela "
+                     "šķidruma daudzuma īsā laikā.")]
+    if drainage == "Suprapubic catheter (epicystostomy)":
+        recs.append(numbered("Kopt epicistostomas katetru: stomas vietu ikdienā apstrādāt un pārsiet; katetra maiņa ik "
+                             "pēc 4–6 nedēļām ģimenes ārsta praksē, urīna savācējmaisa maiņa ik pēc 3–7 dienām."))
+    elif drainage == "In-out catheterisation (no catheter left)":
+        recs.append(numbered("Sekot urinācijai; ja atkārtoti nav iespējams urinēt vai urinē mazām porcijām ar "
+                             "pilnuma sajūtu, nekavējoties vērsties NMC."))
+    else:
+        recs.append(numbered("Kopt urīnpūšļa katetru – uzturēt noslēgtu drenāžas sistēmu, maisu novietot zem "
+                             "urīnpūšļa līmeņa. Urīna savācējmaisa maiņa ik pēc 3–7 dienām vai biežāk, ja tas ir bojāts."))
+    if blocks:
+        recs.append(numbered("Terapijā lietot:"))
+        recs += ["    " + b for b in blocks]
+    plan = v.get("Catheter plan (R33)")
+    if plan in RETENTION_TWOC and drainage != "In-out catheterisation (no catheter left)":
+        text = RETENTION_TWOC[plan]
+        if drainage == "Suprapubic catheter (epicystostomy)":
+            text = text.replace("urīnpūšļa katetra evakuāciju", "epicistostomas katetra noslēgšanu/evakuāciju") \
+                       .replace("urīnpūšļa katetrs", "epicistostomas katetrs")
+        recs.append(numbered(text))
+    recs.append(numbered(f"Ambulatori urologa konsultācija {CONSULT_TEXT[v['Urology consultation']]}, lai izvērtētu "
+                         "urīna retences cēloni un tālāko ārstēšanu."))
+    recs += tests_lines(v, "numbered", numbered)
+    recs.append(numbered("Izvairīties no medikamentiem, kas var veicināt urīna retenci (antiholīnerģiskie līdzekļi, "
+                         "pirmās paaudzes antihistamīni, dekongestanti, opioīdi), un no aizcietējumiem."))
+    recs.append(numbered("Ja katetrs nefunkcionē vai nav urīna atteces, parādās drudzis, drebuļi, izteikta hematūrija ar "
+                         "recekļiem vai jauni neiroloģiski simptomi (kāju vājums, jušanas traucējumi starpenē), "
+                         "nekavējoties vērsties NMC."))
+    return {"clinical_diagnosis": diagnosis, "epicrisis": " ".join(sentences), "recommendations": "\n".join(recs)}
+
+
+def r33_checks(v):
+    blockers, cautions = [], []
+    causes = v.get("Retention cause") or []
+    chosen = v.get("_blocks") or []
+    if v.get("_sex") == "Woman" and any(c in causes for c in ("BPH", "Prostate cancer")):
+        blockers.append("BPH / prostate cancer is chosen as the cause for a woman.")
+    if v.get("Fever at NMC"):
+        blockers.append("Fever with urinary retention: assess for urosepsis (admission and IV antibiotics) before "
+                        "sending the patient home.")
+    volume = v.get("Drained volume (ml)") or 0
+    if (volume > 1000 or v.get("Labs at NMC") in ("Raised creatinine", "UTI and raised creatinine")
+            or v.get("Upper tract dilatation") == "Present" or v.get("Retention type") != "Acute"):
+        cautions.append("Large volume, raised creatinine, upper tract dilatation or chronic retention: risk of "
+                        "post-obstructive diuresis and renal impairment – consider admission; a trial without catheter "
+                        "is likely to fail (chronic retention).")
+    if v.get("Back pain or neurological symptoms"):
+        cautions.append("Retention with back pain or neurological symptoms: exclude cauda equina syndrome (urgent MRI) "
+                        "before discharge.")
+    if "Clot retention (hematuria)" in causes:
+        cautions.append("Clot retention: 3-way catheter and bladder irrigation; the hematuria needs a work-up "
+                        "(cystoscopy, CT urography).")
+    if "Drug-induced" in causes:
+        cautions.append("Drug-induced retention: name and stop / replace the drug in the text (anticholinergics, "
+                        "opioids, antihistamines, decongestants, tricyclics).")
+    alpha = any(b in chosen for b in ("tamsulosin-twoc", "alfuzosin", "urorec", "dutasteride-tamsulosin"))
+    if ("BPH" in causes and str(v.get("Catheter plan (R33)", "")).startswith("Trial without catheter")
+            and not alpha):
+        cautions.append("BPH with a planned trial without catheter: start an alpha-blocker at least 2–3 days before "
+                        "the trial (improves success).")
+    if v.get("Previous retention episodes") and "BPH" in causes:
+        cautions.append("Recurrent retention with BPH: EAU – an absolute indication for surgery (e.g. TURP); refer.")
+    uti = v.get("Labs at NMC") in ("Urinary tract infection", "UTI and raised creatinine") or \
+        "Urinary tract infection / prostatitis" in causes
+    if uti and not any(b in chosen for b in ("amoxiclav-7", "cefuroxime-7", "cipro")):
+        cautions.append("UTI with retention: choose an antibiotic (and adjust it to the urine culture).")
+    if v.get("Retention drainage") == "In-out catheterisation (no catheter left)" and volume > 800:
+        cautions.append("Large volume with in-out catheterisation: an indwelling catheter is usually safer.")
+    return blockers, cautions
+
+
+BUILDERS["r33"] = r33_parts
+CHECKS["R33"] = r33_checks
+
+
+# ---------------------------------------------------------------
 # 2m. FOLLOW-UP TESTS: catalogue, guideline-based suggestions, text
 # ---------------------------------------------------------------
 # Nothing here goes into a text by default. The doctor ticks tests in the
@@ -4844,6 +5135,8 @@ FOLLOWUP_TESTS = {  # id -> group, English name in the app, Latvian text in the 
     "us_kb": {"group": "Imaging", "title": "Kidney and bladder ultrasound", "lv": "nieru un urīnpūšļa USS"},
     "us_k": {"group": "Imaging", "title": "Kidney ultrasound", "lv": "nieru USS"},
     "us_scrotum": {"group": "Imaging", "title": "Scrotal ultrasound", "lv": "sēklinieku maisiņa USS"},
+    "mri_spine": {"group": "Imaging", "title": "MRI of the lumbar spine (cauda equina)",
+                  "lv": "MR mugurkaula jostas daļai (cauda equina sindroma izslēgšanai)"},
     "renogram": {"group": "Imaging", "title": "Diuretic renography (MAG3)", "lv": "diurētiskā renoscintigrāfija (MAG3)"},
     "kub": {"group": "Imaging", "title": "Plain X-ray KUB", "lv": "vēdera dobuma pārskata rentgenogramma (KUB)"},
     "ncct": {"group": "Imaging", "title": "Non-contrast low-dose CT (stones)",
@@ -5413,6 +5706,44 @@ def n21_tests(v):
 TEST_ADVISORS["N21.0"] = n21_tests
 
 
+def r33_tests(v):
+    out = []
+    causes = v.get("Retention cause") or []
+    raised = v.get("Labs at NMC") in ("Raised creatinine", "UTI and raised creatinine")
+    out.append(_s("creat", "rec", "1w" if not raised else "48-72h",
+                  "Retention can impair renal function; recheck creatinine and eGFR (sooner if raised at NMC)."))
+    if v.get("Back pain or neurological symptoms"):
+        out.append(_s("mri_spine", "rec", "asap", "Retention with back pain or neurological signs: urgent MRI to exclude "
+                                                 "cauda equina syndrome."))
+    if not v.get("Ultrasound at NMC"):
+        out.append(_s("us_kb", "rec", "visit", "Upper tracts, bladder and prostate volume were not imaged at NMC."))
+    if v.get("Labs at NMC") in ("Urinary tract infection", "UTI and raised creatinine"):
+        out.append(_s("uc", "rec", "none", "Check the culture taken at NMC and adjust the antibiotic.",
+                      text="NMC paņemtā urīna uzsējuma rezultāts (Datamed.lv)"))
+    else:
+        out.append(_s("uc", "avoid", "visit", NO_CATHETER_UC))
+    if v.get("_sex") != "Woman" and any(c in causes for c in ("BPH", "Prostate cancer", "Not clear yet")):
+        out.append(_s("psa", "consider", "6w", "Retention and the catheter raise PSA – measure it no earlier than about "
+                                               "6 weeks, if a cancer diagnosis would change management."))
+        out.append(_s("ipss", "consider", "at_visit", "EAU male LUTS assessment of the cause."))
+    if v.get("Catheter plan (R33)") != "Long-term catheter":
+        out.append(_s("uroflow", "rec", "at_visit", "After a successful trial without catheter: flow rate and residual "
+                                                    "urine show whether the bladder empties."))
+        out.append(_s("pvr", "rec", "at_visit", "After a successful trial without catheter: residual urine."))
+    if "Urethral stricture" in causes:
+        out.append(_s("urethrocysto", "rec", "visit", "Stricture as the cause: assess it before definitive treatment."))
+    if "Clot retention (hematuria)" in causes:
+        out.append(_s("ctu", "rec", "visit", "Hematuria work-up: CT urography and cystoscopy."))
+        out.append(_s("cysto", "rec", "visit", "Hematuria work-up: cystoscopy."))
+    if v.get("Labs at NMC") in ("Urinary tract infection", "UTI and raised creatinine"):
+        out.append(_s("cbc", "consider", "1w", PRACTICE_LABS))
+        out.append(_s("crp", "consider", "1w", PRACTICE_LABS))
+    return out
+
+
+TEST_ADVISORS["R33"] = r33_tests
+
+
 # ----- tables the doctor fills in (st.data_editor) -----
 
 def antibiotics_editor(key):
@@ -5915,6 +6246,9 @@ PE_PRESETS = {
     "Hematuria – acute admission (no operation)": (
         "Acute", "", "", "Makrohematūrija", "asins piejaukumu urīnā",
         "Izmeklēts NMC. Veic CT ar i/v kontrastvielu."),
+    "Urinary retention – acute admission (no operation)": (
+        "Acute", "", "", "Akūta urīna retence", "nespēju urinēt, sāpēm vēdera lejasdaļā",
+        "Izmeklēts NMC. Sterilos apstākļos veikta urīnpūšļa kateterizācija."),
     "Acute admission, other (no operation)": ("Acute", "", "", "", "", "Izmeklēts NMC."),
     "Other (type it)": ("Planned", "", "", "", "", ""),
 }
@@ -7238,7 +7572,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-23-bladderstone · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-23-retention · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
