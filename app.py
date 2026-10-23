@@ -53,7 +53,7 @@ DIAGNOSES = {
     "N43": "Hydrocele and spermatocele",
     "N45": "Orchitis and epididymitis",
     "N47": "Phimosis / redundant prepuce",
-    "R31": "Hematuria",
+    "R31": "Hematuria (NMC: sent home / 4. Urology: admitted)",
     "C61": "Malignant neoplasm of prostate",
     "C64": "Malignant neoplasm of kidney",
     "C67": "Malignant neoplasm of bladder",
@@ -742,6 +742,87 @@ MODIFIERS = {
                                                                "Urethral Tiemann (coudé) catheter",
                                                                "Catheter changed (blocked catheter)",
                                                                "Suprapubic catheter (epicystostomy)"]}},
+    # ----- R31 hematuria (NMC consultation, or admitted to 4. Urology) -----
+    "Hematuria type": {"type": "single", "default_index": 0,
+                       "options": ["Visible (macrohematuria)", "Non-visible (microhematuria)"]},
+    "Hematuria duration": {"type": "single", "default_index": 1,
+                           "options": ["Since today", "1–2 days", "3–7 days", "More than a week", "Recurrent episodes"]},
+    "Hematuria symptoms": {"type": "multi", "optional": True,
+                           "options": ["Clots in urine", "Suprapubic pain", "Flank pain", "Dysuria / frequency"]},
+    "Clot retention (bladder tamponade)": {"type": "toggle"},
+    "Hematuria cause": {"type": "multi", "optional": True, "default_selected": ["Not clear yet"],
+                        "options": ["Not clear yet", "Bladder cancer (known)", "Prostate cancer", "Radiation cystitis",
+                                    "BPH (prostatic bleeding)", "Urinary stone",
+                                    "Urinary tract infection (hemorrhagic cystitis)", "After a urological procedure",
+                                    "Catheter trauma"]},
+    "Risk factors (R31)": {"type": "multi", "optional": True,
+                           "options": ["Smoker or ex-smoker", "Occupational exposure (aromatic amines, dyes)",
+                                       "Pelvic radiotherapy in the past", "Cyclophosphamide in the past"]},
+    "Antithrombotic therapy": {"type": "multi", "optional": True,
+                               "options": ["Aspirin", "Clopidogrel", "Ticagrelor", "Warfarin", "Apixaban",
+                                           "Rivaroxaban", "Dabigatran", "Edoxaban", "LMWH (Fraxiparine / Clexane)"]},
+    "Antithrombotic plan": {"type": "single",
+                            "options": ["Continue", "Pause until the urine is clear", "Prescriber decides"],
+                            "show_if": {"Antithrombotic therapy": "*"}},
+    "INR (optional)": {"type": "number", "min": 0.0, "max": 20.0, "step": 0.1, "optional": True,
+                       "show_if": {"Antithrombotic therapy": "Warfarin"}},
+    "Hemodynamics (R31)": {"type": "single", "default_index": 0, "options": ["Stable", "Unstable"]},
+    "Hemoglobin (g/L)": {"type": "number", "min": 0.0, "max": 250.0, "step": 1.0, "optional": True},
+    "Ultrasound findings (R31)": {"type": "multi", "optional": True,
+                                  "options": ["Clots in the bladder", "Bladder wall mass", "Enlarged prostate",
+                                              "Kidney mass", "Kidney or ureteral stone", "Hydronephrosis",
+                                              "Residual urine"],
+                                  "show_if": {"Ultrasound at NMC": True}},
+    "CT at NMC (R31)": {"type": "single", "default_index": 0,
+                        "options": ["Not done", "CT urography – no source found", "CT – bladder mass",
+                                    "CT – kidney / upper tract mass", "CT – stone"]},
+    "NMC catheter (R31)": {"type": "single",
+                           "options": ["No catheter – voids", "Catheter, washout, removed – voids",
+                                       "Discharged with a catheter", "Catheter changed (blocked)"]},
+    "Catheter type (R31)": {"type": "single", "default_index": 0, "options": ["3-way catheter", "Foley (2-way)"],
+                            "show_if": {"NMC catheter (R31)": ["Catheter, washout, removed – voids",
+                                                               "Discharged with a catheter",
+                                                               "Catheter changed (blocked)"]}},
+    "Catheter Fr (R31)": {"type": "single", "default_index": 3, "options": ["16", "18", "20", "22", "24"],
+                          "show_if": {"NMC catheter (R31)": ["Catheter, washout, removed – voids",
+                                                             "Discharged with a catheter",
+                                                             "Catheter changed (blocked)"]}},
+    "Bladder washout (R31)": {"type": "toggle", "default": True,
+                              "show_if": {"NMC catheter (R31)": ["Catheter, washout, removed – voids",
+                                                                 "Discharged with a catheter",
+                                                                 "Catheter changed (blocked)"]}},
+    "Urine colour at discharge": {"type": "single",
+                                  "options": ["Clear", "Light pink", "Pink, no clots", "Red / with clots"]},
+    "Ward treatment (R31)": {"type": "multi", "optional": True,
+                             "default_selected": ["Bladder irrigation (3-way catheter)"],
+                             "options": ["Bladder irrigation (3-way catheter)", "Manual bladder washout",
+                                         "IV tranexamic acid", "IV antibiotics"]},
+    "Transfusion (RBC units)": {"type": "number", "min": 0.0, "max": 30.0, "step": 1.0, "optional": True},
+    "Hematuria procedure": {"type": "multi", "optional": True,
+                            "options": ["Cystoscopy, clot evacuation, coagulation", "TURU (resection / biopsy)",
+                                        "TURP (prostatic bleeding)", "Selective embolisation",
+                                        "Alum bladder irrigation (1%)"]},
+    "Cystoscopy date (R31)": {"type": "date", "show_if": {"Hematuria procedure": ["Cystoscopy, clot evacuation, coagulation", "TURU (resection / biopsy)", "TURP (prostatic bleeding)"]}},
+    "Anesthesia (R31)": {"type": "single", "options": ["Spinal", "General"],
+                         "show_if": {"Hematuria procedure": ["Cystoscopy, clot evacuation, coagulation", "TURU (resection / biopsy)", "TURP (prostatic bleeding)"]}},
+    "Cystoscopy finding (R31)": {"type": "single",
+                                 "options": ["No tumour, no bleeding source", "Diffuse bleeding (radiation cystitis)",
+                                             "Bleeding from the prostate", "Bladder tumour",
+                                             "Blood from a ureteric orifice"],
+                                 "show_if": {"Hematuria procedure": ["Cystoscopy, clot evacuation, coagulation", "TURU (resection / biopsy)", "TURP (prostatic bleeding)"]}},
+    "Embolisation date": {"type": "date", "show_if": {"Hematuria procedure": "Selective embolisation"}},
+    "Histology (R31)": {"type": "single", "default_index": 0, "options": ["Not taken", "Pending", "Known"],
+                        "show_if": {"Hematuria procedure": ["Cystoscopy, clot evacuation, coagulation", "TURU (resection / biopsy)", "TURP (prostatic bleeding)"]}},
+    "Histology result (R31)": {"type": "text", "placeholder": "in Latvian, e.g. uroteliāla karcinoma pTa LG",
+                               "show_if": {"Histology (R31)": "Known"}},
+    "Discharge paper (R31)": {"type": "single", "default_index": 0, "options": ["Temporary", "Final"],
+                              "show_if": {"Histology (R31)": ["Pending", "Known"]}},
+    "Posthemorrhagic anemia": {"type": "toggle"},
+    "Hemoglobin at discharge (g/L)": {"type": "number", "min": 0.0, "max": 250.0, "step": 1.0, "optional": True},
+    "Green corridor (GP referral)": {"type": "single", "default_index": 0,
+                                     "options": ["Not needed", "Bladder – Z03.167", "Kidney – Z03.164"]},
+    "Urology consultation (R31)": {"type": "single", "options": ["Within 1 week", "In 1–2 weeks", "In 4 weeks"],
+                                   "show_if": {"Green corridor (GP referral)": "Not needed"}},
     "Bladder stone number": {"type": "single", "default_index": 0, "options": ["Single", "Multiple"]},
     "Bladder stone size (cm)": {"type": "number", "min": 0.0, "max": 20.0, "step": 0.5, "optional": True},
     "Bladder stone found by": {"type": "multi", "optional": True, "options": ["Ultrasound", "CT", "KUB X-ray", "Cystoscopy"],
@@ -1016,6 +1097,27 @@ DIAGNOSIS_MODIFIERS = {
           "Scrotal drain", "Postoperative course", "Postoperative complications", "Scrotal hematoma"]),
         ("3. Histology", ["Histology", "Scrotal histology result", "Histology expected (date)"]),
         ("4. Recommendations", ["Discharge paper", "Activity restriction", "Skin sutures", "Urology visit"]),
+    ],
+    "R31": [
+        ("1. Complaints and history",
+         ["Hematuria type", "Hematuria duration", "Hematuria symptoms", "Clot retention (bladder tamponade)",
+          "Hematuria cause", "Risk factors (R31)", "Antithrombotic therapy", "Antithrombotic plan", "INR (optional)",
+          "Fever at NMC", "Other diagnoses (optional)"]),
+        ("2. Findings at NMC",
+         ["Hemodynamics (R31)", "Hemoglobin (g/L)", "Labs at NMC", "Ultrasound at NMC", "Ultrasound findings (R31)",
+          "CT at NMC (R31)", "Other NMC findings (optional)"]),
+        ("3. Treatment at NMC",
+         ["NMC catheter (R31)", "Catheter type (R31)", "Catheter Fr (R31)", "Bladder washout (R31)",
+          "Urine colour at discharge"], {"_department": "NMC"}),
+        ("4. Plan", ["Green corridor (GP referral)", "Urology consultation (R31)"], {"_department": "NMC"}),
+        ("3. Treatment in 4. Urology",
+         ["Ward treatment (R31)", "Transfusion (RBC units)", "Hematuria procedure", "Cystoscopy date (R31)",
+          "Anesthesia (R31)", "Cystoscopy finding (R31)", "Embolisation date", "Histology (R31)",
+          "Histology result (R31)"], {"_department": "4"}),
+        ("4. Discharge",
+         ["Urine colour at discharge", "Hemoglobin at discharge (g/L)", "Posthemorrhagic anemia",
+          "Discharged with catheter", "Catheter removal date", "Discharge paper (R31)", "Activity restriction",
+          "Green corridor (GP referral)", "Urology visit"], {"_department": "4"}),
     ],
     "R33": [
         ("1. Complaints and cause",
@@ -1890,6 +1992,43 @@ BLOCK_WARNINGS["N10"].extend([
     {"ids": ["dutasteride-tamsulosin", "tamsulosin-twoc"], "text": "The combination capsule already contains tamsulosin."},
     {"ids": ["dutasteride-tamsulosin", "finasteride"], "text": "Two 5-ARIs are chosen: keep one."},
 ])
+
+# R31 hematuria blocks.
+G_BLEED = "Bleeding"
+G_RADCYST = "Radiation cystitis"
+_r33_blocks = {b["id"]: b for b in BLOCKS["R33"]}
+BLOCKS["R31"] = [
+    {"id": "tranexamic", "group": G_BLEED, "title": "Tranexamic acid 1 g three times daily, 3–5 days",
+     "text": "Tab. Acidum tranexamicum 500 mg pa 2 tabletēm (1 g) 3 reizes dienā 3–5 dienas.",
+     "note": "SmPC dose 1–1.5 g 2–4 times daily for a few days. Evidence in hematuria is weak and mixed (no clear "
+             "benefit in trials after TURP/TURBT). Not with active thromboembolism or severe renal failure; reduce "
+             "the dose if creatinine is raised (120–249 µmol/l: 15 mg/kg twice daily; 250–500: 15 mg/kg once "
+             "daily). SmPC warning: with upper urinary tract bleeding clots may obstruct the ureter. Check that a "
+             "tablet form is available in Latvian pharmacies."},
+    {"id": "finasteride-hem", "group": G_BLEED, "title": "Finasteride 5 mg once daily (recurrent prostatic bleeding)",
+     "text": "Tab. Finasteride 5 mg 1 reizi dienā p/o (ilgstoši).",
+     "note": "Recurrent bleeding from BPH: small studies show fewer recurrences (effect over weeks to months). Not "
+             "an EAU recommendation; exclude a tumour first. Halves PSA – double the PSA value when interpreting it."},
+    _c61_blocks["paracetamol"], _c61_blocks["macrogol"], SOLIFENACIN_BLOCK,
+    {"id": "fosfomycin-3g", "group": G_ABX, "title": "Fosfomycin 3 g single dose (women, cystitis)",
+     "text": "Pulv. Fosfomycin 3 g vienreizēji, izšķīdinot ūdenī, vakarā pēc urīnpūšļa iztukšošanas.",
+     "note": "EAU first-line for uncomplicated cystitis in women (hemorrhagic cystitis). Not for men, fever or upper "
+             "tract signs – then a 7-day course adjusted to the culture."},
+    _r33_blocks["amoxiclav-7"], _r33_blocks["cefuroxime-7"], _r33_blocks["cipro"],
+    dict(FRAXIPARINE_BLOCK,
+         note="Only once the urine is clear (e.g. after TURU or cystoscopy with coagulation): LMWH adds to the "
+              "bleeding risk. Department protocol 10 days; reduce the dose if creatinine clearance is below 30 ml/min."),
+    {"id": "hbo", "group": G_RADCYST, "title": "Consider hyperbaric oxygen (radiation cystitis)",
+     "text": "Atkārtotas hematūrijas gadījumā apsvērt hiperbarisko oksigenācijas terapiju staru cistīta ārstēšanai "
+             "(lems ārstējošais urologs).",
+     "note": "Hyperbaric oxygen for hemorrhagic radiation cystitis: usually 20–40 sessions; bleeding stops in most "
+             "patients in cohort series, and an RCT (RICH-ART) showed better symptoms in late radiation cystitis. "
+             "Check where it is available in Latvia."},
+]
+BLOCK_WARNINGS["R31"] = BLOCK_WARNINGS["N10"]
+_abx = ["fosfomycin-3g", "amoxiclav-7", "cefuroxime-7", "cipro"]
+BLOCK_WARNINGS["N10"].extend({"ids": [a, b], "text": "Two antibiotics are chosen: keep one."}
+                             for i, a in enumerate(_abx) for b in _abx[i + 1:])
 TAMSULOSIN_LONG_BLOCK = {
     "id": "tamsulosin-long", "group": G_ALPHA, "title": "Tamsulosin 0.4 mg once daily (long-term)",
     "text": "Caps. Tamsulosin 0,4 mg 1 reizi dienā p/o (ilgstoši).",
@@ -1912,6 +2051,22 @@ BLOCK_WARNINGS["N10"] += [
 # match AND every modifier listed under "when" has that value.
 # Each template has: clinical_diagnosis (optional), epicrisis, recommendations.
 TEMPLATES = [
+    {
+        # Hematuria at NMC: consultation, sent home. Written by r31_nmc_parts.
+        "id": "R31-NMC",
+        "diagnosis": "R31",
+        "department": "NMC",
+        "when": {},
+        "builder": "r31_nmc",
+    },
+    {
+        # Hematuria admitted to 4. Urology (irrigation, transfusion, cystoscopy, embolisation). r31_ward_parts.
+        "id": "R31-4",
+        "diagnosis": "R31",
+        "department": "4",
+        "when": {},
+        "builder": "r31_ward",
+    },
     {
         # Acute urinary retention at NMC, catheter, sent home. Written by r33_parts.
         "id": "R33-NMC",
@@ -2183,6 +2338,8 @@ def condition_met(actual, wanted):
     if wanted == "*":
         return actual not in (None, "", [], False)
     options = wanted if isinstance(wanted, list) else [wanted]
+    if isinstance(actual, list):  # a multi-select: any chosen option counts
+        return any(a in options for a in actual)
     return actual in options
 
 
@@ -4960,10 +5117,10 @@ def r33_parts(sex, v, blocks=()):
     # Clinical diagnosis
     lines = [RETENTION_CAUSE_DX[c] for c in causes if c in RETENTION_CAUSE_DX]
     lines.append(RETENTION_TYPE_DX[v["Retention type"]])
-    act = {"Urethral Foley catheter": "Urīnpūšļa kateterizācija", "Urethral Tiemann (coudé) catheter":
-           "Urīnpūšļa kateterizācija ar Tīmana katetru", "Catheter changed (blocked catheter)": "Urīnpūšļa katetra maiņa",
+    act = {"Urethral Foley catheter": "Urīnpūšļa katetrizācija", "Urethral Tiemann (coudé) catheter":
+           "Urīnpūšļa katetrizācija ar Tīmana katetru", "Catheter changed (blocked catheter)": "Urīnpūšļa katetra maiņa",
            "Suprapubic catheter (epicystostomy)": "Epicistostomija",
-           "In-out catheterisation (no catheter left)": "Vienreizēja urīnpūšļa kateterizācija"}[drainage]
+           "In-out catheterisation (no catheter left)": "Vienreizēja urīnpūšļa katetrizācija"}[drainage]
     lines.append(f"{act} ({day}).")
     labs = v.get("Labs at NMC")
     if labs in ("Urinary tract infection", "UTI and raised creatinine") and \
@@ -5009,7 +5166,7 @@ def r33_parts(sex, v, blocks=()):
         sentences.append("Uretrālu katetru ievadīt neizdodas; vietējā anestēzijā USS kontrolē veic perkutānu "
                          f"epicistostomiju, ievada Ch {fr} epicistostomas katetru, {drained}.")
     else:
-        sentences.append(f"Sterilos apstākļos veic vienreizēju urīnpūšļa kateterizāciju ar {fr} Fr katetru, {drained}; "
+        sentences.append(f"Sterilos apstākļos veic vienreizēju urīnpūšļa katetrizāciju ar {fr} Fr katetru, {drained}; "
                          "katetru evakuē.")
     sentences.append("Sūdzības par spiedošo sajūtu pāriet.")
     lab_text = {"No inflammatory changes": "Laboratoriski bez iekaisuma izmaiņām.",
@@ -5105,6 +5262,519 @@ CHECKS["R33"] = r33_checks
 
 
 # ---------------------------------------------------------------
+# 2s. HEMATURIA (R31): NMC consultation (sent home) or admission to 4. Urology
+# ---------------------------------------------------------------
+# EAU NMIBC (strong): history, urological examination, kidney and bladder ultrasound and/or CT urography, and
+# cystoscopy (flexible, outpatient) in every patient with symptoms suggesting bladder cancer; cytology as an
+# adjunct. Haematuria on anticoagulants or antiplatelets gets the same work-up (AUA, strong). BAUS: clot retention
+# needs admission – large 3-way catheter (20–24 Fr), manual washout first, then continuous irrigation; theatre
+# (cystoscopy, clot evacuation, coagulation) if the catheter keeps blocking or Hb keeps falling. Refractory
+# (radiation) hemorrhagic cystitis: intravesical alum / formalin, hyperbaric oxygen, selective embolisation.
+# Latvia (NVD): unexplained visible haematuria at >= 45 years, or haematuria that persists after UTI treatment, is a
+# green corridor criterion – the GP refers with Z03.167 (bladder) for the urologist and cystoscopy.
+
+HEM_CAUSE_DX = {
+    "Bladder cancer (known)": "Ca vesicae urinariae.", "Prostate cancer": "Ca prostatae.",
+    "Radiation cystitis": "Pēc staru terapijas hemorāģisks cistīts.",
+    "BPH (prostatic bleeding)": "Labdabīga prostatas hiperplāzija.", "Urinary stone": "Nierakmeņu slimība.",
+    "Urinary tract infection (hemorrhagic cystitis)": "Akūts hemorāģisks cistīts.",
+}
+HEM_HISTORY = {"Bladder cancer (known)": "urīnpūšļa CA", "Prostate cancer": "prostatas CA",
+               "Radiation cystitis": "staru terapija mazajam iegurnim", "BPH (prostatic bleeding)": "LPH",
+               "Urinary stone": "nierakmeņu slimība",
+               "After a urological procedure": "nesen veikta uroloģiska manipulācija"}
+HEM_RISK = {"Smoker or ex-smoker": "smēķēšana",
+            "Occupational exposure (aromatic amines, dyes)": "profesionāla saskare ar aromātiskajiem amīniem un "
+                                                             "krāsvielām",
+            "Pelvic radiotherapy in the past": "staru terapija mazajam iegurnim",
+            "Cyclophosphamide in the past": "ciklofosfamīda terapija"}
+HEM_DURATION = {"Since today": "kopš šodienas", "1–2 days": "1–2 dienas", "3–7 days": "3–7 dienas",
+                "More than a week": "ilgāk par nedēļu"}
+HEM_SYMPTOMS = {"Clots in urine": "asins recekļiem urīnā", "Suprapubic pain": "sāpēm virs simfīzes",
+                "Flank pain": "sāpēm jostas rajonā", "Dysuria / frequency": "sāpīgu un biežu urinēšanu"}
+HEM_US = {"Clots in the bladder": "asins recekļus urīnpūslī", "Bladder wall mass": "urīnpūšļa sienas veidojumu",
+          "Enlarged prostate": "palielinātu prostatu", "Kidney mass": "nieres veidojumu",
+          "Kidney or ureteral stone": "konkrementu", "Hydronephrosis": "hidronefrozi", "Residual urine": "atlieku urīnu"}
+HEM_CT = {"CT urography – no source found": "Veikta CT urogrāfija – hematūrijas avotu nekonstatē.",
+          "CT – bladder mass": "Veikta CT ar i/v kontrastvielu – urīnpūslī vizualizē sienas veidojumu.",
+          "CT – kidney / upper tract mass": "Veikta CT ar i/v kontrastvielu – vizualizē nieres / augšējo urīnceļu "
+                                            "veidojumu.",
+          "CT – stone": "Veikta CT – vizualizē konkrementu."}
+HEM_COLOUR = {"Clear": "dzidrs", "Light pink": "gaiši rozā", "Pink, no clots": "rozā, bez recekļiem",
+              "Red / with clots": "sarkans, ar recekļiem"}
+ANTITHROMBOTIC_LV = {  # (accusative, after "lieto"; genitive)
+    "Aspirin": ("acetilsalicilskābi", "acetilsalicilskābes"), "Clopidogrel": ("klopidogrelu", "klopidogrela"),
+    "Ticagrelor": ("tikagreloru", "tikagrelora"), "Warfarin": ("varfarīnu", "varfarīna"),
+    "Apixaban": ("apiksabānu", "apiksabāna"), "Rivaroxaban": ("rivaroksabānu", "rivaroksabāna"),
+    "Dabigatran": ("dabigatrānu", "dabigatrāna"), "Edoxaban": ("edoksabānu", "edoksabāna"),
+    "LMWH (Fraxiparine / Clexane)": ("mazmolekulāro heparīnu", "mazmolekulārā heparīna"),
+}
+GREEN_CORRIDOR = {
+    "Bladder – Z03.167": "Vērsties pie ģimenes ārsta pēc nosūtījuma uz urologa konsultāciju un cistoskopiju "
+                         "\"zaļā koridora\" ietvaros (diagnozes kods Z03.167 – izmeklēšana iespējama urīnpūšļa "
+                         "ļaundabīga audzēja dēļ).",
+    "Kidney – Z03.164": "Vērsties pie ģimenes ārsta pēc nosūtījuma uz CT ar i/v kontrastvielu un urologa konsultāciju "
+                        "\"zaļā koridora\" ietvaros (diagnozes kods Z03.164 – izmeklēšana iespējama nieres (atskaitot "
+                        "nieres bļodiņas) ļaundabīga audzēja dēļ).",
+}
+HEM_PROC_CYSTO = ("Cystoscopy, clot evacuation, coagulation", "TURU (resection / biopsy)", "TURP (prostatic bleeding)")
+HEM_FINDING = {
+    "No tumour, no bleeding source": "Datu par urīnpūšļa audzēju neiegūst.",
+    "Diffuse bleeding (radiation cystitis)": "Urīnpūšļa gļotādā staru cistīta izmaiņas ar difūzu asiņošanu.",
+    "Bleeding from the prostate": "Asiņošanas avots – prostata.",
+    "Bladder tumour": "Urīnpūslī vizualizē jaunveidojumu.",
+    "Blood from a ureteric orifice": "No urīnvada atveres izdalās asiņains urīns – asiņošanas avots augšējos "
+                                     "urīnceļos.",
+}
+HEM_WARNING = ("Ja hematūrija pastiprinās, parādās asins recekļi, nav iespējams urinēt vai katetrs nefunkcionē, rodas "
+               "drudzis, reibonis vai izteikts vājums, nekavējoties vērsties NMC.")
+HEM_SMOKING = "Ieteicams atmest smēķēšanu – tas ir galvenais urīnpūšļa vēža riska faktors."
+UPPER_TRACT_SIGNS = ("Flank pain", "Kidney mass", "Kidney or ureteral stone", "Hydronephrosis",
+                     "CT – kidney / upper tract mass", "CT – stone", "Urinary stone", "Blood from a ureteric orifice")
+
+
+def _num(v, key):
+    value = v.get(key)
+    return None if value in (None, "") else float(value)
+
+
+def _comma(x):
+    return f"{x:g}".replace(".", ",")
+
+
+def _hem_unknown(v):
+    causes = v.get("Hematuria cause") or []
+    return not causes or "Not clear yet" in causes
+
+
+def _hem_procs(v):
+    """(done as, after 'St. pēc ...') for the cystoscopic procedures, or None."""
+    procs = v.get("Hematuria procedure") or []
+    main = [p.split(" ")[0] for p in procs if p in ("TURU (resection / biopsy)", "TURP (prostatic bleeding)")]
+    if main:
+        text = lv_list(main) + (" ar recekļu evakuāciju" if "Cystoscopy, clot evacuation, coagulation" in procs else "")
+        return text, text
+    if "Cystoscopy, clot evacuation, coagulation" in procs:
+        return ("cistoskopija, recekļu evakuācija un asiņojošo vietu koagulācija",
+                "cistoskopijas, recekļu evakuācijas un koagulācijas")
+    return None
+
+
+def _hem_upper_tract(v):
+    found = set(v.get("Hematuria symptoms") or []) | set(v.get("Hematuria cause") or [])
+    if v.get("Ultrasound at NMC"):
+        found |= set(v.get("Ultrasound findings (R31)") or [])
+    found |= {v.get("CT at NMC (R31)"), v.get("Cystoscopy finding (R31)")}
+    return any(x in found for x in UPPER_TRACT_SIGNS)
+
+
+def _hem_dx_lines(v, ward):
+    causes = v.get("Hematuria cause") or []
+    lines = [HEM_CAUSE_DX[c] for c in causes if c in HEM_CAUSE_DX]
+    us = (v.get("Ultrasound findings (R31)") or []) if v.get("Ultrasound at NMC") else []
+    ct = v.get("CT at NMC (R31)")
+    bladder_mass = ("Bladder wall mass" in us or ct == "CT – bladder mass"
+                    or (ward and v.get("Cystoscopy finding (R31)") == "Bladder tumour"))
+    kidney_mass = "Kidney mass" in us or ct == "CT – kidney / upper tract mass"
+    main = "Makrohematūrija" if v["Hematuria type"].startswith("Visible") else "Mikrohematūrija"
+    if _hem_unknown(v) and not (bladder_mass or kidney_mass):
+        main += " neskaidras etioloģijas"
+    elif "After a urological procedure" in causes:
+        main += " pēc uroloģiskas manipulācijas"
+    elif "Catheter trauma" in causes:
+        main += " urīnpūšļa katetra traumas dēļ"
+    lines.append(main + ".")
+    if v.get("Clot retention (bladder tamponade)"):
+        lines.append("Urīnpūšļa tamponāde ar asins recekļiem.")
+    if bladder_mass and "Bladder cancer (known)" not in causes:
+        lines.append("Tu vesicae urinariae suspecta.")
+    if kidney_mass:
+        lines.append("Tu renis suspecta.")
+    if ward:
+        if v.get("Posthemorrhagic anemia") or (_num(v, "Transfusion (RBC units)") or 0) > 0:
+            lines.append("Posthemorāģiska anēmija.")
+        procs = v.get("Hematuria procedure") or []
+        names = _hem_procs(v)
+        if names:
+            lines.append(f"St. pēc {names[1]} ({fmt_date(v['Cystoscopy date (R31)'])}).")
+        if "Selective embolisation" in procs:
+            lines.append(f"St. pēc selektīvas urīnpūšļa artēriju embolizācijas ({fmt_date(v['Embolisation date'])}).")
+    else:
+        how = v.get("NMC catheter (R31)")
+        if how and how != "No catheter – voids":
+            act = "Urīnpūšļa katetra maiņa" if how == "Catheter changed (blocked)" else "Urīnpūšļa katetrizācija"
+            if v.get("Bladder washout (R31)"):
+                act += ", skalošana ar recekļu evakuāciju"
+            lines.append(act + ".")
+    if not blank(v.get("Other diagnoses (optional)")):
+        lines.append(v["Other diagnoses (optional)"].strip().rstrip(".") + ".")
+    return lines
+
+
+def _hem_complaint(v):
+    symptoms = [HEM_SYMPTOMS[x] for x in (v.get("Hematuria symptoms") or []) if x in HEM_SYMPTOMS]
+    if v.get("Clot retention (bladder tamponade)"):
+        symptoms.append("nespēju urinēt")
+    if v["Hematuria type"].startswith("Visible"):
+        duration = v["Hematuria duration"]
+        first = ("atkārtotu asiņu piejaukumu urīnā" if duration == "Recurrent episodes"
+                 else f"asiņu piejaukumu urīnā {HEM_DURATION[duration]}")
+        return "ar sūdzībām par " + lv_list([first] + symptoms)
+    text = "sakarā ar urīna analīzē konstatētu mikrohematūriju"
+    return text + (", sūdzas par " + lv_list(symptoms) if symptoms else "")
+
+
+def _hem_history(v):
+    items = []
+    for key in (v.get("Hematuria cause") or []):
+        if key in HEM_HISTORY and HEM_HISTORY[key] not in items:
+            items.append(HEM_HISTORY[key])
+    for key in (v.get("Risk factors (R31)") or []):
+        if key in HEM_RISK and HEM_RISK[key] not in items:
+            items.append(HEM_RISK[key])
+    out = [f"Anamnēzē – {lv_list(items)}."] if items else []
+    drugs = [ANTITHROMBOTIC_LV[d][0] for d in (v.get("Antithrombotic therapy") or []) if d in ANTITHROMBOTIC_LV]
+    if drugs:
+        inr = _num(v, "INR (optional)")
+        out.append(f"Pastāvīgi lieto {lv_list(drugs)}" + (f", INR {_comma(inr)}" if inr is not None else "") + ".")
+    return out
+
+
+def _hem_findings(v):
+    out = []
+    if v.get("Ultrasound at NMC"):
+        found = [HEM_US[x] for x in (v.get("Ultrasound findings (R31)") or []) if x in HEM_US]
+        out.append("Veikta USS vēdera dobumam, kur vizualizē " + lv_list(found) + "." if found
+                   else "Veikta USS vēdera dobumam – hematūrijas avotu nevizualizē.")
+    if v.get("CT at NMC (R31)") in HEM_CT:
+        out.append(HEM_CT[v["CT at NMC (R31)"]])
+    labs = []
+    hb = _num(v, "Hemoglobin (g/L)")
+    if hb is not None:
+        labs.append(f"Hb {_comma(hb)} g/L")
+    extra = {"No inflammatory changes": "bez iekaisuma izmaiņām",
+             "Urinary tract infection": "urīna analīzē iekaisuma izmaiņas, paņemts urīna uzsējums",
+             "Raised creatinine": "paaugstināts kreatinīna līmenis",
+             "UTI and raised creatinine": "urīna analīzē iekaisuma izmaiņas, paaugstināts kreatinīna līmenis; paņemts "
+                                          "urīna uzsējums"}.get(v.get("Labs at NMC"))
+    if extra:
+        labs.append(extra)
+    if labs:
+        out.append("Laboratoriski – " + ", ".join(labs) + ".")
+    if not blank(v.get("Other NMC findings (optional)")):
+        text = v["Other NMC findings (optional)"].strip()
+        out.append(text if text.endswith(".") else text + ".")
+    return out
+
+
+def _hem_split_blocks(blocks):
+    """(medicines, other advice lines) – advice blocks are not listed under 'Terapijā lietot'."""
+    advice = [b for b in blocks if b.startswith("Atkārtotas hematūrijas gadījumā apsvērt")]
+    return [b for b in blocks if b not in advice], advice
+
+
+def _hem_antithrombotic_line(v):
+    drugs = [d for d in (v.get("Antithrombotic therapy") or []) if d in ANTITHROMBOTIC_LV]
+    if not drugs:
+        return ""
+    acc = lv_list([ANTITHROMBOTIC_LV[d][0] for d in drugs])
+    gen = lv_list([ANTITHROMBOTIC_LV[d][1] for d in drugs])
+    plan = v.get("Antithrombotic plan")
+    if plan == "Continue":
+        return f"Turpināt lietot {acc}."
+    if plan == "Pause until the urine is clear":
+        return (f"{gen[0].upper() + gen[1:]} lietošanu uz laiku pārtraukt; atsākt, kad urīns kļuvis dzidrs, "
+                "saskaņojot ar ģimenes ārstu vai kardiologu.")
+    return f"Par {gen} terapijas turpināšanu lemt ģimenes ārstam vai kardiologam."
+
+
+def r31_nmc_parts(sex, v, blocks=()):
+    f = SEX_FORMS[sex]
+    diagnosis = "\n".join(_hem_dx_lines(v, ward=False))
+
+    # Epicrisis
+    s = [f"{f['Pacients']} {f['iestajies']} akūtā kārtā PSKUS NMC {_hem_complaint(v)}."]
+    s += _hem_history(v)
+    s.append(f"NMC etapā vispusīgi {f['izmekleta']}.")
+    s += _hem_findings(v)
+    how = v["NMC catheter (R31)"]
+    colour = HEM_COLOUR[v["Urine colour at discharge"]]
+    if how == "No catheter – voids":
+        s.append(f"{'Novērota' if sex == 'Woman' else 'Novērots'} dinamikā, urinē patstāvīgi, urīns {colour}.")
+    else:
+        kind = "trīsceļu Foley" if v.get("Catheter type (R31)") == "3-way catheter" else "Foley"
+        wash = ", veic manuālu urīnpūšļa skalošanu, evakuē asins recekļus" if v.get("Bladder washout (R31)") else ""
+        if how == "Catheter changed (blocked)":
+            text = (f"Urīnpūšļa ilgkatetrs nefunkcionē (obturēts ar asins recekļiem); sterilos apstākļos veic katetra "
+                    f"maiņu, ievada {kind} {v['Catheter Fr (R31)']} Fr katetru{wash}")
+        else:
+            text = f"Sterilos apstākļos ievada {kind} {v['Catheter Fr (R31)']} Fr katetru{wash}"
+        text += f"; {'pēc skalošanas ' if wash else ''}urīns {colour}."
+        if how == "Catheter, washout, removed – voids":
+            text += " Katetru evakuē, urinē patstāvīgi."
+        elif how == "Discharged with a catheter":
+            text += " Urīnpūšļa katetru atstāj."
+        s.append(text)
+    s.append("Hemodinamika stabila. Dotajā brīdī nav indikāciju neatliekamai stacionēšanai. Vispārēji apmierinošā "
+             "stāvoklī un ar rekomendācijām izraksta tālākai ambulatorai ārstēšanai.")
+
+    # Recommendations
+    numbered = make_counter()
+    recs = [numbered("Atrasties ģimenes ārsta uzraudzībā."),
+            numbered("Lietot šķidrumu 2–2,5 l/DN, ja nav medicīnisku kontrindikāciju; līdz urīns kļūst dzidrs, "
+                     "izvairīties no smagas fiziskas slodzes, smagumu celšanas un aizcietējumiem.")]
+    if how == "Discharged with a catheter":
+        recs.append(numbered("Kopt urīnpūšļa katetru – uzturēt noslēgtu drenāžas sistēmu, maisu novietot zem "
+                             "urīnpūšļa līmeņa. Par katetra evakuāciju lemt ģimenes ārstam vai urologam, kad urīns "
+                             "kļuvis dzidrs."))
+    elif how == "Catheter changed (blocked)":
+        recs.append(numbered("Kopt urīnpūšļa ilgkatetru; katetra maiņa ik pēc 4–6 nedēļām ģimenes ārsta praksē, urīna "
+                             "savācējmaisa maiņa ik pēc 3–7 dienām."))
+    line = _hem_antithrombotic_line(v)
+    if line:
+        recs.append(numbered(line))
+    meds, advice = _hem_split_blocks(blocks)
+    if meds:
+        recs.append(numbered("Terapijā lietot:"))
+        recs += ["    " + b for b in meds]
+    recs += [numbered(b) for b in advice]
+    corridor = v.get("Green corridor (GP referral)")
+    if corridor in GREEN_CORRIDOR:
+        recs.append(numbered(GREEN_CORRIDOR[corridor]))
+    else:
+        why = "lai noskaidrotu hematūrijas cēloni" if _hem_unknown(v) else "tālākās ārstēšanas taktikas izvērtēšanai"
+        recs.append(numbered(f"Ambulatori urologa konsultācija {CONSULT_TEXT[v['Urology consultation (R31)']]} ar "
+                             f"izmeklējumu rezultātiem, {why}."))
+    recs += tests_lines(v, "numbered", numbered)
+    if "Smoker or ex-smoker" in (v.get("Risk factors (R31)") or []):
+        recs.append(numbered(HEM_SMOKING))
+    recs.append(numbered(HEM_WARNING))
+    return {"clinical_diagnosis": diagnosis, "epicrisis": " ".join(s), "recommendations": "\n".join(recs)}
+
+
+def r31_ward_parts(sex, v, blocks=()):
+    f = SEX_FORMS[sex]
+    diagnosis = "\n".join(_hem_dx_lines(v, ward=True))
+    procs = v.get("Hematuria procedure") or []
+    names = _hem_procs(v)
+    treat = v.get("Ward treatment (R31)") or []
+    tamponade = v.get("Clot retention (bladder tamponade)")
+
+    # Epicrisis
+    p1 = [f"{f['Pacients']} {f['stacionets']} P. Stradiņa KUS 4. uroloģijas nodaļā akūtā kārtā {_hem_complaint(v)}."]
+    p1 += _hem_history(v)
+    nmc = "NMC konstatēta " + ("makrohematūrija" if v["Hematuria type"].startswith("Visible") else "mikrohematūrija")
+    if tamponade:
+        nmc += ", urīnpūšļa tamponāde; veikta urīnpūšļa katetrizācija, uzsākta urīnpūšļa skalošana"
+    p2 = [nmc + "."] + _hem_findings(v)
+    acts = []
+    if "Bladder irrigation (3-way catheter)" in treat:
+        acts.append("turpināta nepārtraukta urīnpūšļa skalošana pa trīsceļu katetru" if tamponade
+                    else "veikta nepārtraukta urīnpūšļa skalošana pa trīsceļu katetru")
+    if "Manual bladder washout" in treat:
+        acts.append("veikta manuāla urīnpūšļa skalošana ar recekļu evakuāciju")
+    units = int(_num(v, "Transfusion (RBC units)") or 0)
+    if units:
+        acts.append(f"veikta {units} ER masas transfūzija" if units % 10 == 1 and units % 100 != 11
+                    else f"veiktas {units} ER masas transfūzijas")
+    if "IV tranexamic acid" in treat:
+        acts.append("i/v ievadīta traneksāmskābe")
+    if "IV antibiotics" in treat:
+        acts.append("nozīmēta i/v antibakteriālā terapija")
+    if v.get("Antithrombotic therapy") and v.get("Antithrombotic plan") == "Pause until the urine is clear":
+        acts.append("uz laiku pārtraukta antitrombotiskā terapija")
+    p3 = ["Nodaļā " + lv_list(acts) + "."] if acts else []
+    if names:
+        p3.append(f"{fmt_date(v['Cystoscopy date (R31)'])} {ANESTHESIA_TEXT[v['Anesthesia (R31)']]} veikta {names[0]}.")
+        if v.get("Cystoscopy finding (R31)") in HEM_FINDING:
+            p3.append(HEM_FINDING[v["Cystoscopy finding (R31)"]])
+    if "Alum bladder irrigation (1%)" in procs:
+        p3.append("Veikta urīnpūšļa skalošana ar 1% alauna šķīdumu.")
+    if "Selective embolisation" in procs:
+        p3.append(f"{fmt_date(v['Embolisation date'])} veikta selektīva urīnpūšļa artēriju embolizācija.")
+    histology = v.get("Histology (R31)") if names else None
+    if histology == "Pending":
+        p3.append("Histoloģiskās izmeklēšanas rezultāts izrakstīšanas brīdī vēl nav zināms.")
+    elif histology == "Known":
+        p3.append("Histoloģiskās izmeklēšanas rezultāts: " + v["Histology result (R31)"].strip().rstrip(".") + ".")
+    colour = v["Urine colour at discharge"]
+    p4 = [("Pēc ārstēšanas hematūrija izzūd, urīns dzidrs." if colour == "Clear"
+           else f"Pēc ārstēšanas hematūrija mazinās, urīns {HEM_COLOUR[colour]}.")]
+    hb = _num(v, "Hemoglobin at discharge (g/L)")
+    if hb is not None:
+        p4.append(f"Hb izrakstīšanas brīdī {_comma(hb)} g/L.")
+    had_catheter = tamponade or names or any(t in treat for t in ("Bladder irrigation (3-way catheter)",
+                                                                  "Manual bladder washout"))
+    if v.get("Discharged with catheter"):
+        text = f"{f['Pacients']} {f['izrakstits']} ar urīnpūšļa ilgkatetru"
+        if v.get("Catheter removal date"):
+            text += f", kura evakuācija plānota {fmt_date(v['Catheter removal date'])}"
+        p4.append(text + ".")
+    elif had_catheter:
+        p4.append("Urīnpūšļa katetrs evakuēts, urinē patstāvīgi.")
+    else:
+        p4.append("Urinē patstāvīgi.")
+    epicrisis = "\n".join(" ".join(p) for p in (p1, p2, p3, p4) if p)
+    epicrisis += f"\nVispārējā apmierinošā stāvoklī {f['izrakstits']} tālākai ārstēšanai ambulatori."
+
+    # Recommendations
+    recs = [TEMPORARY_PAPER_TEXT] if (names and v.get("Discharge paper (R31)") == "Temporary") else []
+    recs += [
+        "Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā.",
+        "Diēta: vispusīga. Lietot šķidrumu 2,0–2,5 L diennaktī, ja nav medicīnisku kontrindikāciju.",
+        f"Režīms: saudzējošs {WEEKS_TEXT[v['Activity restriction']]} no {'operācijas' if names else 'izrakstīšanas'} "
+        "dienas, izvairīties no smagas fiziskas slodzes, smagumu celšanas un aizcietējumiem.",
+    ]
+    if v.get("Discharged with catheter"):
+        if v.get("Catheter removal date"):
+            recs.append("Kopt urīnpūšļa ilgkatetru; " + CATHETER_CARE_LINES[1][0].lower() + CATHETER_CARE_LINES[1][1:])
+            recs.append(f"Katetra evakuācija plānota {fmt_date(v['Catheter removal date'])}.")
+        else:
+            recs += CATHETER_CARE_LINES
+    line = _hem_antithrombotic_line(v)
+    if line:
+        recs.append(line)
+    meds, advice = _hem_split_blocks(blocks)
+    if meds:
+        recs.append("Terapijā lietot:")
+        recs += ["• " + b for b in meds]
+    recs += advice
+    if histology == "Pending":
+        recs.append("Patohistoloģiskās izmeklēšanas rezultātu izvērtēs ārstējošais urologs.")
+    if "Selective embolisation" in procs:
+        recs.append("Pēc embolizācijas pirmajās dienās iespējamas sāpes vēdera lejasdaļā vai sēžamvietā un "
+                    "subfebrila temperatūra; stipru sāpju, drudža vai kāju vājuma gadījumā vērsties NMC.")
+    if v.get("Green corridor (GP referral)") in GREEN_CORRIDOR:
+        recs.append(GREEN_CORRIDOR[v["Green corridor (GP referral)"]])
+    recs.append(f"Vizīte pie urologa ambulatori: {WEEKS_TEXT[v['Urology visit']]} pēc izrakstīšanas.")
+    recs += tests_lines(v, "plain", after_op=bool(names))
+    if "Smoker or ex-smoker" in (v.get("Risk factors (R31)") or []):
+        recs.append(HEM_SMOKING)
+    recs.append(HEM_WARNING)
+    return {"clinical_diagnosis": diagnosis, "epicrisis": epicrisis, "recommendations": "\n".join(recs)}
+
+
+def r31_checks(v):
+    blockers, cautions = [], []
+    ward = v.get("_department") == "4"
+    causes = v.get("Hematuria cause") or []
+    chosen = v.get("_blocks") or []
+    tests = v.get("_test_ids") or []
+    procs = (v.get("Hematuria procedure") or []) if ward else []
+    colour = v.get("Urine colour at discharge")
+    drugs = v.get("Antithrombotic therapy") or []
+    hb = _num(v, "Hemoglobin (g/L)")
+    names = _hem_procs(v) if ward else None
+    if v.get("_sex") == "Woman" and any(c in causes for c in ("BPH (prostatic bleeding)", "Prostate cancer")):
+        blockers.append("BPH / prostate cancer is chosen as the cause for a woman.")
+    if "Not clear yet" in causes and len(causes) > 1:
+        cautions.append("'Not clear yet' is chosen together with a cause: remove one of them.")
+    if colour == "Red / with clots":
+        blockers.append("The urine is still red with clots: ongoing bleeding – BAUS: admit (3-way catheter, manual "
+                        "washout, then irrigation); do not discharge.")
+    if not ward:
+        if v.get("Hemodynamics (R31)") == "Unstable":
+            blockers.append("Hemodynamically unstable: resuscitate and admit.")
+        if hb is not None and hb < 80:
+            blockers.append("Hb below 80 g/L: transfusion range – admit.")
+        elif hb is not None and hb < 100:
+            cautions.append(f"Hb {_comma(hb)} g/L: recheck the blood count within 48–72 hours (tests box) and admit if "
+                            "it falls.")
+        if v.get("Clot retention (bladder tamponade)"):
+            cautions.append("Clot retention: BAUS – it usually needs admission (3-way catheter 20–24 Fr, manual washout "
+                            "first, then continuous irrigation). Send home only if after the washout the urine stays "
+                            "clear or light pink without clots, Hb is stable, the catheter drains well and the patient "
+                            "can come back quickly.")
+        if colour == "Pink, no clots":
+            cautions.append("The urine is still pink: make sure it keeps clearing and the patient voids (or the catheter "
+                            "drains) before discharge.")
+        if v.get("Fever at NMC"):
+            cautions.append("Fever with hematuria: exclude pyelonephritis / prostatitis and obstruction; admit if septic, "
+                            "obstructed or unable to take oral antibiotics.")
+    else:
+        if v.get("Histology (R31)") == "Known" and names and blank(v.get("Histology result (R31)")):
+            blockers.append("Type the histology result.")
+        hb2 = _num(v, "Hemoglobin at discharge (g/L)")
+        if hb2 is not None and hb2 < 80:
+            cautions.append("Hb at discharge below 80 g/L: check that a transfusion is not needed before discharge.")
+        if "Selective embolisation" in procs:
+            cautions.append("After embolisation: watch for post-embolisation syndrome (pain, fever), buttock pain or "
+                            "ischaemia; check creatinine after the contrast.")
+        if v.get("Cystoscopy finding (R31)") == "Bladder tumour" and "TURU (resection / biopsy)" not in procs:
+            cautions.append("Bladder tumour seen at cystoscopy: plan TURU (EAU) and the oncology pathway.")
+        if names and v.get("Histology (R31)") == "Pending" and v.get("Discharge paper (R31)") == "Final":
+            cautions.append("Histology is still pending, but the discharge paper is marked as final.")
+        if names and v.get("Histology (R31)") == "Known" and v.get("Discharge paper (R31)") == "Temporary":
+            cautions.append("Histology is already known, but the discharge paper is marked as temporary.")
+        if v.get("Cystoscopy finding (R31)") == "Blood from a ureteric orifice" and "ctu" not in tests:
+            cautions.append("Bleeding from a ureteric orifice: the upper tract needs CT urography (and ureteroscopy if "
+                            "CT is not conclusive).")
+    # work-up (EAU NMIBC, strong): cystoscopy + upper tract imaging for visible haematuria
+    if _hem_unknown(v) and not names:
+        if v.get("Green corridor (GP referral)") != "Bladder – Z03.167" and "cysto" not in tests:
+            cautions.append("Cause not clear: EAU (strong) – every patient with visible hematuria needs a cystoscopy. "
+                            "Choose the green corridor (Z03.167) or tick cystoscopy in the tests.")
+    if _hem_unknown(v) and v.get("CT at NMC (R31)") in (None, "Not done") and not any(t in tests for t in
+                                                                                     ("ctu", "us_kb", "ct_abd")):
+        cautions.append("Cause not clear: EAU (strong) – upper tract imaging (kidney ultrasound and/or CT urography). "
+                        "Tick it in the tests.")
+    if v.get("Hematuria type", "").startswith("Non-visible"):
+        cautions.append("Microhematuria: confirm by microscopy (> 3 RBC/HPF), exclude UTI, then risk-stratify (AUA: "
+                        "low risk – repeat urinalysis within 6 months; intermediate – cystoscopy and kidney ultrasound; "
+                        "high – cystoscopy and CT urography). Green corridor (Z03.167): age >= 60 with dysuria or "
+                        "leukocytosis.")
+    if drugs and _hem_unknown(v):
+        cautions.append("Hematuria on anticoagulants / antiplatelets needs the same full work-up (AUA, strong) – the "
+                        "drug does not explain it.")
+    if drugs and v.get("Antithrombotic plan") == "Pause until the urine is clear":
+        cautions.append("Before pausing: do not stop dual antiplatelet therapy after a recent coronary stent, or "
+                        "anticoagulation with a mechanical valve or recent thrombosis, without the cardiologist; the "
+                        "text says who restarts it.")
+    if "Warfarin" in drugs:
+        inr = _num(v, "INR (optional)")
+        if inr is None:
+            cautions.append("Warfarin: record the INR.")
+        elif inr > 3:
+            cautions.append(f"INR {_comma(inr)}: above the usual range – correct it with the prescriber.")
+    if "tranexamic" in chosen:
+        if _hem_upper_tract(v):
+            cautions.append("Tranexamic acid with a possible upper tract source: SmPC – clots may obstruct the ureter. "
+                            "Avoid it.")
+        if drugs:
+            cautions.append("Tranexamic acid together with an antithrombotic drug: thrombosis risk – only under "
+                            "supervision (SmPC).")
+        if v.get("Labs at NMC") in ("Raised creatinine", "UTI and raised creatinine"):
+            cautions.append("Raised creatinine: reduce the tranexamic acid dose (SmPC, by creatinine).")
+    if "fraxiparine" in chosen and colour != "Clear":
+        cautions.append("Fraxiparine while the urine is not yet clear: weigh the bleeding risk.")
+    if "Radiation cystitis" in causes:
+        cautions.append("Radiation cystitis – stepwise: washout and irrigation → cystoscopy with clot evacuation and "
+                        "coagulation (biopsy to exclude a recurrence or second tumour) → intravesical alum 1% (or "
+                        "formalin 1–2% under anaesthesia after a cystogram) → hyperbaric oxygen → selective "
+                        "embolisation → urinary diversion as the last resort.")
+    uti = "Urinary tract infection (hemorrhagic cystitis)" in causes or \
+        v.get("Labs at NMC") in ("Urinary tract infection", "UTI and raised creatinine")
+    if uti and not any(b in chosen for b in ("fosfomycin-3g", "amoxiclav-7", "cefuroxime-7", "cipro")) and \
+            "IV antibiotics" not in (v.get("Ward treatment (R31)") or [] if ward else []):
+        cautions.append("UTI: choose an antibiotic (and adjust it to the urine culture).")
+    if "Urinary tract infection (hemorrhagic cystitis)" in causes:
+        cautions.append("Hemorrhagic cystitis: repeat urinalysis after treatment – hematuria that persists after the UTI "
+                        "is treated needs the full work-up (green corridor criterion at >= 45 years).")
+    if "fosfomycin-3g" in chosen and v.get("_sex") == "Man":
+        cautions.append("Fosfomycin single dose is for uncomplicated cystitis in women; a UTI in a man is complicated – "
+                        "7 days, adjusted to the culture.")
+    if v.get("Ultrasound at NMC") and "Hydronephrosis" in (v.get("Ultrasound findings (R31)") or []):
+        cautions.append("Hydronephrosis with hematuria: exclude obstruction by clots, stone or tumour; drain if infected "
+                        "or renal function falls.")
+    return blockers, cautions
+
+
+BUILDERS["r31_nmc"] = r31_nmc_parts
+BUILDERS["r31_ward"] = r31_ward_parts
+CHECKS["R31"] = r31_checks
+
+
+# ---------------------------------------------------------------
 # 2m. FOLLOW-UP TESTS: catalogue, guideline-based suggestions, text
 # ---------------------------------------------------------------
 # Nothing here goes into a text by default. The doctor ticks tests in the
@@ -5128,6 +5798,7 @@ FOLLOWUP_TESTS = {  # id -> group, English name in the app, Latvian text in the 
                     "lv": "kreatinīns, kalcijs (jonizētais vai kopējais ar albumīnu), urīnskābe"},
     "psa": {"group": "Blood", "title": "PSA", "lv": "PSA"},
     "glucose": {"group": "Blood", "title": "Blood glucose and HbA1c", "lv": "glikoze, HbA1c"},
+    "inr": {"group": "Blood", "title": "INR (warfarin)", "lv": "INR"},
     "panel": {"group": "Blood", "title": "Extended blood panel (department list)",
               "lv": "CRO, LDH, sārmainā fosfatāze, kreatinīns, urīnskābe, Ca, P, Na, K, glikoze, ASAT, ALAT, kopējais "
                     "bilirubīns, 25-OH-vitamīns D (D3+D2)"},
@@ -5744,6 +6415,71 @@ def r33_tests(v):
 TEST_ADVISORS["R33"] = r33_tests
 
 
+def r31_tests(v):
+    out, seen = [], set()
+
+    def add(item):
+        if item["id"] not in seen:
+            seen.add(item["id"])
+            out.append(item)
+
+    causes = v.get("Hematuria cause") or []
+    ward = v.get("_department") == "4"
+    procs = (v.get("Hematuria procedure") or []) if ward else []
+    done = ward and _hem_procs(v) is not None
+    raised = v.get("Labs at NMC") in ("Raised creatinine", "UTI and raised creatinine")
+    uti = "Urinary tract infection (hemorrhagic cystitis)" in causes or \
+        v.get("Labs at NMC") in ("Urinary tract infection", "UTI and raised creatinine")
+    if _hem_unknown(v) and not done:
+        if v.get("Green corridor (GP referral)") == "Bladder – Z03.167":
+            add(_s("cysto", "consider", "visit", "Already in the green corridor referral (Z03.167) – tick it only if you "
+                                                 "want it written separately."))
+        else:
+            add(_s("cysto", "rec", "visit", "EAU (strong): cystoscopy for every patient with symptoms suggesting bladder "
+                                            "cancer (visible hematuria) – flexible, outpatient; it cannot be replaced by "
+                                            "cytology or other tests."))
+    if "Radiation cystitis" in causes and not done:
+        add(_s("cysto", "consider", "visit", "Radiation cystitis: cystoscopy (with biopsy if needed) excludes a recurrence "
+                                             "or a second tumour."))
+    if _hem_unknown(v) and v.get("CT at NMC (R31)") in (None, "Not done"):
+        if raised:
+            add(_s("us_kb", "rec", "visit", "Raised creatinine: ultrasound first; CT urography only after renal function "
+                                            "is checked."))
+            add(_s("ctu", "consider", "visit", "EAU (strong): ultrasound and/or CT urography for the upper tract; check "
+                                               "eGFR before contrast."))
+        else:
+            add(_s("ctu", "rec", "visit", "EAU (strong): kidney and bladder ultrasound and/or CT urography in the initial "
+                                          "work-up; CT urography is the most sensitive test of the upper tract."))
+            add(_s("us_kb", "consider", "visit", "Alternative if CT urography is not possible (contrast allergy, "
+                                                 "pregnancy, low eGFR)."))
+    if _hem_unknown(v):
+        add(_s("cyto", "consider", "visit", "EAU (strong): voided cytology as an adjunct to cystoscopy to find high-grade "
+                                            "tumour / CIS (at least 25 ml fresh urine); most useful in smokers and "
+                                            "high-risk patients."))
+    if v.get("Hematuria type", "").startswith("Non-visible"):
+        add(_s("ua", "rec", "visit", "Confirm microhematuria by microscopy (> 3 RBC/HPF); a dipstick alone is not enough "
+                                     "(AUA, strong).", text="urīna analīze ar mikroskopiju (eritrocīti redzes laukā)"))
+    if uti:
+        add(_s("uc", "rec", "none", "Check the culture taken at NMC / in the ward and adjust the antibiotic.",
+               text="paņemtā urīna uzsējuma rezultāts (Datamed.lv)"))
+        add(_s("ua", "rec", "2-6w", "Repeat urinalysis after the infection is treated: hematuria that persists needs "
+                                    "the full work-up.", text="atkārtota urīna analīze pēc infekcijas izārstēšanas"))
+    hb = [x for x in (_num(v, "Hemoglobin (g/L)"), _num(v, "Hemoglobin at discharge (g/L)")) if x is not None]
+    low = any(x < 100 for x in hb) or (_num(v, "Transfusion (RBC units)") or 0) > 0
+    drugs = v.get("Antithrombotic therapy") or []
+    add(_s("cbc", "rec" if (low or drugs) else "consider", "48-72h" if low else "1w",
+           "Hb check after bleeding – sooner if Hb was low, after a transfusion, or on antithrombotic drugs."))
+    if "Warfarin" in drugs:
+        add(_s("inr", "rec", "48-72h", "Warfarin: check the INR, especially if the dose was paused or changed."))
+    contrast = "Selective embolisation" in procs
+    add(_s("creat", "rec" if (raised or contrast) else "consider", "48-72h" if (raised or contrast) else "1w",
+           "Renal function: raised at NMC, after contrast (embolisation, CT), or before CT urography."))
+    return out
+
+
+TEST_ADVISORS["R31"] = r31_tests
+
+
 # ----- tables the doctor fills in (st.data_editor) -----
 
 def antibiotics_editor(key):
@@ -6246,9 +6982,13 @@ PE_PRESETS = {
     "Hematuria – acute admission (no operation)": (
         "Acute", "", "", "Makrohematūrija", "asins piejaukumu urīnā",
         "Izmeklēts NMC. Veic CT ar i/v kontrastvielu."),
+    "Hematuria with bladder tamponade – acute admission (no operation)": (
+        "Acute", "", "", "Makrohematūrija. Urīnpūšļa tamponāde", "asins piejaukumu urīnā",
+        "Izmeklēts NMC – konstatēta makrohematūrija, urīnpūšļa tamponāde; veikta urīnpūšļa katetrizācija, uzsākta "
+        "urīnpūšļa skalošana."),
     "Urinary retention – acute admission (no operation)": (
         "Acute", "", "", "Akūta urīna retence", "nespēju urinēt, sāpēm vēdera lejasdaļā",
-        "Izmeklēts NMC. Sterilos apstākļos veikta urīnpūšļa kateterizācija."),
+        "Izmeklēts NMC. Sterilos apstākļos veikta urīnpūšļa katetrizācija."),
     "Acute admission, other (no operation)": ("Acute", "", "", "", "", "Izmeklēts NMC."),
     "Other (type it)": ("Planned", "", "", "", "", ""),
 }
@@ -6624,7 +7364,7 @@ DEC_FIELDS = {  # widget name -> default value of a new day
     "dressing": "(no dressing)",
     "ending": "Turpina ārstēšanu stacionārā.",
 }
-CATH_LOOKS = ["(no catheter)", "dzeltens", "dzidrs", "sarkanīgs", "sarkans", "viegli sārts", "viegli sangvinozs", "sangvinozs", "ar recekļiem", "duļķains"]
+CATH_LOOKS = ["(no catheter)", "dzeltens", "dzidrs", "sarkanīgs", "sarkans", "viegli sarkans", "viegli sārts", "viegli sangvinozs", "sangvinozs", "ar recekļiem", "duļķains"]
 DRAIN_LOOKS = ["(no drain)", "serozi", "serozi-sangvinozi", "sangvinozi-serozi", "serosangvinozi", "sangvinozi"]
 DRESSINGS = {  # "Pārsiešana" choice -> text
     "(no dressing)": "",
@@ -6688,6 +7428,11 @@ DEC_PRESETS = {  # typical findings filled into every day card (you can still ch
     "Cystolithotripsy (3-way catheter)": {"cath_look": "sarkanīgs", "drain_look": "(no drain)",
                                           "dressing": "(no dressing)", "abdomen": "Vēders palpatori mīksts, nesāpīgs.",
                                           "voiding": "", "notes": "Urīnpūšļa skalošana nav nepieciešama."},
+    "Hematuria (3-way catheter, irrigation)": {"cath_look": "viegli sarkans", "drain_look": "(no drain)",
+                                               "dressing": "(no dressing)",
+                                               "abdomen": "Vēders palpatori mīksts, nesāpīgs, vēdera izeja normāla.",
+                                               "voiding": "", "notes": "Turpina urīnpūšļa skalošanu pa trīsceļu "
+                                                                       "katetru."},
     "Urethrotomy / dilation (catheter)": {"cath_look": "dzeltens", "drain_look": "(no drain)",
                                           "dressing": "(no dressing)", "abdomen": "Vēders palpatori mīksts, nesāpīgs.",
                                           "voiding": "", "notes": "Urīnpūšļa ilgkatetrs funkcionē."},
@@ -6914,6 +7659,65 @@ def cystolithotripsy_operation(c1, c2, c3, pt_acc):
         "sastāva analīzei.",
     ]
     return text, "Cistoskopija, cistolitotripsija"
+
+
+def hematuria_operation(c1, c2, c3, pt_acc):
+    """Cystoscopy with clot evacuation and coagulation (hematuria / clot retention). Returns (paragraphs, name)."""
+    st.caption("Evacuate all clots first (Ellik evacuator or bladder syringe), find the source, coagulate the bleeding "
+               "points, take a biopsy of suspicious areas to exclude a tumour, and finish with a large 3-way catheter "
+               "and irrigation. If a tumour is resected, use the TURU description.")
+    pt_nom = "Paciente" if pt_acc == "Pacienti" else "Pacients"
+    anesthesia = c1.selectbox("Anestēzija", ["Intubācijas narkozē", "Spinālā anestēzijā"], key="op-hc-an")
+    scope = c2.selectbox("Instruments", ["rezektoskopu (nepārtrauktas plūsmas)", "cistoskopu"], key="op-hc-scope")
+    evac = c3.selectbox("Recekļu evakuācija", ["Ellika evakuatoru", "Žanē šļirci"], key="op-hc-evac")
+    clots = c1.number_input("Recekļi (ml, optional)", 0, 3000, value=None, step=50, key="op-hc-ml")
+    mucosa = c2.selectbox("Gļotāda pēc evakuācijas", ["hiperemēta, ar staru cistīta izmaiņām (teleangiektāzijas)",
+                                                       "hiperemēta", "trabekulāra", "neizmainīta"], key="op-hc-mucosa")
+    source = c3.selectbox("Asiņošanas avots", ["Difūza gļotādas asiņošana", "Atsevišķi asiņojoši asinsvadi", "Prostata",
+                                               "Urīnpūšļa jaunveidojums", "Labā urīnvada atvere",
+                                               "Kreisā urīnvada atvere", "Avots nav atrasts"], key="op-hc-source")
+    energy = c1.selectbox("Koagulācija", ["bipolāru", "monopolāru"], key="op-hc-energy")
+    biopsy = c2.checkbox("Biopsija no aizdomīgām vietām", key="op-hc-biopsy")
+    fr = c3.selectbox("3-kanālu katetrs (Fr)", ["20", "22", "24"], index=1, key="op-hc-fr")
+    balloon = c1.number_input("Balons (ml)", 5, 60, 20, key="op-hc-balloon")
+    irrigation = c2.checkbox("Nepārtraukta skalošana", True, key="op-hc-irr")
+    colour = c3.selectbox("Urīns pa katetru", ["viegli rozīgas krāsas", "dzidrs", "sārtas krāsas"], key="op-hc-colour")
+    ward = st.text_input("Pārved uz", "4. nodaļu", key="op-hc-ward")
+    codes = st.checkbox("Manipulāciju kodi tekstā", True, key="op-hc-codes")
+    k1, k2 = st.columns(2)
+    code_scope = k1.text_input("Cistoskopijas kods", "19161", key="op-hc-code1") if codes else ""
+    code_coag = k2.text_input("Koagulācijas kods (optional)", key="op-hc-code2") if codes else ""
+    tag = lambda code: f" ({code.strip()})" if codes and code.strip() else ""
+    coag = f"{energy} koagulāciju{tag(code_coag)}"
+    orifice = source.endswith("urīnvada atvere")
+    found = {
+        "Difūza gļotādas asiņošana": f"Vizualizē difūzu gļotādas asiņošanu; veic asiņojošo vietu {coag}.",
+        "Atsevišķi asiņojoši asinsvadi": f"Vizualizē atsevišķus asiņojošus asinsvadus; veic to {coag}.",
+        "Prostata": f"Asiņošanas avots – asinsvadi prostatas virsmā; veic to {coag}.",
+        "Urīnpūšļa jaunveidojums": f"Asiņošanas avots – urīnpūšļa jaunveidojums; veic tā virsmas {coag}.",
+        "Avots nav atrasts": "Aktīvu asiņošanas avotu nekonstatē.",
+    }.get(source) or (f"No {'labās' if source.startswith('Labā') else 'kreisās'} urīnvada atveres izdalās asiņains "
+                      "urīns – asiņošanas avots augšējos urīnceļos; urīnpūšļa gļotādā aktīvas asiņošanas vietas "
+                      "nekonstatē.")
+    amount = f" (~{clots:g} ml)" if clots else ""
+    end = (" Urīnpūslis atskalots, recekļu atliekas nekonstatē." if (orifice or source == "Avots nav atrasts")
+           else " Kontroles cistoskopijā hemostāze apmierinoša, recekļu atliekas nekonstatē.")
+    text = [
+        f"{pt_nom} atrodas dorsālās litotomijas guļā. {anesthesia}, pēc operācijas lauka apdares ar polispirtu "
+        f"šķīdumu urīnpūslī ievada {scope.split(' (')[0]}{tag(code_scope)}. Instrumenta ievadīšana brīva. Urīnpūslī "
+        f"liels daudzums asins recekļu{amount}, kurus fragmentē un evakuē ar {evac}. Pēc recekļu evakuācijas "
+        f"urīnpūšļa gļotāda {mucosa}. {found}"
+        + (" No aizdomīgām gļotādas vietām paņem biopsiju." if biopsy else "") + end + " Evakuē instrumentu.",
+        f"Operāciju nobeidzot urīnpūslī ievada {fr} Fr izmēra 3-kanālu Foley katetru, balons uzpildīts līdz "
+        f"{balloon} ml." + (" Uzsāk nepārtrauktu urīnpūšļa skalošanu." if irrigation else "")
+        + f" Pa katetru {colour if colour == 'dzidrs' else colour + ' urīns'}" + (" urīns" if colour == "dzidrs" else "")
+        + ".",
+        f"{pt_nom} vispārēji apmierinošā stāvoklī pārved uz {ward.strip()}."
+        + (" Biopsijas materiālu nosūta histoloģiskai izmeklēšanai." if biopsy else ""),
+    ]
+    coagulated = not (orifice or source == "Avots nav atrasts")
+    name = "Cistoskopija, recekļu evakuācija" + (", koagulācija" if coagulated else "") + (", biopsija" if biopsy else "")
+    return text, name
 
 
 def stricture_operation(op, c1, c2, c3, pt_dat, pt_acc):
@@ -7203,7 +8007,7 @@ def render_operation(sex):
     pt_acc = "Pacienti" if woman else "Pacientu"
     st.subheader("Operācijas apraksts")
     op = st.selectbox("Operation", ["TURP", "TURU", "Re-TURU (scar resection)", "Circumcision", "Cystoscopy, stent removal", "URS (semirigid)", "FURS (flexible)",
-                                    "Cystolithotripsy", "Optical urethrotomy (DVIU)", "Urethral dilation", "Meatotomy",
+                                    "Cystolithotripsy", "Cystoscopy – clot evacuation, coagulation (hematuria)", "Optical urethrotomy (DVIU)", "Urethral dilation", "Meatotomy",
                                     "Urethroplasty (EPA / buccal graft)",
                                     "Epididymal tumour extirpation", "Hydrocele plasty", "Scrotal mass excision",
                                     "Laparoscopic radical prostatectomy", "Laparoscopic nephrectomy",
@@ -7356,6 +8160,8 @@ def render_operation(sex):
                     f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz nodaļu."]
             if histology.strip():
                 text.append(f"\nHistoloģija: {histology.strip()}")
+        elif op == "Cystoscopy – clot evacuation, coagulation (hematuria)":
+            text, name = hematuria_operation(c1, c2, c3, pt_acc)
         elif op == "Cystolithotripsy":
             text, name = cystolithotripsy_operation(c1, c2, c3, pt_acc)
         elif op in ("Optical urethrotomy (DVIU)", "Urethral dilation", "Meatotomy", "Urethroplasty (EPA / buccal graft)"):
@@ -7572,7 +8378,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-23-retention · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-23-hematuria · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
