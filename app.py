@@ -51,6 +51,7 @@ DIAGNOSES = {
     "N40": "Benign prostatic hyperplasia",
     "N41.0": "Acute bacterial prostatitis, prostatic abscess (NMC or 4. Urology)",
     "N43": "Hydrocele and spermatocele",
+    "N44": "Testicular torsion (4. Urology) / appendix testis torsion (NMC)",
     "N45": "Orchitis / epididymitis, testicular abscess (NMC or 4. Urology)",
     "N47": "Phimosis (4. Urology) / paraphimosis – reduction or dorsumcision (NMC)",
     "R31": "Hematuria (NMC: sent home / 4. Urology: admitted)",
@@ -392,6 +393,41 @@ MODIFIERS = {
         "options": ["pTa", "pTis (CIS)", "pT1", "pT2", "Other / not malignant"],
         "show_if": {"Histology": "Known"},
     },
+    # ----- N44 testicular torsion -----
+    "Side (TT)": {"type": "single", "options": ["Right", "Left"]},
+    "Pain duration (TT)": {"type": "single", "default_index": 0,
+                           "options": ["Under 6 hours", "6–12 hours", "12–24 hours", "More than 24 hours"]},
+    "Pain since (TT)": {"type": "date", "optional": True},
+    "Doppler US (TT)": {"type": "single", "default_index": 0,
+                        "options": ["No blood flow", "Reduced (partial) blood flow", "Not done – clinical diagnosis"],
+                        "show_if": {"_department": "4"}},
+    "Manual detorsion at NMC (TT)": {"type": "single", "default_index": 0,
+                                     "options": ["Not attempted", "Attempted – pain relief", "Attempted – unsuccessful"],
+                                     "show_if": {"_department": "4"}},
+    "Anesthesia (TT)": {"type": "single", "default_index": 0, "options": ["General", "Spinal"]},
+    "Rotation (TT)": {"type": "single", "default_index": 4,
+                      "options": ["180°", "360°", "720° (2 turns)", "More than 720°", "Not stated"]},
+    "Testis viability (TT)": {"type": "single",
+                              "options": ["Viable – detorsion and orchidopexy",
+                                          "Doubtful – preserved after warming, orchidopexy",
+                                          "Necrotic – orchiectomy"]},
+    "Contralateral fixation (TT)": {"type": "toggle", "default": True},
+    "Appendix testis excised (TT)": {"type": "toggle"},
+    "Drain (TT)": {"type": "single", "default_index": 1,
+                   "options": ["No drain", "Removed in the ward", "Discharged with drain"]},
+    "Postoperative course (TT)": {"type": "single", "default_index": 0, "options": ["Uneventful", "With complications"]},
+    "Postoperative complications (TT)": {"type": "text", "placeholder": "in Latvian",
+                                         "show_if": {"Postoperative course (TT)": "With complications"}},
+    "Histology (TT)": {"type": "single", "default_index": 0, "options": ["Pending", "Known"],
+                       "show_if": {"Testis viability (TT)": "Necrotic – orchiectomy"}},
+    "Histology result (TT)": {"type": "text", "placeholder": "in Latvian, e.g. hemorāģiska sēklinieka nekroze",
+                              "show_if": {"Histology (TT)": "Known"}},
+    "Discuss testicular prosthesis": {"type": "toggle", "default": True,
+                                      "show_if": {"Testis viability (TT)": "Necrotic – orchiectomy"}},
+    "Fertility advice (TT)": {"type": "toggle", "default": True},
+    "Blue dot sign": {"type": "toggle", "show_if": {"_department": "NMC"}},
+    "Control visit (TT)": {"type": "single", "default_index": 0,
+                           "options": ["Urologist in 1 month", "Urologist in 3 months", "Urologist in 1 week"]},
     # ----- N41.0 acute bacterial prostatitis, prostatic abscess -----
     "Symptoms (AP)": {"type": "multi", "optional": True, "default_selected": ["Fever", "Dysuria / frequency"],
                       "options": ["Fever", "Chills", "Dysuria / frequency", "Perineal / suprapubic pain",
@@ -1248,6 +1284,18 @@ DIAGNOSIS_MODIFIERS = {
         ("9. Follow-up and advice",
          ["Urology follow-up", "Urology follow-up date", "Fluid intake", "Warning signs",
           "Chronic medication changes"]),
+    ],
+    "N44": [
+        ("1. Admission", ["Side (TT)", "Pain duration (TT)", "Pain since (TT)", "Doppler US (TT)",
+                          "Manual detorsion at NMC (TT)", "Other diagnoses (optional)"]),
+        ("2. Operation",
+         ["Procedure date", "Anesthesia (TT)", "Rotation (TT)", "Testis viability (TT)", "Contralateral fixation (TT)",
+          "Appendix testis excised (TT)", "Drain (TT)", "Postoperative course (TT)", "Postoperative complications (TT)",
+          "Histology (TT)", "Histology result (TT)", "Skin sutures"], {"_department": "4"}),
+        ("3. Recommendations", ["Activity restriction", "Discuss testicular prosthesis", "Fertility advice (TT)",
+                                "Control visit (TT)"], {"_department": "4"}),
+        ("2. Appendix testis torsion (NMC)", ["Blue dot sign", "Other NMC findings (optional)", "Control visit (TT)"],
+         {"_department": "NMC"}),
     ],
     "N41.0": [
         ("1. Complaints and history",
@@ -2568,6 +2616,13 @@ BLOCKS["N41.0"] = [
     _n45["ibuprofen-eo"], _n10_blocks["paracetamol"], _c61_blocks["macrogol"],
 ]
 BLOCK_WARNINGS["N41.0"] = BLOCK_WARNINGS["N10"]
+BLOCKS["N44"] = [
+    _n45["ibuprofen-eo"], _n10_blocks["paracetamol"], _c61_blocks["ultracod"],
+    dict(_n45["doxycycline"], id="doxycycline-tt", group=G_ABX,
+         note="From your orchidopexy example. Antibiotics are not needed after clean scrotal surgery for torsion – only "
+              "with an infection (e.g. if epididymitis was found instead)."),
+]
+BLOCK_WARNINGS["N44"] = BLOCK_WARNINGS["N10"]
 _ap_abx = ["cipro-ap-14", "cipro-ap-28", "levofloxacin-ap", "cotrimoxazole-ap", "amoxiclav-ap", "cefuroxime-ap"]
 BLOCK_WARNINGS["N10"].extend({"ids": [a, b], "text": "Two antibiotics for the same organisms are chosen: keep one."}
                              for i, a in enumerate(_ap_abx) for b in _ap_abx[i + 1:])
@@ -2637,6 +2692,22 @@ BLOCK_WARNINGS["N10"] += [
 # match AND every modifier listed under "when" has that value.
 # Each template has: clinical_diagnosis (optional), epicrisis, recommendations.
 TEMPLATES = [
+    {
+        # Testicular torsion: CITO exploration in 4. Urology. Written by n44_parts.
+        "id": "N44-4",
+        "diagnosis": "N44",
+        "department": "4",
+        "when": {},
+        "builder": "n44",
+    },
+    {
+        # Appendix testis torsion at NMC, conservative. Written by n44_nmc_parts.
+        "id": "N44-NMC",
+        "diagnosis": "N44",
+        "department": "NMC",
+        "when": {},
+        "builder": "n44_nmc",
+    },
     {
         # Acute bacterial prostatitis at NMC, oral antibiotics, sent home. Written by n41_nmc_parts.
         "id": "N41.0-NMC",
@@ -4851,6 +4922,193 @@ def n41_checks(v):
 
 
 BUILDERS["n41_nmc"] = n41_nmc_parts
+
+
+# ---------------------------------------------------------------
+# 2w. TESTICULAR TORSION (N44) – CITO exploration in 4. Urology; appendix testis torsion at NMC
+# ---------------------------------------------------------------
+# EAU (paediatric; applies to young men): torsion is an emergency – urgent exploration as soon as possible (strong);
+# Doppler helps but must not delay surgery (strong); manual detorsion (outward rotation) may be tried while waiting
+# but is not definitive; preserve the testis unless unequivocally necrotic; contralateral orchidopexy immediately
+# after detorsion; up to half of salvaged testes atrophy; subfertility in 36–39%; endocrine function stays normal.
+# Salvage > 90% within 6 h, ~50% after 12 h, < 10% after 24 h. Appendix testis torsion: conservative with
+# anti-inflammatory analgesics (strong); explore if equivocal or pain persists (strong). Campbell-Walsh-Wein:
+# bell-clapper deformity is usually bilateral, so fix the other side; offer a testicular prosthesis after orchiectomy.
+
+TT_SIDE = {"Right": ("Labā", "labā", "labajā", "labo", "Labās puses"),
+           "Left": ("Kreisā", "kreisā", "kreisajā", "kreiso", "Kreisās puses")}
+TT_OTHER = {"Right": "kreisā", "Left": "labā"}
+TT_DURATION = {"Under 6 hours": "mazāk nekā 6 stundas", "6–12 hours": "6–12 stundas", "12–24 hours": "12–24 stundas",
+               "More than 24 hours": "vairāk nekā 24 stundas"}
+TT_US = {"No blood flow": "{loc} sēkliniekā asinsplūsmu nevizualizē",
+         "Reduced (partial) blood flow": "{loc} sēkliniekā daļēji traucēta apasiņošana"}
+TT_ROT = {"180°": "rotējis par 180°", "360°": "rotējis par 360°", "720° (2 turns)": "2 reizes rotējis ap sēklas auklu",
+          "More than 720°": "vairāk nekā 2 reizes rotējis ap sēklas auklu", "Not stated": "rotējis ap sēklas auklu"}
+TT_ANESTHESIA = {"General": "vispārējā anestēzijā", "Spinal": "spinālā anestēzijā"}
+TT_VISIT = {"Urologist in 1 month": "Pēc 1 mēneša kontrole pie urologa pēc dzīvesvietas.",
+            "Urologist in 3 months": "Pēc 3 mēnešiem kontrole pie urologa pēc dzīvesvietas.",
+            "Urologist in 1 week": "Kontrole pie urologa 1 nedēļas laikā."}
+
+
+def _tt_operation_names(v):
+    side = TT_SIDE[v["Side (TT)"]]
+    other = TT_OTHER[v["Side (TT)"]]
+    necrotic = v["Testis viability (TT)"].startswith("Necrotic")
+    if necrotic:
+        main = (f"{side[4].lower()} orhektomija", f"{side[4].lower()} orhektomijas")
+    else:
+        main = (f"{side[1]} sēklinieka eksplorācija, detorsija un orhidopeksija",
+                f"{side[1]} sēklinieka eksplorācijas, detorsijas un orhidopeksijas")
+    nom, gen = [main[0]], [main[1]]
+    if v.get("Appendix testis excised (TT)"):
+        nom.append("hidatīdas ekscīzija"); gen.append("hidatīdas ekscīzijas")
+    if v.get("Contralateral fixation (TT)"):
+        nom.append(f"{other} sēklinieka orhidopeksija"); gen.append(f"{other} sēklinieka orhidopeksijas")
+    return ", ".join(nom), ", ".join(gen), necrotic
+
+
+def n44_parts(sex, v, blocks=()):
+    f = SEX_FORMS["Man"]
+    side = TT_SIDE[v["Side (TT)"]]
+    nom, gen, necrotic = _tt_operation_names(v)
+    day = fmt_date(v["Procedure date"])
+    lines = [f"{side[0]} sēklinieka torsija.", f"St. pēc {gen} ({day})."]
+    if not blank(v.get("Other diagnoses (optional)")):
+        lines.append(v["Other diagnoses (optional)"].strip().rstrip(".") + ".")
+
+    since = v.get("Pain since (TT)")
+    s = [f"{f['Pacients']} {f['iestajies']} P. Stradiņa KUS NMC akūtā kārtā sakarā ar sāpēm {side[2]} sēkliniekā" +
+         (f" kopš {fmt_date(since)}" if since else f" {TT_DURATION[v['Pain duration (TT)']]}") + "."]
+    us = TT_US.get(v.get("Doppler US (TT)"))
+    if us:
+        s.append("Sēklinieku maisiņa USS ar doplerogrāfiju: " + us.format(loc=side[2]) + ".")
+    else:
+        s.append("Klīniski – sēklinieka torsija.")
+    manual = v.get("Manual detorsion at NMC (TT)")
+    if manual == "Attempted – pain relief":
+        s.append("NMC veikta manuāla detorsija ar sāpju mazināšanos.")
+    elif manual == "Attempted – unsuccessful":
+        s.append("Manuāla detorsija NMC neveiksmīga.")
+    s.append("Stacionēts 4. uroloģijas nodaļā CITO operatīvai ārstēšanai.")
+    viability = v["Testis viability (TT)"]
+    found = {"Viable – detorsion and orchidopexy": "pēc detorsijas sēklinieks vitāls",
+             "Doubtful – preserved after warming, orchidopexy": "pēc detorsijas un apsildīšanas sēklinieka krāsa "
+                                                                "daļēji atjaunojas, sēklinieks saglabāts",
+             "Necrotic – orchiectomy": "sēklinieks nekrotisks"}[viability]
+    done = nom.replace(f"{side[1]} sēklinieka eksplorācija, ", "")
+    s2 = [f"{day} {TT_ANESTHESIA[v['Anesthesia (TT)']]} veic {side[1]} sēklinieka eksplorāciju – sēklinieks "
+          f"{TT_ROT[v['Rotation (TT)']]}, {found}. Veikta {done}."]
+    postop = ("bez komplikācijām" if v.get("Postoperative course (TT)") != "With complications" else
+              "ar komplikācijām: " + (v.get("Postoperative complications (TT)") or "").strip().rstrip("."))
+    s2.append(f"Pēcoperācijas periods {postop}.")
+    drain = v.get("Drain (TT)")
+    if drain == "Removed in the ward":
+        s2.append("Drena evakuēta.")
+    elif drain == "Discharged with drain":
+        s2.append(f"{f['Pacients']} {f['izrakstits']} ar drenu.")
+    if necrotic:
+        if v.get("Histology (TT)") == "Known":
+            s2.append("Histoloģiski: " + v["Histology result (TT)"].strip().rstrip(".") + ".")
+        else:
+            s2.append("Histoloģiskās izmeklēšanas rezultāts izrakstīšanas brīdī vēl nav zināms.")
+    s2.append(f"Vispārējā apmierinošā stāvoklī {f['pacients']} {f['izrakstits']} tālākai ārstēšanai ambulatori.")
+    epicrisis = " ".join(s) + "\n" + " ".join(s2)
+
+    numbered = make_counter()
+    recs = [numbered(f"Režīms – saudzējošs {WEEKS_TEXT[v['Activity restriction']]} no operācijas dienas; atturēties no "
+                     "fiziskas slodzes, pirts, baseina un dzimumdzīves līdz brūces sadzīšanai."),
+            numbered("Pilnvērtīga diēta. Lietot daudz šķidruma."),
+            numbered("Pirmās 1–2 nedēļas valkāt cieši pieguļošu apakšveļu vai suspensoriju; pirmajās 48 stundās "
+                     "sēklinieku maisiņam vairākas reizes dienā uz 15–20 minūtēm likt aukstu kompresi (caur drānu)."),
+            numbered("Regulāras operācijas brūces pārsiešanas, brūci apstrādājot ar Braunol." +
+                     (" 10. pēcoperācijas dienā izņemt šuves ambulatori." if v.get("Skin sutures") == "Non-absorbable"
+                      else " Šuvju izņemšana nav nepieciešama (uzsūcošās šuves)."))]
+    if drain == "Discharged with drain":
+        recs.append(numbered("Kopt drenu; par drenas evakuāciju lems ārstējošais urologs."))
+    if blocks:
+        recs.append(numbered("Terapijā lietot:"))
+        recs += ["    " + b for b in blocks]
+    if necrotic and v.get("Histology (TT)") != "Known":
+        recs.append(numbered("Histoloģiskās izmeklēšanas rezultātu izvērtēs ārstējošais urologs."))
+    if necrotic and v.get("Discuss testicular prosthesis"):
+        recs.append(numbered("Nepieciešamības gadījumā vēlāk iespējama sēklinieka protēzes implantācija – konsultācija "
+                             "pie urologa."))
+    if v.get("Fertility advice (TT)"):
+        recs.append(numbered("Sēklinieka torsija var ietekmēt fertilitāti – bērnu plānošanas gadījumā ieteicama "
+                             "spermogramma un urologa (androloga) konsultācija."))
+    recs.append(numbered(TT_VISIT[v["Control visit (TT)"]]))
+    recs += tests_lines(v, "numbered", numbered, after_op=True)
+    recs.append(numbered("Ja parādās pēkšņas stipras sāpes sēkliniekā (arī otrā pusē), brūce apsārtst, izdalās strutas "
+                         "vai paaugstinās ķermeņa temperatūra, nekavējoties vērsties NMC."))
+    return {"clinical_diagnosis": "\n".join(lines), "epicrisis": epicrisis, "recommendations": "\n".join(recs)}
+
+
+def n44_nmc_parts(sex, v, blocks=()):
+    f = SEX_FORMS["Man"]
+    side = TT_SIDE[v["Side (TT)"]]
+    since = v.get("Pain since (TT)")
+    lines = [f"{side[0]} sēklinieka piedēkļa (hidatīdas) torsija."]
+    if not blank(v.get("Other diagnoses (optional)")):
+        lines.append(v["Other diagnoses (optional)"].strip().rstrip(".") + ".")
+    s = [f"{f['Pacients']} {f['iestajies']} PSKUS NMC ar sūdzībām par sāpēm {side[2]} sēkliniekā" +
+         (f" kopš {fmt_date(since)}" if since else f" {TT_DURATION[v['Pain duration (TT)']]}") + ".",
+         f"NMC etapā vispusīgi {f['izmekleta']}. Objektīvi: sēklinieka augšpolā palpē jutīgu mezgliņu" +
+         (", pozitīvs \"blue dot\" simptoms" if v.get("Blue dot sign") else "") + "; sēklinieks nav augstu novietots.",
+         "Sēklinieku maisiņa USS ar doplerogrāfiju: sēklinieka asinsplūsma saglabāta, sēklinieka piedēkļa (hidatīdas) "
+         "torsija. Sēklinieka torsija izslēgta."]
+    if not blank(v.get("Other NMC findings (optional)")):
+        text = v["Other NMC findings (optional)"].strip()
+        s.append(text if text.endswith(".") else text + ".")
+    s.append("Dotajā brīdī nav indikāciju neatliekamai ķirurģiskai ārstēšanai. Vispārēji apmierinošā stāvoklī un ar "
+             "rekomendācijām izraksta tālākai ambulatorai ārstēšanai.")
+    numbered = make_counter()
+    recs = [numbered("Atrasties ģimenes ārsta uzraudzībā."),
+            numbered("Ierobežot fizisko slodzi līdz sāpju izzušanai; sēklinieku maisiņu turēt paceltu (cieši pieguļoša "
+                     "apakšveļa), aukstas kompreses caur drānu 15–20 minūtes vairākas reizes dienā.")]
+    if blocks:
+        recs.append(numbered("Terapijā lietot:"))
+        recs += ["    " + b for b in blocks]
+    recs.append(numbered(TT_VISIT[v["Control visit (TT)"]]))
+    recs += tests_lines(v, "numbered", numbered)
+    recs.append(numbered("Ja sāpes pastiprinās, neizzūd 5–7 dienu laikā vai parādās pēkšņas stipras sāpes un sēklinieka "
+                         "tūska, nekavējoties vērsties NMC – nepieciešama ķirurģiska revīzija."))
+    return {"clinical_diagnosis": "\n".join(lines), "epicrisis": " ".join(s), "recommendations": "\n".join(recs)}
+
+
+def n44_checks(v):
+    blockers, cautions = [], []
+    chosen = v.get("_blocks") or []
+    if v.get("_department") == "NMC":
+        cautions.append("Appendix testis torsion only: EAU (strong) – conservative with NSAIDs; explore if the diagnosis "
+                        "is equivocal or pain persists. A testicular torsion is never sent home – use department 4.")
+        if "ibuprofen-eo" not in chosen:
+            cautions.append("EAU: anti-inflammatory analgesics are the treatment – choose ibuprofen (if no "
+                            "contraindication).")
+        return blockers, cautions
+    necrotic = str(v.get("Testis viability (TT)")).startswith("Necrotic")
+    if not v.get("Contralateral fixation (TT)"):
+        cautions.append(("Solitary testis after orchiectomy: " if necrotic else "") +
+                        "EAU / Campbell-Walsh-Wein – fix the contralateral testis immediately (bell-clapper deformity "
+                        "is usually bilateral).")
+    if v.get("Manual detorsion at NMC (TT)") == "Attempted – pain relief":
+        cautions.append("Manual detorsion is not definitive (EAU): exploration and fixation are still needed – the text "
+                        "describes the operation.")
+    if v.get("Pain duration (TT)") in ("12–24 hours", "More than 24 hours") and not necrotic:
+        cautions.append("Late presentation with a preserved testis: high atrophy risk (up to half, EAU) – follow-up "
+                        "ultrasound.")
+    if necrotic and v.get("Pain duration (TT)") == "Under 6 hours":
+        cautions.append("Orchiectomy after less than 6 hours: EAU – preserve the testis unless unequivocally necrotic; "
+                        "check the description.")
+    if "doxycycline-tt" in chosen:
+        cautions.append("Doxycycline: antibiotics are not needed after torsion surgery unless an infection was found.")
+    if v.get("Postoperative course (TT)") == "With complications":
+        cautions.append("Complications are recorded: check that the recommendations cover them.")
+    return blockers, cautions
+
+
+BUILDERS["n44"] = n44_parts
+BUILDERS["n44_nmc"] = n44_nmc_parts
+CHECKS["N44"] = n44_checks
 BUILDERS["n41_ward"] = n41_ward_parts
 CHECKS["N41.0"] = n41_checks
 BUILDERS["n45_ward"] = n45_ward_parts
@@ -8120,6 +8378,7 @@ FOLLOWUP_TESTS = {  # id -> group, English name in the app, Latvian text in the 
              "lv": "transrektāla prostatas USS (TRUS)"},
     "meares": {"group": "Urine", "title": "Meares–Stamey 2- or 4-glass test",
                "lv": "Meares–Stamey 2 vai 4 trauku tests (hroniska bakteriāla prostatīta izslēgšanai)"},
+    "semen": {"group": "Functional", "title": "Semen analysis", "lv": "spermogramma"},
     "markers": {"group": "Blood", "title": "Testicular tumour markers (AFP, β-hCG, LDH)",
                 "lv": "audzēja marķieri (AFP, β-hCG, LDH)"},
     "bgas": {"group": "Blood", "title": "Venous blood gas (bicarbonate)",
@@ -8943,6 +9202,28 @@ def n41_tests(v):
 TEST_ADVISORS["N41.0"] = n41_tests
 
 
+def n44_tests(v):
+    if v.get("_department") == "NMC":
+        return [_s("us_scrotum", "consider", "symptoms", "Repeat ultrasound if pain persists or the diagnosis is in "
+                                                        "doubt (then exploration).")]
+    necrotic = str(v.get("Testis viability (TT)")).startswith("Necrotic")
+    out = [_s("us_scrotum", "rec" if not necrotic else "consider", "3m",
+              "EAU: up to half of salvaged testes atrophy – ultrasound (volume, perfusion) after the oedema has settled "
+              "(not earlier than 1 month)." if not necrotic else "After orchiectomy: the remaining testis if needed.",
+              text="sēklinieku maisiņa USS ar doplerogrāfiju (sēklinieka izmērs, apasiņošana)")]
+    out.append(_s("semen", "consider", "6m", "EAU: subfertility in 36–39% after torsion – semen analysis if the patient "
+                                             "plans children."))
+    out.append(_s("cbc", "consider", "visit", "From your torsion discharge (before the 1-month visit)."))
+    out.append(_s("crp", "consider", "visit", "From your torsion discharge."))
+    out.append(_s("creat", "consider", "visit", "From your torsion discharge."))
+    out.append(_s("ua", "consider", "visit", "From your torsion discharge."))
+    out.append(_s("uc", "avoid", "visit", NO_ROUTINE_UC))
+    return out
+
+
+TEST_ADVISORS["N44"] = n44_tests
+
+
 # ----- tables the doctor fills in (st.data_editor) -----
 
 def antibiotics_editor(key):
@@ -9442,6 +9723,9 @@ PE_PRESETS = {
     "Meatotomy – meatal stricture": ("Planned", "meatotomija", "uretras ārējās atveres (meatus) striktūru",
                                      "Meatus striktūra", "", ""),
     "Urethroplasty – urethral stricture": ("Planned", "uretroplastika", "{part_acc}", "{part_dx}", "", ""),
+    "Testicular torsion – CITO exploration": (
+        "Acute", "{m} sēklinieka eksplorācija, detorsija, orhidopeksija / orhektomija", "{adj} puses sēklinieka "
+        "torsiju", "{Adj} puses testis torsija", "", ""),
     "Acute bacterial prostatitis – acute admission (no operation)": (
         "Acute", "", "", "Komplicēta UCI. Akūts bakteriāls prostatīts",
         "sāpēm vēdera lejasdaļā, biežu, sāpīgu urināciju, paaugstinātu ķermeņa temperatūru",
@@ -9486,6 +9770,9 @@ PE_PARTS = {  # urethral stricture location -> words for the presets with {part_
     "Not specified": {"part_acc": "uretras striktūru", "part_dx": "Uretras striktūra"},
 }
 PE_INDICATIONS = {  # default indication text for these presets (EAU: second resection within 2–6 weeks)
+    "Testicular torsion – CITO exploration":
+        "sēklinieka torsija (CITO); pacients informēts, ka gadījumā, ja sēklinieka audi nebūs dzīvotspējīgi, tiks "
+        "veikta orhektomija, un par kontralaterālā sēklinieka fiksāciju",
     "Radical cystoprostatectomy + ileal conduit – bladder cancer":
         "operabls augstas malignitātes pakāpes muskuli invadējošs urīnpūšļa vēzis; onkoloģiskā konsīlija lēmums – "
         "radikāla cistektomija",
@@ -9500,6 +9787,8 @@ PE_INDICATIONS = {  # default indication text for these presets (EAU: second res
 PE_DRE = {"Acute bacterial prostatitis – acute admission (no operation)": "prostata palielināta, izteikti sāpīga",
           "Prostatic abscess – drainage": "prostata palielināta, izteikti sāpīga, palpējama fluktuācija"}
 PE_GENITALS = {"Hydrocele plasty": "{adj} puses hidrocēle",
+               "Testicular torsion – CITO exploration": "pietūkums un palpatori sāpes {loc} sēkliniekā, sēklinieks "
+                                                         "augstu novietots",
                "Epididymo-orchitis – acute admission (conservative)": "{mm} sēklinieks un piedēklis palielināti, "
                                                                        "palpatori sāpīgi, sēklinieku maisiņa āda "
                                                                        "hiperemēta",
@@ -10458,6 +10747,48 @@ def prostatic_abscess_operation(c1, c2, c3, pt_acc):
     return text, name
 
 
+def torsion_operation(c1, c2, c3, pt_acc):
+    """Testicular torsion: exploration, detorsion and orchidopexy, or orchiectomy; contralateral fixation."""
+    st.caption("EAU: preserve the testis unless unequivocally necrotic; fix the contralateral testis immediately after "
+               "detorsion. Warm the testis 10 minutes before deciding.")
+    side = c1.radio("Puse", ["Kreisā", "Labā"], horizontal=True, key="op-tt-side")
+    gen, acc, other, adj = {"Kreisā": ("kreisā", "kreiso", "labā", "Kreisās"),
+                            "Labā": ("labā", "labo", "kreisā", "Labās")}[side]
+    turns = c2.selectbox("Rotācija", ["2 reizes", "1 reizi", "3 reizes", "par 180°"], key="op-tt-turns")
+    result = c3.selectbox("Sēklinieks", ["vitāls pēc detorsijas", "daļēji atjaunojas pēc apsildīšanas", "nekrotisks"],
+                          key="op-tt-res")
+    fluid = c1.selectbox("Šķidrums", ["hemorāģisks", "serozs", "nav"], key="op-tt-fluid")
+    sutures = c2.number_input("Fiksācijas šuves", 1, 4, 3, key="op-tt-sut")
+    contra = c3.checkbox("Kontralaterālā orhidopeksija", True, key="op-tt-contra")
+    hyd = c1.checkbox("Hidatīdas ekscīzija", key="op-tt-hyd")
+    drain = c2.checkbox("Aspirācijas drena", True, key="op-tt-drain")
+    rot = "par 180° rotējis ap sēklas auklu" if turns == "par 180°" else f"{turns} rotējis ap sēklas auklu"
+    first = (f"Pēc op. lauka apdares izdara griezienu {gen} sēklinieka rajonā, eksplorē funiculus spermaticus. Šķeļ "
+             "tunica vaginalis" + (f", izdalās {fluid} šķidrums" if fluid != "nav" else "") + f". Sēklinieks {rot}.")
+    if result == "nekrotisks":
+        text = [first + " Veic detorsiju, sēklinieku apsilda ar siltu fizioloģisko šķīdumu 10 minūtes – sēklinieka krāsa "
+                "neatjaunojas, sēklinieks nekrotisks. Funiculus spermaticus pārdala un liģē. Izdala atsevišķi ductus "
+                f"deferens un a. et v. testiculares, tās cauršuj un šķeļ. Evakuē {acc} testis."]
+        name = f"{adj} puses orhektomija"
+    else:
+        text = [first + " Veic detorsiju, sēklinieku apsilda ar siltu fizioloģisko šķīdumu 10 minūtes – " +
+                ("sēklinieka krāsa atjaunojas, sēklinieks vitāls." if result.startswith("vitāls") else
+                 "sēklinieka krāsa daļēji atjaunojas, sēklinieku saglabā.") +
+                f" Veic orhidopeksiju – sēklinieku fiksē pie tunica dartos ar {sutures} neuzsūcošām šuvēm."]
+        name = f"{gen.capitalize()} sēklinieka eksplorācija, detorsija, orhidopeksija"
+    if hyd:
+        text[0] += " Sēklinieka piedēkli (hidatīdu) ekscidē."
+        name += ", hidatīdas ekscīzija"
+    if contra:
+        text.append(f"Caur atsevišķu griezienu veic {other} sēklinieka orhidopeksiju – sēklinieku fiksē pie tunica dartos "
+                    f"ar {sutures} neuzsūcošām šuvēm.")
+        name += f"; {other} sēklinieka orhidopeksija"
+    text.append("Rūpīga hemostāze." + (" Atstāj aspirācijas drenu." if drain else "") + " Brūci slēdz pa kārtām. Ādu "
+                f"slēdz ar atsevišķām šuvēm. Sterili pārsēji. {pt_acc} pārved uz 4. nodaļu." +
+                ("\nPreparātu nosūta histoloģiskai izmeklēšanai." if result == "nekrotisks" else ""))
+    return text, name
+
+
 def stricture_operation(op, c1, c2, c3, pt_dat, pt_acc):
     """Operation descriptions for urethral strictures. Returns (paragraphs, name)."""
     notes = {
@@ -10747,7 +11078,7 @@ def render_operation(sex):
     op = st.selectbox("Operation", ["TURP", "TURU", "Re-TURU (scar resection)", "Radical cystectomy", "Cystoscopy (diagnostic) ± biopsy", "Circumcision", "Dorsumcision (dorsal slit)", "Cystoscopy, stent removal", "URS (semirigid)", "FURS (flexible)",
                                     "Cystolithotripsy", "Cystoscopy – clot evacuation, coagulation (hematuria)", "Optical urethrotomy (DVIU)", "Urethral dilation", "Meatotomy",
                                     "Urethroplasty (EPA / buccal graft)",
-                                    "Epididymal tumour extirpation", "Prostatic abscess drainage", "Orchiectomy (scrotal)", "Inguinal orchifuniculectomy",
+                                    "Epididymal tumour extirpation", "Prostatic abscess drainage", "Testicular torsion – exploration", "Orchiectomy (scrotal)", "Inguinal orchifuniculectomy",
                                     "Epididymectomy", "Scrotal / funicular revision, drainage", "Hydrocele plasty", "Scrotal mass excision",
                                     "Laparoscopic radical prostatectomy", "Laparoscopic nephrectomy",
                                     "Laparoscopic kidney resection",
@@ -11078,6 +11409,8 @@ def render_operation(sex):
                     f"apvalkiem. Konstatē hidrocēli. Pārdala to, izdalās {fluid} šķidrums. {step} Rūpīga hemostāze."
                     + (" Drena." if drain else "") + " Ādu slēdz ar atsevišķām šuvēm. Sterils pārsējs.",
                     f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz {ward.strip()}."]
+        elif op == "Testicular torsion – exploration":
+            text, name = torsion_operation(c1, c2, c3, pt_acc)
         elif op == "Prostatic abscess drainage":
             text, name = prostatic_abscess_operation(c1, c2, c3, pt_acc)
         elif op in ("Orchiectomy (scrotal)", "Inguinal orchifuniculectomy", "Epididymectomy",
@@ -11142,7 +11475,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-26-prostatitis · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-26-torsion · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
