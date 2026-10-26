@@ -44,7 +44,7 @@ DIAGNOSES = {
     "R33": "Urinary retention – acute (NMC: catheter, sent home)",
     "N20": "Calculus of kidney and ureter (kidney stone disease)",
     "N23": "Unspecified renal colic",
-    "N30.0": "Acute cystitis",
+    "N30.0": "Acute cystitis (NMC: sent home)",
     "N32.0": "Bladder-neck obstruction",
     "N35": "Urethral stricture",
     "N39.0": "Urinary tract infection, site not specified",
@@ -742,6 +742,44 @@ MODIFIERS = {
                                                                "Urethral Tiemann (coudé) catheter",
                                                                "Catheter changed (blocked catheter)",
                                                                "Suprapubic catheter (epicystostomy)"]}},
+    # ----- N30.0 acute cystitis (NMC, sent home) -----
+    "Cystitis symptoms": {"type": "multi", "optional": True, "default_selected": ["Dysuria", "Frequency"],
+                          "options": ["Dysuria", "Frequency", "Urgency", "Suprapubic pain", "Visible hematuria",
+                                      "New urge incontinence", "Cloudy / foul-smelling urine"]},
+    "Symptom duration (N30)": {"type": "single", "default_index": 1,
+                               "options": ["Since today", "1–2 days", "3–7 days", "More than a week"]},
+    "Pyelonephritis signs (N30)": {"type": "multi", "optional": True,
+                                   "options": ["Fever 38 °C or more", "Chills", "Flank pain / costovertebral tenderness",
+                                               "Nausea / vomiting"]},
+    "Vaginal discharge": {"type": "toggle", "show_if": {"_sex": "Woman"}},
+    "Pregnant (N30)": {"type": "toggle", "show_if": {"_sex": "Woman"}},
+    "Pregnancy week": {"type": "number", "min": 1.0, "max": 42.0, "step": 1.0, "optional": True,
+                       "show_if": {"Pregnant (N30)": True}},
+    "Postmenopausal": {"type": "toggle", "show_if": {"_sex": "Woman"}},
+    "Recurrent cystitis": {"type": "toggle"},
+    "Same organism soon after treatment": {"type": "toggle", "show_if": {"Recurrent cystitis": True}},
+    "Antibiotic in the last 3 months": {"type": "toggle"},
+    "Risk factors (N30)": {"type": "multi", "optional": True,
+                           "options": ["Diabetes", "Immunosuppression", "Urinary tract abnormality / stone / obstruction",
+                                       "Recent urological procedure", "Indwelling catheter or self-catheterisation",
+                                       "Renal impairment", "Neurogenic bladder", "Age 65 or older / frail"]},
+    "Penicillin allergy": {"type": "toggle"},
+    "Suprapubic tenderness": {"type": "toggle", "default": True},
+    "Urinalysis (N30)": {"type": "multi", "optional": True, "default_selected": ["Leukocytes", "Nitrite"],
+                         "options": ["Leukocytes", "Nitrite", "Erythrocytes", "Bacteria"]},
+    "Urine culture taken": {"type": "toggle"},
+    "Blood tests (N30)": {"type": "single", "default_index": 0,
+                          "options": ["Not done", "No inflammatory changes", "Raised CRP / leukocytosis",
+                                      "Raised creatinine"]},
+    "Ultrasound (N30)": {"type": "multi", "optional": True,
+                         "options": ["No pathology", "Post-void residual urine", "Upper tract dilatation",
+                                     "Bladder wall thickening", "Bladder stone", "Enlarged prostate"]},
+    "Residual urine (ml)": {"type": "number", "min": 0.0, "max": 3000.0, "step": 10.0, "optional": True,
+                            "show_if": {"Ultrasound (N30)": "Post-void residual urine"}},
+    "Treatment approach (N30)": {"type": "single", "default_index": 0,
+                                 "options": ["Antibiotic", "Symptomatic first (delayed antibiotic)"]},
+    "Referral (N30)": {"type": "single", "default_index": 0,
+                       "options": ["Family doctor only", "Urologist", "Gynaecologist"]},
     # ----- R31 hematuria (NMC consultation, or admitted to 4. Urology) -----
     "Hematuria type": {"type": "single", "default_index": 0,
                        "options": ["Visible (macrohematuria)", "Non-visible (microhematuria)"]},
@@ -1097,6 +1135,17 @@ DIAGNOSIS_MODIFIERS = {
           "Scrotal drain", "Postoperative course", "Postoperative complications", "Scrotal hematoma"]),
         ("3. Histology", ["Histology", "Scrotal histology result", "Histology expected (date)"]),
         ("4. Recommendations", ["Discharge paper", "Activity restriction", "Skin sutures", "Urology visit"]),
+    ],
+    "N30.0": [
+        ("1. Complaints and history",
+         ["Cystitis symptoms", "Symptom duration (N30)", "Pyelonephritis signs (N30)", "Vaginal discharge",
+          "Pregnant (N30)", "Pregnancy week", "Postmenopausal", "Recurrent cystitis",
+          "Same organism soon after treatment", "Antibiotic in the last 3 months", "Risk factors (N30)",
+          "Penicillin allergy", "Other diagnoses (optional)"]),
+        ("2. NMC findings",
+         ["Suprapubic tenderness", "Urinalysis (N30)", "Urine culture taken", "Blood tests (N30)", "Ultrasound (N30)",
+          "Residual urine (ml)", "Other NMC findings (optional)"]),
+        ("3. Plan", ["Treatment approach (N30)", "Referral (N30)"]),
     ],
     "R31": [
         ("1. Complaints and history",
@@ -2029,6 +2078,109 @@ BLOCK_WARNINGS["R31"] = BLOCK_WARNINGS["N10"]
 _abx = ["fosfomycin-3g", "amoxiclav-7", "cefuroxime-7", "cipro"]
 BLOCK_WARNINGS["N10"].extend({"ids": [a, b], "text": "Two antibiotics are chosen: keep one."}
                              for i, a in enumerate(_abx) for b in _abx[i + 1:])
+
+# N30.0 acute cystitis blocks. Pivmecillinam and nitroxoline (EAU first line) are not on the Latvian market as far
+# as Latvian outpatient sources say; the nitrofuran used in Latvia is furazidine (Furamag, Olainfarm).
+G_CYST_FIRST = "Antibiotics – first line (EAU)"
+G_CYST_ALT = "Antibiotics – alternatives / pregnancy"
+G_CYST_MEN = "Antibiotics – men (7 days)"
+G_CYST_PREVENT = "Prevention of recurrent cystitis"
+_n10_blocks = {b["id"]: b for b in BLOCKS["N10"]}
+SELF_START_TEXT = ("Nākotnē, parādoties tipiskiem cistīta simptomiem, drīkst uzsākt pašārstēšanos ar Pulv. Fosfomycin "
+                   "3 g vienreizēji (pēc vienošanās ar ģimenes ārstu), pirms tam nododot urīnu uzsējumam.")
+ADVICE_BLOCK_TEXTS = {SELF_START_TEXT}
+
+
+def split_advice(blocks):
+    """(medicines, advice lines): advice blocks are written as their own lines, not under 'Terapijā lietot'."""
+    advice = [b for b in blocks if b in ADVICE_BLOCK_TEXTS]
+    return [b for b in blocks if b not in advice], advice
+
+
+BLOCKS["N30.0"] = [
+    dict({b["id"]: b for b in BLOCKS["R31"]}["fosfomycin-3g"], group=G_CYST_FIRST,
+         note="EAU (strong) first line in women: fosfomycin trometamol 3 g once. Safe in pregnancy. Not for men or "
+              "with systemic signs. Long-term cure rates are a little lower than with nitrofurans."),
+    {"id": "furamag", "group": G_CYST_FIRST, "title": "Furamag 100 mg three times daily, 7 days",
+     "text": "Caps. Furamag 50 mg pa 2 kapsulām 3 reizes dienā pēc ēšanas 7 dienas.",
+     "note": "Furazidine – the nitrofuran on the Latvian market (Olainfarm). Label: 50–100 mg three times daily after "
+             "meals for 7–10 days. EAU names nitrofurantoin (5 days), not furazidine. Contraindicated in pregnancy, "
+             "breastfeeding and severe renal failure; caution with G6PD deficiency. In men only if prostatitis is "
+             "reliably excluded."},
+    {"id": "nitrofurantoin", "group": G_CYST_FIRST, "title": "Nitrofurantoin 100 mg twice daily, 5 days",
+     "text": "Caps. Nitrofurantoin 100 mg (ilgstošās darbības) 2 reizes dienā 5 dienas.",
+     "note": "EAU (strong) first line. Check that it is available in Latvia (Latvian sources mention Furamag instead). "
+             "Avoid if eGFR is below 45 (short courses possible at 30–44), at term pregnancy and in G6PD deficiency."},
+    {"id": "cefuroxime-5", "group": G_CYST_ALT, "title": "Cefuroxime 250 mg twice daily, 5 days",
+     "text": "Tab. Cefuroxime 250 mg pa 1 tabletei 2 reizes dienā 5 dienas.",
+     "note": "Second choice. EAU lists cephalosporins (e.g. cefadroxil 500 mg twice daily for 3 days) as an "
+             "alternative; Latvian outpatient material does not favour oral cephalosporins for empirical use. "
+             "Useful in pregnancy or by culture."},
+    {"id": "amoxiclav-5", "group": G_CYST_ALT, "title": "Amoksiklav 875/125 mg twice daily, 5 days (pregnancy / culture)",
+     "text": "Tab. Amoksiklav 875/125 mg pa 1 tabletei 2 reizes dienā 5 dienas.",
+     "note": "EAU (strong): no aminopenicillins for empirical treatment of cystitis. Use only by culture, or in "
+             "pregnancy where penicillins are acceptable."},
+    {"id": "cotrimoxazole-3", "group": G_CYST_ALT, "title": "Trimethoprim/sulfamethoxazole 160/800 mg twice daily, 3 days",
+     "text": "Tab. Trimetoprims/Sulfametoksazols 160/800 mg pa 1 tabletei 2 reizes dienā 3 dienas.",
+     "note": "EAU alternative only where local E. coli resistance is below 20% – Latvian outpatient sources report much "
+             "higher resistance, so use it by culture. Not in the first trimester (trimethoprim) or the last "
+             "trimester (sulfamethoxazole)."},
+    {"id": "furamag-men", "group": G_CYST_MEN, "title": "Furamag 100 mg three times daily, 7 days (men)",
+     "text": "Caps. Furamag 50 mg pa 2 kapsulām 3 reizes dienā pēc ēšanas 7 dienas.",
+     "note": "EAU: nitrofurans can be used in younger men only if prostatic involvement is reliably excluded; there is "
+             "no evidence on the duration – 7 days is usual. Take a urine culture first."},
+    {"id": "cotrimoxazole-7", "group": G_CYST_MEN, "title": "Trimethoprim/sulfamethoxazole 160/800 mg twice daily, 7 days",
+     "text": "Tab. Trimetoprims/Sulfametoksazols 160/800 mg pa 1 tabletei 2 reizes dienā 7 dienas.",
+     "note": "EAU regimen for men (7 days) – only if the culture shows susceptibility (high resistance in Latvia)."},
+    dict(_r33_blocks["cefuroxime-7"], group=G_CYST_MEN),
+    dict(_r33_blocks["amoxiclav-7"], group=G_CYST_MEN,
+         note="By culture only (EAU: no aminopenicillins empirically). Men: 7 days."),
+    dict(_n10_blocks["cipro"], group=G_AVOID, kind="avoid",
+         title="Ciprofloxacin – do not use for cystitis",
+         note="EAU (strong): do not use fluoroquinolones for cystitis (EMA restrictions: tendon, nerve, aortic and "
+              "QT risks). Only if every other option is unsuitable, by culture."),
+    {"id": "ibuprofen", "group": G_PAIN, "title": "Ibuprofen 400 mg three times daily, 3 days",
+     "text": "Tab. Ibuprofen 400 mg pa 1 tabletei 3 reizes dienā pēc ēšanas 3 dienas.",
+     "note": "EAU (strong): non-antibiotic treatment is an alternative in non-geriatric patients after shared "
+             "decision-making. In trials ibuprofen alone halved antibiotic use but gave slightly more pyelonephritis "
+             "and longer symptoms. Not for the elderly, renal impairment, pregnancy (3rd trimester) or GI bleeding risk."},
+    _n10_blocks["paracetamol"],
+    dict(_n10_blocks["canephron"], text="Tab. Canephron pa 2 tabletēm 3 reizes dienā 7 dienas.",
+         note="Herbal product popular in Latvia. In an RCT against fosfomycin it reduced antibiotic use but was not "
+              "non-inferior; not an EAU recommendation."),
+    {"id": "estriol", "group": G_CYST_PREVENT, "title": "Vaginal estriol (Ovestin) – postmenopausal women",
+     "text": "Ovestin vaginālais krēms (estriols 1 mg/g) 0,5 g intravagināli katru vakaru 2 nedēļas, pēc tam 2 reizes "
+             "nedēļā (ilgstoši).",
+     "note": "EAU (strong): vaginal oestrogen to prevent recurrent cystitis in postmenopausal women (oral oestrogen "
+             "does not work). Dosing as in the trials (0.5 mg estriol nightly for 2 weeks, then twice weekly)."},
+    {"id": "cranberry", "group": G_CYST_PREVENT, "title": "Cranberry products daily",
+     "text": "Dzērveņu produkti (sula vai kapsulas ar standartizētu proantocianidīnu saturu) ikdienā recidīvu "
+             "profilaksei.",
+     "note": "EAU (strong): advise cranberry products, but tell the patient the evidence is low quality and "
+             "contradictory (Cochrane 2023: fewer symptomatic UTIs in women with recurrent UTI)."},
+    {"id": "methenamine", "group": G_CYST_PREVENT, "title": "Methenamine hippurate 1 g twice daily",
+     "text": "Tab. Methenamine hippurate 1 g pa 1 tabletei 2 reizes dienā 6–12 mēnešus recidīvu profilaksei.",
+     "note": "EAU (strong): reduces recurrences in women without urinary tract abnormalities; the ALTAR trial found it "
+             "non-inferior to daily antibiotic prophylaxis. Availability in Latvia not confirmed – check."},
+    {"id": "d-mannose", "group": G_CYST_PREVENT, "title": "D-mannose 2 g daily",
+     "text": "D-manoze 2 g 1 reizi dienā recidīvu profilaksei (uztura bagātinātājs).",
+     "note": "EAU (weak): evidence is weak and contradictory – the large MERIT trial (2024) found no benefit."},
+    {"id": "urovaxom", "group": G_CYST_PREVENT, "title": "Uro-Vaxom (OM-89) 6 mg daily, 90 days",
+     "text": "Caps. Uro-Vaxom 6 mg 1 reizi dienā no rīta tukšā dūšā 90 dienas.",
+     "note": "EAU 2025 downgraded immunoprophylaxis (weak, 'within a clinical trial'): the pooled analysis showed no "
+             "significant short-term benefit of OM-89. Latvian outpatient material still recommends it."},
+    {"id": "self-start", "group": G_CYST_PREVENT, "title": "Self-start fosfomycin for future episodes",
+     "text": SELF_START_TEXT,
+     "note": "EAU (strong): consider self-administered short-term therapy in reliable patients with recurrent "
+             "cystitis. Written as its own line, not under 'Terapijā lietot'."},
+]
+BLOCK_WARNINGS["N30.0"] = BLOCK_WARNINGS["N10"]
+_cyst_abx = ["fosfomycin-3g", "furamag", "nitrofurantoin", "cefuroxime-5", "amoxiclav-5", "cotrimoxazole-3",
+             "furamag-men", "cotrimoxazole-7", "cefuroxime-7", "amoxiclav-7", "cipro"]
+_have = {frozenset(w["ids"]) for w in BLOCK_WARNINGS["N10"]}
+BLOCK_WARNINGS["N10"].extend({"ids": [a, b], "text": "Two antibiotics are chosen: keep one."}
+                             for i, a in enumerate(_cyst_abx) for b in _cyst_abx[i + 1:]
+                             if frozenset((a, b)) not in _have)
 TAMSULOSIN_LONG_BLOCK = {
     "id": "tamsulosin-long", "group": G_ALPHA, "title": "Tamsulosin 0.4 mg once daily (long-term)",
     "text": "Caps. Tamsulosin 0,4 mg 1 reizi dienā p/o (ilgstoši).",
@@ -2051,6 +2203,14 @@ BLOCK_WARNINGS["N10"] += [
 # match AND every modifier listed under "when" has that value.
 # Each template has: clinical_diagnosis (optional), epicrisis, recommendations.
 TEMPLATES = [
+    {
+        # Acute cystitis at NMC, sent home. Written by n30_nmc_parts.
+        "id": "N30.0-NMC",
+        "diagnosis": "N30.0",
+        "department": "NMC",
+        "when": {},
+        "builder": "n30_nmc",
+    },
     {
         # Hematuria at NMC: consultation, sent home. Written by r31_nmc_parts.
         "id": "R31-NMC",
@@ -5775,6 +5935,283 @@ CHECKS["R31"] = r31_checks
 
 
 # ---------------------------------------------------------------
+# 2t. ACUTE CYSTITIS (N30.0) at NMC, sent home
+# ---------------------------------------------------------------
+# EAU Urological Infections 2025: diagnose cystitis from a focused history (dysuria, frequency, urgency, no vaginal
+# discharge); dipstick is optional (weak); urine culture with suspected systemic UTI, symptoms that do not resolve or
+# recur within 4 weeks, atypical symptoms, risk of resistant pathogens and in pregnancy (strong). First line in
+# women: fosfomycin 3 g once, nitrofurantoin 5 days, pivmecillinam, nitroxoline; no aminopenicillins or
+# fluoroquinolones (strong). Non-antibiotic treatment (e.g. ibuprofen) is an alternative in non-geriatric patients
+# after shared decision-making. No routine urinalysis or culture after treatment. Recurrent (>= 2 in 6 months or
+# >= 3 a year): culture; no routine work-up in women < 40 without risk factors; vaginal oestrogen after the
+# menopause, cranberry, methenamine hippurate, D-mannose (weak), antimicrobial prophylaxis or self-start therapy.
+# Campbell-Walsh-Wein: isolated vs unresolved vs recurrent infection; recurrence is reinfection (new organism) or
+# bacterial persistence (the same organism from a focus – stone, obstruction, residual urine, diverticulum, chronic
+# prostatitis), and persistence needs imaging and a urological work-up. Men: culture, 7 days, think of prostatitis
+# and incomplete emptying.
+
+N30_SYMPTOMS = {"Dysuria": "dedzināšanu un sāpēm urinējot", "Frequency": "biežu urinēšanu",
+                "Urgency": "neatliekamu vēlmi urinēt", "Suprapubic pain": "sāpēm virs simfīzes",
+                "Visible hematuria": "asiņu piejaukumu urīnā", "New urge incontinence": "urīna nesaturēšanu",
+                "Cloudy / foul-smelling urine": "duļķainu urīnu ar nepatīkamu smaku"}
+N30_DURATION = {"Since today": "kopš šodienas", "1–2 days": "1–2 dienas", "3–7 days": "3–7 dienas",
+                "More than a week": "ilgāk par nedēļu"}
+N30_RISK = {"Diabetes": "cukura diabēts", "Immunosuppression": "imūnsupresija",
+            "Urinary tract abnormality / stone / obstruction": "urīnceļu anomālija / konkrementi / obstrukcija",
+            "Recent urological procedure": "nesen veikta uroloģiska manipulācija",
+            "Indwelling catheter or self-catheterisation": "urīnpūšļa katetrs / paškatetrizācija",
+            "Renal impairment": "nieru funkcijas traucējumi", "Neurogenic bladder": "neirogēns urīnpūslis"}
+N30_UA = {"Leukocytes": "leikocitūrija", "Nitrite": "nitrīti pozitīvi", "Erythrocytes": "eritrocitūrija",
+          "Bacteria": "bakteriūrija"}
+N30_US = {"Upper tract dilatation": "augšējo urīnceļu dilatācija", "Bladder wall thickening":
+          "urīnpūšļa sienas sabiezējums", "Bladder stone": "urīnpūšļa konkrements", "Enlarged prostate":
+          "palielināta prostata"}
+N30_BLOOD = {"No inflammatory changes": "Asins analīzēs bez iekaisuma izmaiņām.",
+             "Raised CRP / leukocytosis": "Asins analīzēs – paaugstināts CRO / leikocitoze.",
+             "Raised creatinine": "Asins analīzēs – paaugstināts kreatinīna līmenis."}
+N30_ANTIBIOTICS = ("fosfomycin-3g", "furamag", "nitrofurantoin", "cefuroxime-5", "amoxiclav-5", "cotrimoxazole-3",
+                   "furamag-men", "cotrimoxazole-7", "cefuroxime-7", "amoxiclav-7", "cipro")
+N30_WARNING = ("Ja paaugstinās ķermeņa temperatūra virs 38 °C, parādās drebuļi, sāpes jostas rajonā, slikta dūša vai "
+               "vemšana, pastiprinās hematūrija vai nav iespējams urinēt, nekavējoties vērsties NMC.")
+
+
+def _n30_flags(v):
+    woman = v.get("_sex") == "Woman"
+    us = v.get("Ultrasound (N30)") or []
+    abnormal_us = any(x in us for x in ("Post-void residual urine", "Upper tract dilatation", "Bladder stone"))
+    uncomplicated = woman and not v.get("Pregnant (N30)") and not (v.get("Risk factors (N30)") or []) \
+        and not abnormal_us and not v.get("Same organism soon after treatment")
+    return woman, uncomplicated
+
+
+def n30_nmc_parts(sex, v, blocks=()):
+    f = SEX_FORMS[sex]
+    woman, uncomplicated = _n30_flags(v)
+    symptoms = v.get("Cystitis symptoms") or []
+    hemorrhagic = "Visible hematuria" in symptoms
+    pregnant = woman and v.get("Pregnant (N30)")
+    recurrent = v.get("Recurrent cystitis")
+    week = _num(v, "Pregnancy week")
+
+    # Clinical diagnosis
+    lines = ["Akūts " + ("nekomplicēts " if uncomplicated else "") + ("hemorāģisks " if hemorrhagic else "") +
+             "cistīts."]
+    if recurrent:
+        lines.append("Recidivējošas apakšējo urīnceļu infekcijas.")
+    if pregnant:
+        lines.append("Grūtniecība" + (f" ({int(week)}. nedēļa)" if week else "") + ".")
+    if not blank(v.get("Other diagnoses (optional)")):
+        lines.append(v["Other diagnoses (optional)"].strip().rstrip(".") + ".")
+
+    # Epicrisis
+    complaint = lv_list([N30_SYMPTOMS[x] for x in symptoms if x in N30_SYMPTOMS]) or "diskomfortu urinējot"
+    s = [f"{f['Pacients']} {f['iestajies']} PSKUS NMC ar sūdzībām par {complaint} "
+         f"{N30_DURATION[v['Symptom duration (N30)']]}."]
+    negatives = "Drudzi, drebuļus un sāpes jostas rajonā noliedz."
+    if woman:
+        negatives += " Atzīmē izdalījumus no maksts." if v.get("Vaginal discharge") else \
+            " Izdalījumus no maksts noliedz."
+    s.append(negatives)
+    history = []
+    if recurrent:
+        history.append("recidivējošas urīnceļu infekcijas" +
+                       (" (atkārtoti izdalīts tas pats mikroorganisms)" if v.get("Same organism soon after treatment")
+                        else ""))
+    history += [N30_RISK[x] for x in (v.get("Risk factors (N30)") or []) if x in N30_RISK]
+    if woman and v.get("Postmenopausal"):
+        history.append("postmenopauze")
+    if history:
+        s.append(f"Anamnēzē – {lv_list(history)}.")
+    if pregnant:
+        s.append("Grūtniecība" + (f" ({int(week)}. nedēļa)" if week else "") + ".")
+    if v.get("Antibiotic in the last 3 months"):
+        s.append(f"Pēdējo 3 mēnešu laikā {'lietojusi' if woman else 'lietojis'} antibakteriālu terapiju.")
+    if v.get("Penicillin allergy"):
+        s.append("Penicilīna grupas preparātu nepanesība.")
+    s.append(f"NMC etapā vispusīgi {f['izmekleta']}. Objektīvi: vēders mīksts, "
+             f"{'virs simfīzes jutīgs' if v.get('Suprapubic tenderness') else 'nesāpīgs'}; Pasternacka simptoms "
+             "negatīvs abās pusēs. Ķermeņa temperatūra normāla.")
+    ua = [N30_UA[x] for x in (v.get("Urinalysis (N30)") or []) if x in N30_UA]
+    culture = v.get("Urine culture taken")
+    if ua:
+        s.append(f"Urīna analīzē – {lv_list(ua)}" + ("; paņemts urīna uzsējums ar jutības noteikšanu" if culture
+                                                     else "") + ".")
+    elif culture:
+        s.append("Paņemts urīna uzsējums ar jutības noteikšanu.")
+    if v.get("Blood tests (N30)") in N30_BLOOD:
+        s.append(N30_BLOOD[v["Blood tests (N30)"]])
+    us = v.get("Ultrasound (N30)") or []
+    if us:
+        found = []
+        if "Post-void residual urine" in us:
+            pvr = _num(v, "Residual urine (ml)")
+            found.append("atlieku urīns" + (f" ~{_comma(pvr)} ml" if pvr is not None else ""))
+        found += [N30_US[x] for x in us if x in N30_US]
+        s.append("USS – " + (", ".join(found) if found else "nieres un urīnpūslis bez patoloģiskas atrades") + ".")
+    if not blank(v.get("Other NMC findings (optional)")):
+        text = v["Other NMC findings (optional)"].strip()
+        s.append(text if text.endswith(".") else text + ".")
+    s.append("Dotajā brīdī nav indikāciju neatliekamai stacionēšanai. Vispārēji apmierinošā stāvoklī un ar "
+             "rekomendācijām izraksta tālākai ambulatorai ārstēšanai.")
+
+    # Recommendations
+    numbered = make_counter()
+    recs = [numbered("Atrasties ģimenes ārsta uzraudzībā."),
+            numbered("Lietot šķidrumu 1,5–2 l/DN, ja nav medicīnisku kontrindikāciju; regulāri un pilnībā iztukšot "
+                     "urīnpūsli, nenoturēt urīnu.")]
+    meds, advice = split_advice(blocks)
+    delayed = []
+    if v.get("Treatment approach (N30)") == "Symptomatic first (delayed antibiotic)":
+        abx_texts = {b["text"] for b in BLOCKS["N30.0"] if b["id"] in N30_ANTIBIOTICS}
+        delayed = [b for b in meds if b in abx_texts]
+        meds = [b for b in meds if b not in abx_texts]
+        recs.append(numbered("Sākotnēji simptomātiska terapija un pietiekams šķidruma daudzums."))
+    if meds:
+        recs.append(numbered("Terapijā lietot:"))
+        recs += ["    " + b for b in meds]
+    if delayed:
+        recs.append(numbered("Ja 48 stundu laikā sūdzības nemazinās vai pastiprinās, sākt antibakteriālo terapiju:"))
+        recs += ["    " + b for b in delayed]
+    if culture:
+        recs.append(numbered("NMC paņemtā urīna uzsējuma rezultātu izvērtēt ģimenes ārstam (Datamed.lv); ja izdalītais "
+                             "mikroorganisms nav jutīgs pret nozīmēto antibiotiku, koriģēt terapiju atbilstoši "
+                             "jutībai."))
+    recs.append(numbered(("Ja arī antibakteriālās terapijas laikā " if delayed else "Ja ") +
+                         "48–72 stundu laikā sūdzības nemazinās, saglabājas ārstēšanas beigās vai 4 nedēļu laikā "
+                         "atkārtojas, vērsties pie ģimenes ārsta – nepieciešams urīna uzsējums ar jutības noteikšanu un "
+                         "citas antibiotikas izvēle."))
+    if not pregnant and not hemorrhagic:
+        recs.append(numbered("Kontroles urīna analīze pēc ārstēšanas nav nepieciešama, ja sūdzības pilnībā izzudušas."))
+    if pregnant:
+        recs.append(numbered("Informēt ginekologu, kas vada grūtniecību."))
+    if hemorrhagic:
+        recs.append(numbered("Ja pēc infekcijas izārstēšanas hematūrija saglabājas, nepieciešama izmeklēšana – vērsties "
+                             "pie ģimenes ārsta (nosūtījums uz cistoskopiju; no 45 gadu vecuma \"zaļā koridora\" "
+                             "ietvaros, diagnozes kods Z03.167)."))
+    if recurrent:
+        recs.append(numbered("Recidīvu profilaksei: pietiekams šķidruma daudzums, regulāra urīnpūšļa iztukšošana" +
+                             (" (arī pēc dzimumakta)" if woman else "") + ", aizcietējumu profilakse" +
+                             ("; nelietot spermicīdus" if woman else "") + "."))
+    recs += [numbered(b) for b in advice]
+    referral = v.get("Referral (N30)")
+    if referral == "Urologist":
+        why = ("izvērtēt urīnpūšļa iztukšošanos un prostatu" if not woman
+               else "izvērtēt atkārtoto urīnceļu infekciju cēloni un profilakses iespējas" if recurrent
+               else "tālākās taktikas izvērtēšanai")
+        recs.append(numbered(f"Ambulatori urologa konsultācija – {why}."))
+    elif referral == "Gynaecologist":
+        why = ("izdalījumu no maksts izvērtēšanai" if v.get("Vaginal discharge")
+               else "vaginālās estrogēnu terapijas izvērtēšanai" if v.get("Postmenopausal")
+               else "tālākās taktikas izvērtēšanai")
+        recs.append(numbered(f"Ginekologa konsultācija – {why}."))
+    recs += tests_lines(v, "numbered", numbered)
+    recs.append(numbered(N30_WARNING))
+    return {"clinical_diagnosis": "\n".join(lines), "epicrisis": " ".join(s), "recommendations": "\n".join(recs)}
+
+
+def n30_checks(v):
+    blockers, cautions = [], []
+    woman, uncomplicated = _n30_flags(v)
+    chosen = v.get("_blocks") or []
+    pregnant = woman and v.get("Pregnant (N30)")
+    risks = v.get("Risk factors (N30)") or []
+    culture = v.get("Urine culture taken")
+    abx = [b for b in chosen if b in N30_ANTIBIOTICS]
+    us = v.get("Ultrasound (N30)") or []
+    elderly = "Age 65 or older / frail" in risks
+    if v.get("Pyelonephritis signs (N30)"):
+        blockers.append("Fever, chills, flank pain or vomiting: this is pyelonephritis / a systemic UTI, not cystitis – "
+                        "use N10.")
+    if pregnant and any(b in chosen for b in ("furamag", "furamag-men")):
+        blockers.append("Furamag is contraindicated in pregnancy and breastfeeding (label). Fosfomycin 3 g or a "
+                        "beta-lactam by culture instead.")
+    if not v.get("Cystitis symptoms"):
+        cautions.append("No symptoms are chosen: cystitis is a clinical diagnosis (dysuria, frequency, urgency). "
+                        "Bacteriuria without symptoms is not treated (EAU, strong), except in pregnancy.")
+    if not abx and v.get("Treatment approach (N30)") == "Antibiotic":
+        cautions.append("Choose an antibiotic in the blocks (or 'Symptomatic first').")
+    if v.get("Treatment approach (N30)") == "Symptomatic first (delayed antibiotic)":
+        if not woman or pregnant or elderly or risks or v.get("Recurrent cystitis"):
+            cautions.append("Symptomatic-first treatment: EAU – only for non-geriatric women with mild symptoms after "
+                            "shared decision-making; not for men, pregnancy, the frail elderly or complicating factors "
+                            "(more pyelonephritis in the trials).")
+        if not abx:
+            cautions.append("Symptomatic first: also choose the antibiotic to start if there is no improvement in 48 h.")
+    if "cipro" in chosen:
+        cautions.append("Ciprofloxacin: EAU (strong) – do not use fluoroquinolones for cystitis.")
+    if "amoxiclav-5" in chosen and not pregnant and not culture:
+        cautions.append("Amoksiklav: EAU (strong) – no aminopenicillins empirically; use it by culture (or in "
+                        "pregnancy).")
+    if not woman:
+        if "fosfomycin-3g" in chosen:
+            cautions.append("Fosfomycin single dose is for women; cystitis in a man needs 7 days.")
+        if any(b in chosen for b in ("furamag", "nitrofurantoin", "cefuroxime-5", "amoxiclav-5", "cotrimoxazole-3")):
+            cautions.append("A short women's regimen is chosen for a man: use a 7-day regimen (blocks 'men').")
+        if not culture:
+            cautions.append("Cystitis in a man: take a urine culture and think of prostatitis and incomplete emptying "
+                            "(residual urine).")
+    if pregnant:
+        if not culture:
+            cautions.append("Pregnancy: EAU (strong) – take a urine culture.")
+        if "cotrimoxazole-3" in chosen or "cotrimoxazole-7" in chosen:
+            cautions.append("Trimethoprim/sulfamethoxazole in pregnancy: not in the first trimester (trimethoprim) or "
+                            "near term (sulfamethoxazole).")
+        if "cipro" in chosen:
+            blockers.append("Fluoroquinolones are not used in pregnancy.")
+        if "nitrofurantoin" in chosen and (_num(v, "Pregnancy week") or 0) >= 36:
+            cautions.append("Nitrofurantoin near term: risk of neonatal haemolysis – choose another drug.")
+        if "ibuprofen" in chosen:
+            cautions.append("NSAIDs in pregnancy: avoid (contraindicated from 20 weeks); use paracetamol.")
+    if v.get("Recurrent cystitis") and not culture:
+        cautions.append("Recurrent cystitis: EAU (strong) – diagnose it by urine culture.")
+    if v.get("Antibiotic in the last 3 months") and not culture:
+        cautions.append("Antibiotic in the last 3 months: higher risk of resistant bacteria – take a urine culture "
+                        "(EAU, strong).")
+    if risks and not culture and not v.get("Recurrent cystitis"):
+        cautions.append("Complicating factors are present: take a urine culture and treat for 7 days.")
+    if "Indwelling catheter or self-catheterisation" in risks:
+        cautions.append("Catheter-associated UTI: not simple cystitis – change the catheter and culture from the new "
+                        "one (see T83 / N39.0).")
+    if woman and v.get("Vaginal discharge"):
+        cautions.append("Vaginal discharge: EAU – the diagnosis of cystitis relies on its absence; consider vaginitis or "
+                        "an STI (gynaecologist).")
+    if v.get("Blood tests (N30)") == "Raised CRP / leukocytosis":
+        cautions.append("Raised CRP / leukocytosis: look again for pyelonephritis or prostatitis.")
+    renal = v.get("Blood tests (N30)") == "Raised creatinine" or "Renal impairment" in risks
+    if renal and any(b in chosen for b in ("furamag", "furamag-men", "nitrofurantoin")):
+        cautions.append("Renal impairment: nitrofurans work poorly and accumulate – nitrofurantoin not below eGFR 45 "
+                        "(short courses at 30–44); Furamag is contraindicated in severe renal failure.")
+    if "ibuprofen" in chosen and (renal or elderly):
+        cautions.append("Ibuprofen with renal impairment or in the elderly: EAU – NSAIDs are potentially "
+                        "inappropriate; use paracetamol.")
+    if v.get("Penicillin allergy") and any(b in chosen for b in ("amoxiclav-5", "amoxiclav-7")):
+        blockers.append("Penicillin allergy: Amoksiklav is chosen.")
+    if v.get("Penicillin allergy") and any(b in chosen for b in ("cefuroxime-5", "cefuroxime-7")):
+        cautions.append("Penicillin allergy: cefuroxime only if the allergy was not severe (anaphylaxis).")
+    if woman and v.get("Postmenopausal") and v.get("Recurrent cystitis") and "estriol" not in chosen:
+        cautions.append("Postmenopausal woman with recurrent cystitis: EAU (strong) – vaginal oestrogen (block "
+                        "'Vaginal estriol').")
+    if v.get("Recurrent cystitis") and v.get("Same organism soon after treatment"):
+        cautions.append("Same organism again soon after treatment – bacterial persistence (Campbell-Walsh-Wein): look "
+                        "for a focus (stone, obstruction, residual urine, diverticulum, chronic prostatitis) – imaging "
+                        "and urology referral.")
+    if "Upper tract dilatation" in us:
+        cautions.append("Upper tract dilatation with infection: obstruction plus infection needs drainage if any "
+                        "systemic sign appears – consider admission and imaging.")
+    pvr = _num(v, "Residual urine (ml)")
+    if pvr is not None and pvr > 100:
+        cautions.append(f"Residual urine {_comma(pvr)} ml: incomplete emptying is a complicating factor – treat for "
+                        "7 days and refer to a urologist.")
+    if "methenamine" in chosen and (risks or not woman):
+        cautions.append("Methenamine hippurate: EAU recommends it for women without urinary tract abnormalities.")
+    return blockers, cautions
+
+
+BUILDERS["n30_nmc"] = n30_nmc_parts
+CHECKS["N30.0"] = n30_checks
+
+
+# ---------------------------------------------------------------
 # 2m. FOLLOW-UP TESTS: catalogue, guideline-based suggestions, text
 # ---------------------------------------------------------------
 # Nothing here goes into a text by default. The doctor ticks tests in the
@@ -6478,6 +6915,57 @@ def r31_tests(v):
 
 
 TEST_ADVISORS["R31"] = r31_tests
+
+
+def n30_tests(v):
+    out = []
+    woman, uncomplicated = _n30_flags(v)
+    pregnant = woman and v.get("Pregnant (N30)")
+    risks = v.get("Risk factors (N30)") or []
+    recurrent = v.get("Recurrent cystitis")
+    # (checking the NMC culture result is already written in the text when a culture was taken)
+    if pregnant:
+        out.append(_s("uc", "rec", "2w", "Pregnancy: follow-up culture 1–2 weeks after treatment (common practice; "
+                                         "untreated bacteriuria raises the risk of pyelonephritis). EAU (strong): "
+                                         "culture in pregnancy – take one at NMC if not done.",
+                      text="kontroles urīna uzsējums 1–2 nedēļas pēc ārstēšanas"))
+        out.append(_s("ua", "avoid", "visit", NO_ROUTINE_UA))
+    else:
+        out.append(_s("uc", "consider", "no_improve", "EAU (strong): culture if symptoms do not resolve or recur within "
+                                                      "4 weeks – this is already written as advice in the text."))
+        if "Visible hematuria" in (v.get("Cystitis symptoms") or []):
+            out.append(_s("ua", "rec", "2-6w", "Hemorrhagic cystitis: check that the hematuria has gone after "
+                                               "treatment; if it persists – cystoscopy (green corridor Z03.167 from 45 "
+                                               "years).",
+                          text="atkārtota urīna analīze pēc infekcijas izārstēšanas (hematūrijas kontrolei)"))
+        else:
+            out.append(_s("ua", "avoid", "visit", NO_ROUTINE_UA))
+    if not woman:
+        out.append(_s("pvr", "consider", "at_visit", "Men: check bladder emptying (residual urine)."))
+        out.append(_s("uroflow", "consider", "at_visit", "Men: look for bladder outlet obstruction."))
+        out.append(_s("psa", "avoid", "visit", "A UTI raises PSA – do not measure it now (wait at least 6 weeks)."))
+    if recurrent:
+        if woman and not risks and not pregnant:
+            out.append(_s("cysto", "avoid", "visit", "EAU (weak): no routine cystoscopy or full abdominal ultrasound in "
+                                                     "women under 40 with recurrent cystitis and no risk factors."))
+            out.append(_s("us_kb", "consider", "visit", "Only in women over 40, with risk factors, or with residual "
+                                                        "urine / hematuria."))
+        else:
+            out.append(_s("us_kb", "rec", "visit", "Recurrent UTI with risk factors or in a man: look for a cause "
+                                                   "(residual urine, stones, obstruction)."))
+    if recurrent and v.get("Same organism soon after treatment"):
+        out.append(_s("ct_abd", "consider", "visit", "Bacterial persistence (Campbell-Walsh-Wein): CT to find a focus "
+                                                     "(stone, obstruction, abscess)."))
+        out = [o for o in out if o["id"] != "cysto"]
+        out.append(_s("cysto", "consider", "visit", "Bacterial persistence: cystoscopy for a diverticulum, stone or "
+                                                    "fistula if imaging does not explain it."))
+    if v.get("Blood tests (N30)") == "Raised creatinine" or "Renal impairment" in risks:
+        out.append(_s("creat", "rec", "1w", "Recheck renal function (and the antibiotic dose)."))
+    out.append(_s("cbc", "avoid", "none", "Blood tests are not needed for uncomplicated cystitis."))
+    return out
+
+
+TEST_ADVISORS["N30.0"] = n30_tests
 
 
 # ----- tables the doctor fills in (st.data_editor) -----
@@ -8378,7 +8866,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-23-hematuria · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-26-cystitis · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
