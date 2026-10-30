@@ -1,6 +1,9 @@
 import datetime
 import hashlib
 import json
+import math
+import random
+import re
 from pathlib import Path
 
 import base64
@@ -10212,6 +10215,76 @@ DEC_ENDINGS = ["Turpina ārstēšanu stacionārā.", "Izrakstīts tālākai tera
                "Izrakstīts ar urīnpūšļa ilgkatetru.", "(nothing)"]
 
 
+# ----- "Vary vitals from Day 1": following days get believable vital signs close to Day 1 -----
+# Each day moves a little from the day before and is pulled back towards Day 1 (no jumps, no drift), and the
+# signs move together: systolic and diastolic go up and down together, and the pulse follows the temperature
+# (about 8/min per °C, so a febrile Day 1 settles down with the fever).
+
+def _even(x):
+    return int(round(x / 2.0)) * 2
+
+
+def _round_to(x, step):
+    return int(round(x / step)) * step
+
+
+def _dec_read_vitals(i):
+    s = st.session_state
+    bp = re.match(r"\s*(\d{2,3})\s*/\s*(\d{2,3})", str(s.get(f"dd{i}-bp", "")))
+    return {"pulse": float(s.get(f"dd{i}-pulse", 70) or 70), "sys": int(bp[1]) if bp else None,
+            "dia": int(bp[2]) if bp else None, "resp": float(s.get(f"dd{i}-resp", 16) or 16),
+            "temp": float(s.get(f"dd{i}-temp", 36.6) or 36.6)}
+
+
+def _dec_next_vitals(base, prev, rng):
+    """One day's vital signs from Day 1 (base) and the day before (prev)."""
+    # temperature: settles towards 36.6 °C with a small day-to-day wobble; a fever only comes down
+    t = prev["temp"] + 0.5 * (36.6 - prev["temp"]) + rng.gauss(0, 0.18)
+    t = round(min(max(t, 36.0), max(37.2, prev["temp"] - 0.2)), 1)
+    # pulse: within ±10 of Day 1 and always even
+    p0 = base["pulse"]
+    low, high = 2 * math.ceil((p0 - 10) / 2), 2 * math.floor((p0 + 10) / 2)  # even numbers within ±10 of Day 1
+    target = p0 + 8 * (t - base["temp"])
+    p = target + 0.5 * (prev["pulse"] - target) + rng.gauss(0, 4)
+    p = int(min(max(_even(p), low), high))
+    # breathing: 12–20 (even, as when counted for 30 s)
+    r0 = min(max(base["resp"], 12), 20)
+    r = r0 + 0.5 * (prev["resp"] - r0) + rng.gauss(0, 1.5)
+    r = min(max(_even(r), 12), 20)
+    out = {"pulse": p, "resp": r, "temp": t, "sys": None, "dia": None}
+    if base["sys"] and base["dia"]:
+        step = 5 if base["sys"] % 5 == 0 and base["dia"] % 5 == 0 else 1  # keep Day 1's style (130/80 or 128/76)
+        s = base["sys"] + 0.5 * ((prev["sys"] or base["sys"]) - base["sys"]) + rng.gauss(0, 6)
+        s = min(max(_round_to(s, step), base["sys"] - 15), base["sys"] + 15)  # systolic ±15
+        d = (base["dia"] + 0.4 * (s - base["sys"]) + 0.4 * ((prev["dia"] or base["dia"]) - base["dia"])
+             + rng.gauss(0, 3))
+        d = min(max(_round_to(d, step), base["dia"] - 10), base["dia"] + 10, s - 25)  # diastolic ±10 (mostly ±5)
+        out["sys"], out["dia"] = s, d
+    return out
+
+
+def _dec_write_vitals(i, vitals):
+    st.session_state[f"dd{i}-pulse"] = int(vitals["pulse"])
+    st.session_state[f"dd{i}-resp"] = int(vitals["resp"])
+    st.session_state[f"dd{i}-temp"] = float(vitals["temp"])
+    if vitals["sys"]:
+        st.session_state[f"dd{i}-bp"] = f"{vitals['sys']}/{vitals['dia']}"
+
+
+def _dec_vary_vitals():
+    """Button: new vital signs for every examination day after Day 1."""
+    rng = random.Random()
+    base = _dec_read_vitals(0)
+    prev = dict(base)
+    for i in range(1, st.session_state.get("dd-count", 1)):
+        if st.session_state.get(f"dd{i}-kind", "Apskate") != "Apskate":
+            continue  # duty-staff entries have no vital signs
+        vitals = _dec_next_vitals(base, prev, rng)
+        _dec_write_vitals(i, vitals)
+        prev = {**vitals, "sys": vitals["sys"] or prev["sys"], "dia": vitals["dia"] or prev["dia"]}
+    st.session_state["dd-vary"] = True  # days added from now on vary too
+
+
 def _dec_add_day():
     n = st.session_state.get("dd-count", 1)
     last = n - 1
@@ -10232,11 +10305,15 @@ def _dec_add_day():
     st.session_state[f"dd{n}-date"] = (last_date + datetime.timedelta(days=1)) if last_date else None
     st.session_state[f"dd{n}-until"] = None
     st.session_state[f"dd{n}-ending"] = "Turpina ārstēšanu stacionārā."
+    if st.session_state.get("dd-vary") and source is not None and n > 0:  # vary from the day it was copied from
+        _dec_write_vitals(n, _dec_next_vitals(_dec_read_vitals(0), _dec_read_vitals(source), random.Random()))
     st.session_state["dd-count"] = n + 1
 
 
 def _dec_remove_day():
     st.session_state["dd-count"] = max(1, st.session_state.get("dd-count", 1) - 1)
+    if st.session_state["dd-count"] == 1:
+        st.session_state["dd-vary"] = False
 
 
 DEC_PRESETS = {  # typical findings filled into every day card (you can still change each day)
@@ -10387,10 +10464,18 @@ def render_decursus_cards(sex):
             parts.append("Vispārējā apmierinošā stāvoklī " + ("izrakstīta" if sex == "Woman" else "izrakstīts")
                          + catheter + " tālākai terapijai ambulatori." if ending.startswith("Izrakstīts") else ending)
         days.append("\n".join(parts))
-    b = st.columns(2)
+    b = st.columns(3)
     b[0].button("＋ Add next day (copies the last one)", on_click=_dec_add_day, key="dd-add", width="stretch")
     b[1].button("－ Remove last day", on_click=_dec_remove_day, key="dd-remove", width="stretch",
                 disabled=st.session_state["dd-count"] <= 1)
+    b[2].button("🎲 Vary vitals from Day 1", on_click=_dec_vary_vitals, key="dd-vary-btn", width="stretch",
+                help="Days 2 onwards get vital signs close to Day 1: pulse ±10/min and always even, blood pressure "
+                     "±15 systolic and ±10 diastolic (moving together), breathing 12–20/min, temperature with a "
+                     "normal day-to-day variation (a fever on Day 1 settles). Each day changes only a little from "
+                     "the day before. Click again for new values.")
+    if st.session_state.get("dd-vary"):
+        st.caption("Vital signs vary from Day 1 – days you add now get their own values too. "
+                   "You can still change any day by hand.")
     return "\n\n".join(days)
 
 
@@ -11872,7 +11957,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-30-bladder-map · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-30-vitals · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
