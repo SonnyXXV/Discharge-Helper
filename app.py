@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 
+import base64
 import io
 
 import pandas as pd
@@ -325,7 +326,7 @@ MODIFIERS = {
         "type": "multi", "optional": True,
         "options": ["Laser lithotripsy", "Pneumatic lithotripsy", "Basket extraction"],
     },
-    "DJ stent placed": {"type": "toggle", "default": True},
+    "JJ stent placed": {"type": "toggle", "default": True},
     "Procedure date": {"type": "date"},
     "Intraoperative course": {"type": "single", "options": ["Without complications", "With complications"]},
     "Intraoperative complications": {
@@ -343,7 +344,7 @@ MODIFIERS = {
     "Catheter removal date": {"type": "date", "optional": True, "show_if": {"Discharged with catheter": True}},
     "Stent removal": {
         "type": "single", "options": ["On a specific date", "At the outpatient urology review"],
-        "show_if": {"DJ stent placed": True},
+        "show_if": {"JJ stent placed": True},
     },
     "Stent removal date": {"type": "date", "show_if": {"Stent removal": "On a specific date"}},
 
@@ -797,7 +798,7 @@ MODIFIERS = {
         "type": "single", "options": ["Yellow, clear", "Cloudy", "Blood-tinged", "With clots"],
     },
     "Urosepsis": {"type": "toggle"},
-    "Drainage": {"type": "single", "options": ["DJ stent", "Percutaneous nephrostomy"]},
+    "Drainage": {"type": "single", "options": ["JJ stent", "Percutaneous nephrostomy"]},
     "Drainage date": {"type": "date"},
     "Purulent urine on drainage": {"type": "toggle"},
     "Definitive stone treatment": {
@@ -829,7 +830,7 @@ MODIFIERS = {
         "options": ["Urethral (Foley)", "Suprapubic (epicistostoma)"],
         "show_if": {"Has catheter": True},
     },
-    "Stent type": {"type": "single", "default_index": 0, "options": ["Not specified", "DJ"], "show_if": {"Has stents": True}},
+    "Stent type": {"type": "single", "default_index": 0, "options": ["Not specified", "JJ"], "show_if": {"Has stents": True}},
     "Stent indication": {
         "type": "single", "default_index": 0,
         "options": ["Not specified", "Obstruction", "Ureteral stone", "Postoperative drainage"],
@@ -1188,9 +1189,9 @@ MODIFIERS = {
     "Pyeloplasty technique": {"type": "single", "default_index": 0,
                               "options": ["Dismembered (Anderson–Hynes)", "Non-dismembered (Y-V plasty)"]},
     "Vessel transposition": {"type": "toggle", "default": True, "show_if": {"PUJ cause": "Crossing lower-pole vessel"}},
-    "Pyeloplasty stent": {"type": "single", "default_index": 0, "options": ["DJ stent", "No stent"]},
+    "Pyeloplasty stent": {"type": "single", "default_index": 0, "options": ["JJ stent", "No stent"]},
     "Stent removal plan": {"type": "single", "default_index": 0,
-                           "options": ["In 4–6 weeks", "On a specific date"], "show_if": {"Pyeloplasty stent": "DJ stent"}},
+                           "options": ["In 4–6 weeks", "On a specific date"], "show_if": {"Pyeloplasty stent": "JJ stent"}},
     "Stent removal date (N13)": {"type": "date", "show_if": {"Stent removal plan": "On a specific date"}},
     "Pyeloplasty drain": {"type": "single", "default_index": 2,
                           "options": ["No drain", "Removed on day 1", "Removed on day 2", "Removed on day 3",
@@ -1250,7 +1251,7 @@ DIAGNOSIS_MODIFIERS = {
          {"Admission": "Acute", "_department": "4"}),
         ("2. Diagnosis", ["Renal colic", "Urinary tract infection"], {"Admission": "Planned"}),
         ("3. Operation",
-         ["Procedure", "Lithotripsy", "DJ stent placed", "Procedure date", "Intraoperative course",
+         ["Procedure", "Lithotripsy", "JJ stent placed", "Procedure date", "Intraoperative course",
           "Intraoperative complications", "Postoperative course", "Postoperative complications",
           "Discharge status", "Investigations"],
          {"Admission": "Planned"}),
@@ -1778,8 +1779,8 @@ LITHO_TEXT = {  # (after "ar ...", in the list of operations)
     "Pneumatic lithotripsy": ("pneimatisko litotripsiju", "pneimatiskā litotripsija"),
     "Basket extraction": ("konkrementu ekstrakciju", "konkrementu ekstrakcija"),
 }
-STENT_TEXT = ("DJ stenta ievietošanu", "DJ stenta ievietošana")
-STENTS_TEXT = ("DJ stentu ievietošanu", "DJ stentu ievietošana")  # both sides
+STENT_TEXT = ("JJ stenta ievietošanu", "JJ stenta ievietošana")
+STENTS_TEXT = ("JJ stentu ievietošanu", "JJ stentu ievietošana")  # both sides
 POSTOP_TEXT = {"Uneventful": "bez komplikācijām", "Satisfactory": "apmierinošs"}
 DISCHARGE_STATUS_TEXT = {"Satisfactory": "apmierinošs", "Good": "labs", "Stable": "stabils"}
 
@@ -1920,10 +1921,10 @@ STONE_PLACE = {
                          "Both": "abu ostiju līmenī", "area": "vēdera lejasdaļā", "impacted": True},
 }
 DRAIN_TEXT = {  # (as done, after "St. pēc ...", "izrakstīts ar ...")
-    "DJ stent": {
-        "Right": ("labās puses DJ stenta ievietošana", "labās puses DJ stenta ievietošanas", "ar DJ stentu"),
-        "Left": ("kreisās puses DJ stenta ievietošana", "kreisās puses DJ stenta ievietošanas", "ar DJ stentu"),
-        "Both": ("abpusēja DJ stentu ievietošana", "abpusējas DJ stentu ievietošanas", "ar DJ stentiem"),
+    "JJ stent": {
+        "Right": ("labās puses JJ stenta ievietošana", "labās puses JJ stenta ievietošanas", "ar JJ stentu"),
+        "Left": ("kreisās puses JJ stenta ievietošana", "kreisās puses JJ stenta ievietošanas", "ar JJ stentu"),
+        "Both": ("abpusēja JJ stentu ievietošana", "abpusējas JJ stentu ievietošanas", "ar JJ stentiem"),
     },
     "Percutaneous nephrostomy": {
         "Right": ("labās nieres perkutāna nefrostomija", "labās nieres perkutānas nefrostomijas", "ar nefrostomu"),
@@ -2392,8 +2393,8 @@ TADALAFIL_QUARTER_BLOCK = {
 BLOCKS["C61"] += [AMOXICLAV_10_BLOCK, TADALAFIL_QUARTER_BLOCK]
 TAMSULOSIN_STENT_BLOCK = {
     "id": "tamsulosin-stent", "group": G_ALPHA, "title": "Tamsulosin 0.4 mg once daily until stent removal",
-    "text": "Caps. Tamsulosini 0,4 mg 1 reizi dienā līdz DJ stenta izņemšanai (stenta radīto simptomu mazināšanai).",
-    "note": "Alpha-blockers reduce DJ stent discomfort (urgency, flank pain on voiding); EAU urolithiasis guideline "
+    "text": "Caps. Tamsulosini 0,4 mg 1 reizi dienā līdz JJ stenta izņemšanai (stenta radīto simptomu mazināšanai).",
+    "note": "Alpha-blockers reduce JJ stent discomfort (urgency, flank pain on voiding); EAU urolithiasis guideline "
             "supports them for stent-related symptoms. Warn about orthostatic dizziness.",
 }
 BLOCKS["N13.0"] = [_c61_blocks["paracetamol"], _c61_blocks["ultracod"], TAMSULOSIN_STENT_BLOCK, SOLIFENACIN_BLOCK,
@@ -3364,7 +3365,7 @@ def n39_history(v):
     has_stents, has_catheter = v.get("Has stents"), v.get("Has catheter")
     catheter = n39_catheter_noun(v)["short"]
     if has_stents:
-        kind = "urīnvada DJ" if v.get("Stent type") == "DJ" else "urīnvada"
+        kind = "urīnvada JJ" if v.get("Stent type") == "JJ" else "urīnvada"
         if v["Stent count"] == "2":
             stents = f"implantēti 2 {kind} stenti"
         else:
@@ -3686,8 +3687,8 @@ def n20_urostasis(v):
 def n20_checks(v):
     blockers, cautions = [], []
     if v.get("Admission") == "Planned":
-        if v.get("DJ stent placed") and v.get("Stent removal") == "At the outpatient urology review":
-            cautions.append("A DJ stent stays in: if possible give a concrete removal date, so the stent is not forgotten.")
+        if v.get("JJ stent placed") and v.get("Stent removal") == "At the outpatient urology review":
+            cautions.append("A JJ stent stays in: if possible give a concrete removal date, so the stent is not forgotten.")
         if "With complications" in (v.get("Intraoperative course"), v.get("Postoperative course")):
             cautions.append("Complications are recorded: check that the recommendations cover them.")
     elif v.get("_department") == "NMC":
@@ -3712,8 +3713,8 @@ def n20_checks(v):
         cautions += abx_cautions
         if v.get("Urostasis grade") == "No urostasis":
             cautions.append("A drainage was done, but no urostasis is recorded.")
-        if v.get("Drainage") == "DJ stent" and not v.get("Definitive treatment date"):
-            cautions.append("The patient goes home with a DJ stent: give the date of the definitive treatment, "
+        if v.get("Drainage") == "JJ stent" and not v.get("Definitive treatment date"):
+            cautions.append("The patient goes home with a JJ stent: give the date of the definitive treatment, "
                             "so the stent is not forgotten.")
         if v.get("Urine culture") == "Possibly contaminated sample":
             cautions.append("The urine culture sample is possibly contaminated: consider a repeat sample.")
@@ -3766,7 +3767,7 @@ def n20_planned_parts(sex, v, blocks=()):
     for done in v.get("Lithotripsy") or []:
         with_parts.append(LITHO_TEXT[done][0])
         name_parts.append(LITHO_TEXT[done][1])
-    if v.get("DJ stent placed"):
+    if v.get("JJ stent placed"):
         stent_words = STENTS_TEXT if side == "Both" else STENT_TEXT
         with_parts.append(stent_words[0])
         name_parts.append(stent_words[1])
@@ -3807,12 +3808,12 @@ def n20_planned_parts(sex, v, blocks=()):
         f"• Šķidruma uzņemšana {v['Fluid intake'].strip()}, ja nav medicīnisku kontrindikāciju. "
         "Saudzējošs režīms, izvairīties no pārmērīgas fiziskas slodzes.",
     ]
-    if v.get("DJ stent placed"):
+    if v.get("JJ stent placed"):
         if v["Stent removal"] == "On a specific date":
             when = "plānota " + fmt_date(v["Stent removal date"])
         else:
             when = "plānota ambulatorās urologa vizītes laikā"
-        stent = "DJ stentu" if side == "Both" else "DJ stenta"
+        stent = "JJ stentu" if side == "Both" else "JJ stenta"
         recs.append(f"• {stent} izņemšana vai maiņa {when}; neatlikt noteikto vizīti.")
     if v.get("Discharged with catheter"):  # the typed fluid line is above, so it is not repeated
         removal_date = v.get("Catheter removal date")
@@ -6073,11 +6074,11 @@ def n20_acute_parts(sex, v, blocks=()):
         recs += antibiotics
         recs.append("    o Terapiju precizēt atbilstoši urīna uzsējuma rezultātiem.")
     recs += ["• " + b for b in blocks]
-    if v["Drainage"] == "DJ stent":
+    if v["Drainage"] == "JJ stent":
         recs += [
-            "• DJ stents: iespējama bieža urinācija, neatliekama vēlme urinēt, diskomforts vēdera lejasdaļā vai "
+            "• JJ stents: iespējama bieža urinācija, neatliekama vēlme urinēt, diskomforts vēdera lejasdaļā vai "
             "sānos un neliels asiņu piejaukums urīnā.",
-            "• DJ stenta izņemšana vai maiņa kopā ar konkrementa definitīvo ārstēšanu; neatlikt plānoto vizīti.",
+            "• JJ stenta izņemšana vai maiņa kopā ar konkrementa definitīvo ārstēšanu; neatlikt plānoto vizīti.",
         ]
     else:
         recs += [
@@ -6476,7 +6477,7 @@ NF_PAIN = ("• Nelietot nefrotoksiskus medikamentus, pretsāpju zāles - Ibumet
            "medikamenti ir Analgin, Ultracod, Paracetamol, Tramadol, Promedol.")
 NF_PLAN = {
     "Urologist: plan definitive treatment": "• Ambulatori urologa konsultācija – lemt par obstrukcijas definitīvu "
-                                            "ārstēšanu (DJ stents, konkrementa evakuācija u.c.), lai izvairītos no "
+                                            "ārstēšanu (JJ stents, konkrementa evakuācija u.c.), lai izvairītos no "
                                             "ilgstošas nefrostomas.",
     "Oncologist: oncology plan": "• Turpināt onkologa uzraudzību un ārstēšanu; par nefrostomas turpmāko taktiku lemt "
                                  "kopā ar urologu.",
@@ -6880,7 +6881,7 @@ CHECKS["N43"] = n43_checks
 # 2o. PUJ STRICTURE (N13.0): pyeloplasty in 4. Urology
 # ---------------------------------------------------------------
 # There is no adult EAU guideline on PUJ obstruction (EAU covers it only in paediatric urology),
-# so the follow-up follows common practice: DJ stent out after 4–6 weeks, ultrasound after that,
+# so the follow-up follows common practice: JJ stent out after 4–6 weeks, ultrasound after that,
 # diuretic renography (MAG3) about 3–6 months after surgery.
 
 PUJ_CAUSE_DX = {"Intrinsic (congenital) stenosis": "Iedzimta ģenēze.",
@@ -6901,7 +6902,7 @@ def n13_parts(sex, v, blocks=()):
     day = fmt_date(v["Procedure date"])
     admission = "akūtā kārtā" if v["Admission"] == "Acute" else "plānveida kārtā"
     intraop, postop = c61_courses(v)
-    stent = v["Pyeloplasty stent"] == "DJ stent"
+    stent = v["Pyeloplasty stent"] == "JJ stent"
     vessel = v.get("PUJ cause") == "Crossing lower-pole vessel" and v.get("Vessel transposition")
     split = v.get("Split renal function (%)")
 
@@ -6909,7 +6910,7 @@ def n13_parts(sex, v, blocks=()):
     diagnosis = f"{side_cap} puses pieloureterālā segmenta striktūra, hidronefroze."
     if v.get("PUJ cause") in PUJ_CAUSE_DX:
         diagnosis += " " + PUJ_CAUSE_DX[v["PUJ cause"]]
-    extras = (["aberrantā asinsvada transpozīciju"] if vessel else []) + (["DJ stenta ievietošanu"] if stent else [])
+    extras = (["aberrantā asinsvada transpozīciju"] if vessel else []) + (["JJ stenta ievietošanu"] if stent else [])
     diagnosis += (f"\nSt. pēc {side} puses {adj_gen} pieloplastikas ({technique})"
                   + (" ar " + lv_list(extras) if extras else "") + f" ({day}).")
 
@@ -6953,9 +6954,9 @@ def n13_parts(sex, v, blocks=()):
         when = (fmt_date(v["Stent removal date (N13)"]) if v.get("Stent removal plan") == "On a specific date"
                 else "4–6 nedēļas pēc operācijas")
         recs += [
-            f"DJ stenta izņemšana (cistoskopiski) plānota {when}; neatlikt – ilgstoši atstāts stents var inkrustēties "
+            f"JJ stenta izņemšana (cistoskopiski) plānota {when}; neatlikt – ilgstoši atstāts stents var inkrustēties "
             "un izraisīt infekciju.",
-            "Ar DJ stentu iespējama bieža un neatliekama urinācija, diskomforts vai sāpes sānos urinējot un neliels "
+            "Ar JJ stentu iespējama bieža un neatliekama urinācija, diskomforts vai sāpes sānos urinējot un neliels "
             "asiņu piejaukums urīnā – šīs sūdzības nav bīstamas."
             + ("" if v["Catheter removal"] == "Discharged with catheter"  # nothing to empty while the catheter is in
                else " Regulāri iztukšot urīnpūsli, nenoturēt urīnu ilgstoši."),
@@ -6989,8 +6990,8 @@ def n13_checks(v):
         blockers.append("Urinary retention after catheter removal.")
     if v.get("Histology") == "Known" and blank(v.get("PUJ histology result")):
         blockers.append("Type the histology result.")
-    if v.get("Pyeloplasty stent") == "DJ stent" and v.get("Stent removal plan") != "On a specific date":
-        cautions.append("A DJ stent stays in: if possible give a concrete removal date, so the stent is not forgotten.")
+    if v.get("Pyeloplasty stent") == "JJ stent" and v.get("Stent removal plan") != "On a specific date":
+        cautions.append("A JJ stent stays in: if possible give a concrete removal date, so the stent is not forgotten.")
     if v.get("Pyeloplasty drain") == "Discharged with drain":
         cautions.append("Discharged with a drain: high output can mean an anastomotic urine leak – check before discharge.")
     if v.get("Histology") == "Pending" and v.get("Discharge paper") == "Final":
@@ -8413,10 +8414,10 @@ TIMINGS = {
     "4-6w": ("In 4–6 weeks", "pēc 4–6 nedēļām", "4–6 nedēļas pēc operācijas"),
     "6w": ("In 6 weeks", "pēc 6 nedēļām", "6 nedēļas pēc operācijas"),
     "catheter": ("Before catheter removal", "pirms katetra evakuācijas", None),
-    "stent": ("Before DJ stent removal", "pirms DJ stenta izņemšanas", None),
+    "stent": ("Before JJ stent removal", "pirms JJ stenta izņemšanas", None),
     "visit": ("Before the urology visit", "pirms vizītes pie urologa", None),
     "at_visit": ("At the urology visit", "urologa vizītes laikā", None),
-    "after_stent": ("4–6 weeks after stent removal", "4–6 nedēļas pēc DJ stenta izņemšanas", None),
+    "after_stent": ("4–6 weeks after stent removal", "4–6 nedēļas pēc JJ stenta izņemšanas", None),
     "3m": ("In 3 months", "pēc 3 mēnešiem", "3 mēnešus pēc operācijas"),
     "6m": ("In 6 months", "pēc 6 mēnešiem", "6 mēnešus pēc operācijas"),
     "12m": ("In 12 months", "pēc 12 mēnešiem", "12 mēnešus pēc operācijas"),
@@ -8591,7 +8592,7 @@ def n20_tests(v):
         out.append(_s("us_k", "rec", "visit", "Look for residual fragments and dilatation. EAU follow-up imaging: ultrasound "
                                               "and/or KUB; CT only if symptomatic or before a new intervention."))
         out.append(_s("kub", "consider", "visit", "For radiopaque stones, KUB together with ultrasound."))
-        if v.get("DJ stent placed"):
+        if v.get("JJ stent placed"):
             if v.get("Urinary tract infection") == "Yes":
                 out.append(_s("uc", "rec", "stent", "Infection in this episode: urine culture before the stent is removed "
                                                     "(EAU: culture before urological procedures)."))
@@ -8890,7 +8891,7 @@ TEST_ADVISORS["N43"] = n43_tests
 
 def n13_tests(v):
     out = []
-    stent = v.get("Pyeloplasty stent") == "DJ stent"
+    stent = v.get("Pyeloplasty stent") == "JJ stent"
     out.append(_s("us_k", "rec", "after_stent" if stent else "4-6w",
                   "Common practice after pyeloplasty: ultrasound a few weeks after the stent is out, to check the "
                   "hydronephrosis is not getting worse (no adult EAU guideline on PUJ obstruction)."))
@@ -9713,13 +9714,13 @@ PE_PRESETS = {
     "Circumcision – phimosis": ("Planned", "cirkumcīzija", "fimozi", "Fimoze", "", ""),
     "Hydrocele plasty": ("Planned", "{adj} puses hidrocēles plastika", "{adj} puses hidrocēli",
                          "{Adj} puses hidrocēle", "", ""),
-    "URS + DJ stent – ureteral stone": ("Planned", "{adj} puses ureterorenoskopija (URS), DJ stenta ievietošana",
+    "URS + JJ stent – ureteral stone": ("Planned", "{adj} puses ureterorenoskopija (URS), JJ stenta ievietošana",
                                         "{m} urīnvada konkrementu", "Nierakmeņu slimība. {M} urīnvada konkrements",
                                         "", ""),
     "FURS – kidney stone": ("Planned", "{adj} puses fleksibla ureterorenoskopija (FURS) ar kontakta lāzerlitotripsiju",
                             "{adj} nieres konkrementu", "Nierakmeņu slimība. {Adj} nieres konkrements", "", ""),
-    "DJ stent removal – cystoscopy": ("Planned", "cistoskopija, {adj} puses DJ stenta evakuācija", "nierakmeņu slimību",
-                                      "Nierakmeņu slimība. St. pēc {adj} puses DJ stenta ievietošanas", "", ""),
+    "JJ stent removal – cystoscopy": ("Planned", "cistoskopija, {adj} puses JJ stenta evakuācija", "nierakmeņu slimību",
+                                      "Nierakmeņu slimība. St. pēc {adj} puses JJ stenta ievietošanas", "", ""),
     "Laparoscopic radical prostatectomy – prostate cancer": ("Planned", "laparoskopiska radikāla prostatektomija",
                                                              "prostatas CA", "Prostatas CA", "", ""),
     "Nephrectomy – kidney tumour": ("Planned", "laparoskopiska {adj} puses nefrektomija", "{adj} nieres jaunveidojumu",
@@ -9911,8 +9912,9 @@ def _docx_text_block(doc, text, justify=False, indent=None):
             p.paragraph_format.left_indent = indent
 
 
-def operation_docx(h, name, paragraphs):
-    """Like the department's 'Operācijas apraksts' file: header table, underlined title, justified text."""
+def operation_docx(h, name, paragraphs, figure=None):
+    """Like the department's 'Operācijas apraksts' file: header table, underlined title, justified text.
+    figure = (PNG bytes, caption): a picture under the text, e.g. the bladder map with the tumour sites marked."""
     doc = _docx_new()
     rows = [("Nodaļa:", h.get("dept", "")), ("Pacients:", h.get("patient", "")), ("Vēstures nr:", h.get("history", "")),
             ("Operācija:", name), ("Datums:", h.get("date", "")), ("", ""),
@@ -9936,6 +9938,16 @@ def operation_docx(h, name, paragraphs):
             p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             p.paragraph_format.first_line_indent = Cm(1.25)
             p.paragraph_format.line_spacing = 1.5
+    if figure:
+        png, caption = figure
+        doc.add_paragraph()
+        picture = doc.add_paragraph()
+        picture.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        picture.paragraph_format.keep_with_next = True
+        picture.add_run().add_picture(io.BytesIO(png), width=Cm(6.5))
+        legend = doc.add_paragraph()
+        legend.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        legend.add_run(caption).font.size = Pt(10)
     return _docx_bytes(doc)
 
 
@@ -10408,11 +10420,375 @@ def render_decursus(sex):
 # 2k. OPERATION DESCRIPTIONS (Operācijas apraksts)
 # ---------------------------------------------------------------
 
-TURU_LOCATION_LOC = {  # where in the bladder (locative)
-    "Left lateral wall": "kreisajā sānu sienā", "Right lateral wall": "labajā sānu sienā",
-    "Posterior wall": "mugurējā sienā", "Anterior wall": "priekšējā sienā", "Dome": "jumtā",
-    "Trigone": "trīsstūrī", "Bladder neck": "kakliņā",
+# ----- The department's bladder map (TURU / re-TURU): pick the sites on the picture or in the list -----
+
+# number -> (English label, Latvian locative for the text, Latvian name for the Word legend, (x, y) of the number
+# in the picture). 2/4 are the patient's right (left side of the picture), as on the department's map.
+BLADDER_SITES = {
+    1: ("Trigone", "trīsstūrī", "trīsstūris", (356, 515)),
+    2: ("Right ureteral orifice", "labās urētera ostijas rajonā", "labā urētera ostija", (309, 454)),
+    3: ("Left ureteral orifice", "kreisās urētera ostijas rajonā", "kreisā urētera ostija", (400, 454)),
+    4: ("Right wall", "labajā sānu sienā", "labā sānu siena", (184, 372)),
+    5: ("Left wall", "kreisajā sānu sienā", "kreisā sānu siena", (531, 372)),
+    6: ("Anterior wall", "priekšējā sienā", "priekšējā siena", (642, 301)),
+    7: ("Posterior wall", "mugurējā sienā", "mugurējā siena", (359, 276)),
+    8: ("Dome", "jumtā", "jumts", (362, 91)),
+    9: ("Neck", "kakliņā", "kakliņš", (356, 586)),
+    10: ("Prostatic urethra", "urīnizvadkanāla prostatiskajā daļā", "urīnizvadkanāla prostatiskā daļa", (350, 678)),
 }
+BLADDER_MAP_SIZE = (712, 845)
+BLADDER_MAP_B64 = (  # the department's bladder map as a small black-and-white PNG
+    "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"
+)
+
+
+def bladder_place(sites):
+    """'Urīnpūšļa labajā sānu sienā un jumtā' (+ ', kā arī urīnizvadkanāla prostatiskajā daļā')."""
+    bladder = [BLADDER_SITES[n][1] for n in sorted(sites) if n != 10]
+    if 2 in sites and 3 in sites:  # both orifices: said once
+        both = [BLADDER_SITES[2][1], BLADDER_SITES[3][1]]
+        bladder = [("abu urēteru ostiju rajonā" if b == both[0] else b) for b in bladder if b != both[1]]
+    text = ("Urīnpūšļa " + lv_list(bladder)) if bladder else ""
+    if 10 in sites:
+        urethra = "urīnizvadkanāla prostatiskajā daļā"
+        text = f"{text}, kā arī {urethra}" if text else urethra.capitalize()
+    return text
+
+
+def bladder_legend(sites):
+    """'4 – labā sānu siena; 8 – jumts.' for under the picture in the Word file."""
+    return "; ".join(f"{n} – {BLADDER_SITES[n][2]}" for n in sorted(sites)) + "."
+
+
+def bladder_map_png(sites):
+    """The bladder map with the chosen numbers circled in red (PNG bytes, for the Word file)."""
+    from PIL import Image, ImageDraw
+    base = Image.open(io.BytesIO(base64.b64decode(BLADDER_MAP_B64))).convert("RGBA")
+    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    for n in sites:
+        x, y = BLADDER_SITES[n][3]
+        draw.ellipse((x - 48, y - 48, x + 48, y + 48), fill=(220, 38, 38, 45))  # soft area around the number
+        draw.ellipse((x - 30, y - 30, x + 30, y + 30), fill=(220, 38, 38, 95), outline=(200, 30, 30, 255), width=7)
+    out = io.BytesIO()
+    Image.alpha_composite(base, layer).convert("RGB").save(out, "PNG", optimize=True)
+    return out.getvalue()
+
+
+BLADDER_MAP_CSS = """
+.bm-root { max-width: 400px; }
+.bm-root svg { width: 100%; height: auto; display: block; background: #fff; border-radius: 8px;
+               border: 1px solid rgba(128, 128, 128, 0.35); user-select: none; -webkit-user-select: none; }
+.bm-area { fill: rgba(220, 38, 38, 0.18); pointer-events: none; }
+.bm-sel { fill: rgba(220, 38, 38, 0.38); stroke: #c81e1e; stroke-width: 7; pointer-events: none; }
+.bm-hover { fill: rgba(37, 99, 235, 0.15); stroke: #2563eb; stroke-width: 4; pointer-events: none; }
+"""
+BLADDER_MAP_JS = """
+export default function (component) {
+  const { data, setTriggerValue, parentElement } = component;
+  const NS = "http://www.w3.org/2000/svg";
+  let root = parentElement.querySelector(".bm-root");
+  if (!root) {
+    root = document.createElement("div");
+    root.className = "bm-root";
+    parentElement.appendChild(root);
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", `0 0 ${data.w} ${data.h}`);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Bladder map: click a number to mark it");
+    const img = document.createElementNS(NS, "image");
+    img.setAttribute("href", data.img);
+    img.setAttribute("width", data.w);
+    img.setAttribute("height", data.h);
+    const marks = document.createElementNS(NS, "g");
+    const hover = document.createElementNS(NS, "circle");
+    hover.setAttribute("class", "bm-hover");
+    hover.setAttribute("r", 30);
+    hover.style.display = "none";
+    svg.append(img, marks, hover);
+    root.appendChild(svg);
+    root._marks = marks;
+    // the number nearest to the pointer, if it is close enough
+    const nearest = (ev) => {
+      const pt = svg.createSVGPoint();
+      pt.x = ev.clientX; pt.y = ev.clientY;
+      const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+      let best = null, bestD = Infinity;
+      for (const [id, xy] of Object.entries(root._data.points)) {
+        if (root._data.disabled.includes(Number(id))) continue;
+        const d = Math.hypot(p.x - xy[0], p.y - xy[1]);
+        if (d < bestD) { bestD = d; best = Number(id); }
+      }
+      return bestD <= root._data.reach ? best : null;
+    };
+    svg.addEventListener("click", (ev) => {
+      const id = nearest(ev);
+      if (id !== null) root._set("clicked", id);
+    });
+    svg.addEventListener("mousemove", (ev) => {
+      const id = nearest(ev);
+      if (id === null) { hover.style.display = "none"; svg.style.cursor = "default"; return; }
+      const xy = root._data.points[id];
+      hover.setAttribute("cx", xy[0]); hover.setAttribute("cy", xy[1]);
+      hover.style.display = ""; svg.style.cursor = "pointer";
+    });
+    svg.addEventListener("mouseleave", () => { hover.style.display = "none"; });
+  }
+  root._data = data;
+  root._set = setTriggerValue;
+  root._marks.replaceChildren();
+  for (const id of data.selected) {
+    const xy = data.points[id];
+    for (const [cls, r] of [["bm-area", 48], ["bm-sel", 30]]) {
+      const c = document.createElementNS(NS, "circle");
+      c.setAttribute("class", cls); c.setAttribute("cx", xy[0]); c.setAttribute("cy", xy[1]); c.setAttribute("r", r);
+      root._marks.appendChild(c);
+    }
+  }
+}
+"""
+try:  # clicking on the picture needs Streamlit's inline components (1.51+); the tick list works anyway
+    from streamlit.components.v2 import component as _component_v2
+    _bladder_map = _component_v2("bladder_map", css=BLADDER_MAP_CSS, js=BLADDER_MAP_JS)
+except Exception:
+    _bladder_map = None
+
+
+def _bladder_map_clicked(prefix):
+    """A number was clicked on the picture: tick or untick it in the list."""
+    state = st.session_state.get(f"{prefix}-map")
+    number = state.get("clicked") if hasattr(state, "get") else None
+    if number is None:
+        return
+    key = f"{prefix}-site-{int(number)}"
+    st.session_state[key] = not st.session_state.get(key, False)
+
+
+def bladder_site_picker(prefix, woman, title):
+    """The bladder map with a tick list beside it; returns the chosen numbers (1–10)."""
+    numbers = [n for n in BLADDER_SITES if not (woman and n == 10)]  # no prostatic urethra in a woman
+    chosen = [n for n in numbers if st.session_state.get(f"{prefix}-site-{n}")]
+    st.markdown(f"**{title}**")
+    left, right = st.columns([2, 3], vertical_alignment="center")
+    with left:
+        if _bladder_map is not None:
+            _bladder_map(key=f"{prefix}-map", on_clicked_change=lambda: _bladder_map_clicked(prefix),
+                         data={"img": "data:image/png;base64," + BLADDER_MAP_B64,
+                               "w": BLADDER_MAP_SIZE[0], "h": BLADDER_MAP_SIZE[1], "reach": 70,
+                               "points": {n: BLADDER_SITES[n][3] for n in BLADDER_SITES},
+                               "selected": chosen, "disabled": [n for n in BLADDER_SITES if n not in numbers]})
+            st.caption("Click a number on the picture, or tick it in the list.")
+        else:
+            st.image(bladder_map_png(chosen), width=360)
+            st.caption("Tick the sites in the list (clicking on the picture needs a newer Streamlit).")
+    with right:
+        for n in numbers:
+            st.checkbox(f"{n} – {BLADDER_SITES[n][0]}", key=f"{prefix}-site-{n}")
+    return [n for n in numbers if st.session_state.get(f"{prefix}-site-{n}")]
 
 
 # ----- URS and FURS, assembled from what was actually done -----
@@ -10939,9 +11315,9 @@ def urs_operation(flexible, c1, c2, c3, pt_dat, pt_acc):
             f"lauka apdares urīnpūslī ievada cistoskopu. Instrumenta ievadīšana brīva. {cysto.strip().rstrip('.')}."]
     name_parts, extracted = [], False
     if stent_out:
-        text.append(f"Vizualizē {ost} ostiju un DJ stenta distālo galu. Ar standziņām satver stenta galu un "
+        text.append(f"Vizualizē {ost} ostiju un JJ stenta distālo galu. Ar standziņām satver stenta galu un "
                     "evakuē stentu.")
-        name_parts.append(f"{adj} puses DJ stenta evakuācija")
+        name_parts.append(f"{adj} puses JJ stenta evakuācija")
     access = []
     if wire:
         access.append(f"Rentgenoskopijas kontrolē caur {ost} ostiju urīnvadā līdz nieres bļodiņai ievada hidrofilo "
@@ -10969,7 +11345,7 @@ def urs_operation(flexible, c1, c2, c3, pt_dat, pt_acc):
             result = d2.selectbox("Rezultāts", list(URS_RESULTS), key="op-us-result") if actions else None
         side_word = "" if stent_out else f"{adj} puses "
         if reach == "No URS – stent only":
-            name_parts.append(f"cistoskopija, {side_word}retrogrāda DJ stenta ievietošana")
+            name_parts.append(f"cistoskopija, {side_word}retrogrāda JJ stenta ievietošana")
         else:
             name_parts.append(f"{side_word}ureterorenoskopija (URS)")
         if reach == "Not possible (narrow ureter)":
@@ -11060,7 +11436,7 @@ def urs_operation(flexible, c1, c2, c3, pt_dat, pt_acc):
 
     st.markdown("**Beigās**")
     e1, e2, e3 = st.columns(3)
-    stent_in = e1.checkbox("DJ stenta ievietošana", stent_default, key=f"op-u{tag}-stent")
+    stent_in = e1.checkbox("JJ stenta ievietošana", stent_default, key=f"op-u{tag}-stent")
     if stent_in:
         fr = e2.selectbox("Stents (Fr)", ["4,8", "6", "7"], index=1, key=f"op-u{tag}-stent-fr")
         cm = e3.selectbox("Garums (cm)", ["22", "24", "26", "28"], index=2, key=f"op-u{tag}-stent-cm")
@@ -11070,10 +11446,10 @@ def urs_operation(flexible, c1, c2, c3, pt_dat, pt_acc):
         foley_fr = e3.selectbox("Katetrs (Fr)", ["14", "16", "18", "20"], index=1, key=f"op-u{tag}-foley-fr")
     end = []
     if stent_in:
-        end.append(f"{'Gar drošības stīgu' if wire else 'Pa stīgu'} rentgenoskopijas kontrolē ievada DJ stentu "
+        end.append(f"{'Gar drošības stīgu' if wire else 'Pa stīgu'} rentgenoskopijas kontrolē ievada JJ stentu "
                    f"{fr} Fr / {cm} cm" + (" ar diegu" if string else "") + ". Stenta proksimālā cilpa nieres bļodiņā, "
                    "distālā – urīnpūslī. Evakuē stīgu.")
-        name_parts.append("DJ stenta ievietošana" if not any("retrogrāda DJ" in p for p in name_parts) else "")
+        name_parts.append("JJ stenta ievietošana" if not any("retrogrāda JJ" in p for p in name_parts) else "")
     elif wire:
         end.append("Evakuē drošības stīgu.")
     if foley:
@@ -11103,6 +11479,7 @@ def render_operation(sex):
                                     "Percutaneous trocar epicystostomy (48)",
                                     "Nephrostomy change under US (48)"], key="op-type")
     text, name = [], {"TURP": "TURP", "TURU": "TURU", "Circumcision": "Cirkumcīzija"}.get(op, "")
+    sites, figure = [], None  # TURU / re-TURU: the sites on the bladder map, and the marked map for the Word file
     with st.expander("Details", expanded=True):
         c1, c2, c3 = st.columns(3)
         if op == "TURP":
@@ -11135,7 +11512,7 @@ def render_operation(sex):
             scope = c1.selectbox("Rezektoskops (Ch)", ["24", "26"], index=1, key="op-turu-scope")
             number = c2.radio("Veidojumi", ["Viens", "Vairāki"], index=1, horizontal=True, key="op-turu-number")
             kind = c3.selectbox("Izskats", ["papillārs", "solīds", "plakans (CIS aizdomas)"], key="op-turu-kind")
-            where = st.multiselect("Lokalizācija", list(TURU_LOCATION_LOC), default=["Right lateral wall"], key="op-turu-where")
+            sites = bladder_site_picker("op-turu", woman, "Veidojumu lokalizācija")
             detrusor = c1.checkbox("Paraugā detruzora muskulis", True, key="op-turu-det")
             fr = c2.selectbox("Katetrs (Fr)", ["18", "20", "22"], index=1, key="op-turu-fr")
             balloon = c3.number_input("Balons (ml)", 5, 60, 20, key="op-turu-balloon")
@@ -11146,10 +11523,12 @@ def render_operation(sex):
             adjective = {"papillārs": ("papillāru", "papillārus"), "solīds": ("solīdu", "solīdus"),
                          "plakans (CIS aizdomas)": ("plakanu, sārtu", "plakanus, sārtus")}[kind][0 if single else 1]
             noun = "veidojumu" if single else "veidojumus"
-            place = lv_list([TURU_LOCATION_LOC[w] for w in where]) or "—"
+            place = bladder_place(sites) or "—"
+            if sites:
+                figure = (bladder_map_png(sites), "Veidojumu lokalizācija: " + bladder_legend(sites))
             text = [
                 f"Pēc operācijas lauka tualetes, {pt_dat} atrodoties dorsālas litotomijas guļā urīnpūslī ievada "
-                f"{scope} Ch rezektoskopu. Urīnpūšļa {place} vizualizē {adjective} {noun}.",
+                f"{scope} Ch rezektoskopu. {place} vizualizē {adjective} {noun}.",
                 ("Veikta veidojuma rezekcija" if single else "Veikta veidojumu rezekcija")
                 + (", iegūstot arī detruzora muskuļa paraugu." if detrusor else ".") + " Rūpīga hemostāze.",
                 f"{fr} Fr 3-kanālu ilgkatetrs, balons uzpildīts līdz {balloon} ml. {pt_acc} apmierinošā stāvoklī "
@@ -11162,8 +11541,7 @@ def render_operation(sex):
                        "muscle); it must include the primary tumour site. A single early instillation is meant for the "
                        "first TURU, not routinely for re-TURU.")
             scope = c1.selectbox("Rezektoskops (Ch)", ["24", "26"], index=1, key="op-rt-scope")
-            where = st.multiselect("Rētas lokalizācija", list(TURU_LOCATION_LOC), default=["Right lateral wall"],
-                                   key="op-rt-where")
+            sites = bladder_site_picker("op-rt", woman, "Rētas lokalizācija")
             finding = c2.selectbox("Rētas atrade", ["bez redzama atlikušā audzēja", "ar atlikušiem papillāriem audiem",
                                                     "ar aizdomīgu, sārtu gļotādu"], key="op-rt-find")
             new = c3.text_input("Jauni veidojumi (empty = nav)", key="op-rt-new",
@@ -11173,12 +11551,14 @@ def render_operation(sex):
             balloon = c3.number_input("Balons (ml)", 5, 60, 20, key="op-rt-balloon")
             ward = c1.text_input("Pārved uz", "nodaļu", key="op-rt-ward")
             name = "Atkārtota TURU (re-TURU)"
-            place = lv_list([TURU_LOCATION_LOC[w] for w in where]) or "—"
+            place = bladder_place(sites) or "—"
+            if sites:
+                figure = (bladder_map_png(sites), "Rētas lokalizācija: " + bladder_legend(sites))
             mucosa = (f"Konstatēti jauni veidojumi: {new.strip().rstrip('.')}; tie rezecēti." if new.strip()
                       else "Pārējā urīnpūšļa gļotāda bez jauniem veidojumiem.")
             text = [
                 f"Pēc operācijas lauka tualetes, {pt_dat} atrodoties dorsālas litotomijas guļā urīnpūslī ievada "
-                f"{scope} Ch rezektoskopu. Urīnpūšļa gļotādu pārskata sistemātiski. Urīnpūšļa {place} vizualizē "
+                f"{scope} Ch rezektoskopu. Urīnpūšļa gļotādu pārskata sistemātiski. {place} vizualizē "
                 f"iepriekšējās rezekcijas rētu {finding}. {mucosa}",
                 "Veic rētaudu un primārā audzēja vietas rezekciju dziļumā līdz detruzora muskulim, iegūstot detruzora "
                 "muskuļa paraugu." + (" Rezekcijas pamatnes paraugu nosūta atsevišķi." if separate else "")
@@ -11472,8 +11852,8 @@ def render_operation(sex):
         complications = st.text_input("Intraoperatīvas komplikācijas / papildus atrade (optional)", key=f"op-extra-{op}")
     if complications.strip():
         text.append(complications.strip().rstrip(".") + ".")
-    if op == "TURU" and not st.session_state.get("op-turu-where"):
-        st.info("Choose where the tumour is.")
+    if op in ("TURU", "Re-TURU (scar resection)") and not sites:
+        st.info("Choose where the tumour is." if op == "TURU" else "Choose where the scar is.")
         return
     header = render_doc_header("op")
     output = ((f"Operācija: {name}\n" if name else "")
@@ -11481,7 +11861,7 @@ def render_operation(sex):
               + ("\n" if name or header.get("anesth") else "") + "Operācijas apraksts:\n\n" + "\n".join(text))
     st.divider()
     st.text_area("Operācijas apraksts", output, height=420, key=f"op-out-{hash(output)}")
-    word_button("Word file (Operācijas apraksts)", lambda: operation_docx(header, name, text),
+    word_button("Word file (Operācijas apraksts)", lambda: operation_docx(header, name, text, figure),
                 f"Operacijas_apraksts_{header.get('date', '').strip('.').replace('.', '-') or 'bez_datuma'}.docx",
                 "op-word")
 
@@ -11492,7 +11872,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-30-catheter-care · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-30-bladder-map · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
