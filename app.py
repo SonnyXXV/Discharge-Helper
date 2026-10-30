@@ -639,6 +639,9 @@ MODIFIERS = {
     "Activity restriction": {"type": "single", "options": ["1 week", "2 weeks", "3 weeks", "4 weeks", "1 month",
                                                            "6 weeks"]},
     "Urology visit": {"type": "single", "options": ["2 weeks", "4 weeks", "6 weeks", "3 months"]},
+    # C61: hidden while histology is pending – the result comes in 2 weeks and the oncology council follows
+    "Urology visit (C61)": {"type": "single", "options": ["2 weeks", "4 weeks", "6 weeks", "3 months"],
+                            "show_if": {"Histology": "Known"}},
     "Oncology council": {
         "type": "single",
         "options": ["Will be discussed after histology", "Already discussed", "Not applicable"],
@@ -1381,7 +1384,7 @@ DIAGNOSIS_MODIFIERS = {
           "Prostate histology details"],
          {"_department": "4"}),
         ("5. Recommendations",
-         ["Discharge paper", "Activity restriction", "Sauna and pool", "Skin sutures", "Urology visit",
+         ["Discharge paper", "Activity restriction", "Sauna and pool", "Skin sutures", "Urology visit (C61)",
           "Oncology council", "Oncology council date"],
          {"_department": "4"}),
     ],
@@ -1802,6 +1805,46 @@ CATHETER_CARE_LINES = [
     "Urīnpūšļa katetra maiņa ik pēc 4–6 nedēļām ģimenes ārsta praksē.",
     "Urīna savākšanas maisa maiņa ik pēc 3–7 dienām.",
 ]
+# Home care for every patient who goes home with a urinary catheter (department wording).
+CATHETER_FLUID_LINE = ("Nodrošināt pietiekamu šķidruma uzņemšanu – aptuveni 2–2,5 l dienā, ja nav citu ārsta "
+                       "noteiktu šķidruma ierobežojumu.")
+CATHETER_HOME_CARE = [
+    "Regulāri veikt ārējo dzimumorgānu un katetra ievadīšanas vietas higiēnu, mazgājot ar ūdeni un ziepēm.",
+    "Nodrošināt, lai urīna savākšanas maiss vienmēr atrastos zem urīnpūšļa līmeņa, nepieļaujot tā saskari ar grīdu.",
+    "Sekot līdzi urīna brīvai attecei pa katetru, nepieļaut katetra caurulītes saliekšanos vai nospiešanu.",
+    "Regulāri iztukšot urīna savākšanas maisu, nepieļaujot tā pārpildīšanos.",
+]
+
+
+def catheter_care_lines(style="plain", numbered=None, fluid=True, change=True, suprapubic=False,
+                        damaged=False, first=(), extra=()):
+    """The 'Urīnpūšļa katetra aprūpe:' heading and its list, for a patient going home with a catheter.
+    fluid      – False where the paper keeps its own fluid line (a typed amount, haematuria, retention,
+                 neobladder), so the amount is not written twice.
+    change     – False when the catheter comes out soon (a removal date), so no 4–6 weekly change.
+    suprapubic – epicystostomy: stoma site care in place of the genital hygiene line.
+    damaged    – NMC wording 'vai biežāk, ja tas ir bojāts' after the bag change.
+    first / extra – more lines for the start / end of the list (e.g. the planned removal).
+    style      – 'plain' (heading, • lines), 'bullet' (• heading, o lines), 'numbered' (n. heading, • lines)."""
+    name = "Epicistostomas katetra" if suprapubic else "Urīnpūšļa katetra"
+    items = list(first) + ([CATHETER_FLUID_LINE] if fluid else [])
+    items += (["Stomas vietu ikdienā apstrādāt un pārsiet."] + CATHETER_HOME_CARE[1:]) if suprapubic \
+        else CATHETER_HOME_CARE
+    if change:
+        items.append(f"{name} maiņa ik pēc 4–6 nedēļām ģimenes ārsta praksē.")
+    items.append("Urīna savākšanas maisa maiņa ik pēc 3–7 dienām" + (" vai biežāk, ja tas ir bojāts." if damaged else "."))
+    items += list(extra)
+    heading = f"{name} aprūpe:"
+    if style == "numbered":
+        return [numbered(heading)] + ["    • " + i for i in items]
+    if style == "bullet":
+        return ["• " + heading] + ["    o " + i for i in items]
+    return [heading] + ["• " + i for i in items]
+
+
+def _lead(sentence):
+    """'Sentence. ' before the next sentence, or '' when there is nothing to write."""
+    return sentence + " " if sentence else ""
 C67_POSTOP_TEXT = {"Uneventful": "bez komplikācijām", "Satisfactory": "apmierinoši"}
 CATHETER_DAY_TEXT = {"Day 1 after surgery": "1. pēcoperācijas dienā",
                      "Day 2 after surgery": "2. pēcoperācijas dienā",
@@ -3562,19 +3605,8 @@ def n39_recommendations(v, nmc=False):
 
     if v.get("Has catheter"):
         if v["Catheter at discharge"] == "In place":
-            heading = "Epicistostomas katetra aprūpe:" if n39_suprapubic(v) else "Urīnpūšļa katetra aprūpe:"
-            lines += [
-                heading,
-                "• Nodrošināt regulāru katetra un urīna savākšanas maisa aprūpi.",
-                "• Uzturēt noslēgtu drenāžas sistēmu un maisu novietot zem urīnpūšļa līmeņa.",
-                "• Sekot urīna attecei un katetra caurlaidībai.",
-            ]
-            if n39_suprapubic(v):
-                lines.append("• Stomas vietu ikdienā apkopt un pārsiet.")
-                lines += ["• Epicistostomas katetra maiņa ik pēc 4–6 nedēļām ģimenes ārsta praksē.",
-                          "• Urīna savākšanas maisa maiņa ik pēc 3–7 dienām."]
-            else:
-                lines += ["• " + line for line in CATHETER_CARE_LINES]
+            # the typed fluid line ("Šķidruma uzņemšana ...") is above, so it is not repeated here
+            lines += catheter_care_lines(fluid=False, suprapubic=n39_suprapubic(v))
         else:
             lines += [
                 "Urinācijas novērošana:",
@@ -3782,10 +3814,10 @@ def n20_planned_parts(sex, v, blocks=()):
             when = "plānota ambulatorās urologa vizītes laikā"
         stent = "DJ stentu" if side == "Both" else "DJ stenta"
         recs.append(f"• {stent} izņemšana vai maiņa {when}; neatlikt noteikto vizīti.")
-    if v.get("Discharged with catheter"):
-        recs += ["• " + line for line in CATHETER_CARE_LINES]
-        if v.get("Catheter removal date"):
-            recs.append(f"• Katetra evakuācija plānota {fmt_date(v['Catheter removal date'])}.")
+    if v.get("Discharged with catheter"):  # the typed fluid line is above, so it is not repeated
+        removal_date = v.get("Catheter removal date")
+        recs += catheter_care_lines("bullet", fluid=False, change=not removal_date,
+                                    extra=[f"Katetra evakuācija plānota {fmt_date(removal_date)}."] if removal_date else ())
     recs.extend("• " + b for b in blocks)  # the medications you drag in
     if v["Urology follow-up"] == "On a specific date":
         recs.append(f"• Kontrole pie ārstējošā urologa {fmt_date(v['Urology follow-up date'])}.")
@@ -3976,12 +4008,12 @@ def c67_parts(sex, v, blocks=()):
     paragraphs.append(" ".join(course))
 
     # Histology and closing
-    if v["Histology"] == "Pending":
-        histology = "Histoloģiskās izmeklēšanas rezultāts izrakstīšanas brīdī vēl nav zināms"
-    else:
+    histology = ""  # pending: nothing is written about it in the epicrisis
+    if v["Histology"] != "Pending":
         details = (v.get("Histology details") or "").strip().rstrip(".")
-        histology = "Histoloģiskās izmeklēšanas rezultāts: " + ", ".join(p for p in (c67_stage_text(v, with_nm=False), details) if p)
-    paragraphs.append(f"{histology}. Uzlabojoties vispārējam stāvoklim, {f['pacients']} {f['izrakstits']} "
+        histology = ("Histoloģiskās izmeklēšanas rezultāts: "
+                     + ", ".join(p for p in (c67_stage_text(v, with_nm=False), details) if p) + ".")
+    paragraphs.append(f"{_lead(histology)}Uzlabojoties vispārējam stāvoklim, {f['pacients']} {f['izrakstits']} "
                       "turpmākai aprūpei ģimenes ārsta uzraudzībā. Sniegtas rekomendācijas.")
 
     # Recommendations
@@ -3990,14 +4022,15 @@ def c67_parts(sex, v, blocks=()):
         recs.append(TEMPORARY_PAPER_TEXT)
     recs += [
         "Atrasties ģimenes ārsta uzraudzībā.",
+        # with a catheter the fluid line is the first line of the catheter care list (not written twice)
+        "Diēta: vispusīga." if removal == "Discharged with catheter" else
         "Diēta: vispusīga. Lietot šķidrumu aptuveni 2,0 L diennaktī, ja nav medicīnisku kontrindikāciju.",
         f"Režīms: saudzējošs {WEEKS_TEXT[v['Activity restriction']]} no operācijas dienas. Atturēties no "
         "pārmērīgas fiziskas slodzes, pirts un baseina apmeklējuma.",
     ]
     if removal == "Discharged with catheter":
-        recs += CATHETER_CARE_LINES
-        if planned:
-            recs.append(f"Katetra evakuācija plānota {fmt_date(planned)}.")
+        recs += catheter_care_lines(change=not planned,
+                                    extra=[f"Katetra evakuācija plānota {fmt_date(planned)}."] if planned else ())
     else:
         recs.append("Regulāri, ik pēc 1–2 stundām, iztukšot urīnpūsli.")
     if NMIBC_ADJUVANT_TEXT.get(v.get("Adjuvant plan (NMIBC)")):
@@ -4102,12 +4135,11 @@ RC_STOMA_CARE = {
         "Stomas aprūpes līdzekļus izrakstīs ģimenes ārsts; nepieciešamības gadījumā – stomas aprūpes māsas "
         "konsultācija.",
     ],
-    "Orthotopic neobladder": [
-        "Kopt urīnpūšļa katetru; katetra laikā neocistis skalot ar fizioloģisko šķīdumu (gļotu evakuācijai) pēc "
-        "nodaļā apmācītās metodes.",
+    # the neobladder keeps its own fluid-and-salt line below, so the catheter list has no fluid line
+    "Orthotopic neobladder": catheter_care_lines(fluid=False, change=False, first=[
+        "Katetra laikā neocistis skalot ar fizioloģisko šķīdumu (gļotu evakuācijai) pēc nodaļā apmācītās metodes."]) + [
         "Pēc katetra evakuācijas urinēt pēc pulksteņa ik pēc 2–3 stundām (arī naktī), urinējot atslābināt iegurņa "
-        "pamatni un viegli sasprindzināt vēdera presi; pakāpeniski pagarināt intervālus; veikt iegurņa pamatnes "
-        "muskulatūras (Kēgela) vingrinājumus.",
+        "pamatni un viegli sasprindzināt vēdera presi; pakāpeniski pagarināt intervālus.",
         "Lietot pietiekami šķidruma un sāls – neocistis var izraisīt sāls un šķidruma zudumu.",
     ],
 }
@@ -4215,8 +4247,8 @@ def c67_rc_parts(sex, v, blocks=()):
                   (f", kura evakuācija plānota {fmt_date(date)}" if date else "") + ".")
     if v["Histology (RC)"] == "Pending":
         date = v.get("Histology expected (RC)")
-        p3.append("Patohistoloģiskās izmeklēšanas rezultāts izrakstīšanas brīdī vēl nav zināms" +
-                  (f" (būs pieejams no {fmt_date(date)})" if date else "") + ".")
+        if date:  # pending: only the expected date is worth writing
+            p3.append(f"Patohistoloģiskās izmeklēšanas rezultāts būs pieejams no {fmt_date(date)}.")
     else:
         details = (v.get("Histology details (RC)") or "").strip().rstrip(".")
         p3.append("Patohistoloģiskās izmeklēšanas rezultāts: " + ", ".join(x for x in (details, _rc_stage(v)) if x) + ".")
@@ -4558,9 +4590,7 @@ def n45_ward_parts(sex, v, blocks=()):
     if culture:
         p2.append(f"Uzsējumā aug {culture}. Pielāgota antibakteriāla terapija.")
     hist = v.get("Histology (EO)") if surgery else None
-    if hist == "Pending":
-        p2.append("Histoloģiskās izmeklēšanas rezultāts izrakstīšanas brīdī vēl nav zināms.")
-    elif hist == "Known":
+    if hist == "Known":  # pending: nothing is written about it
         p2.append("Histoloģiski: " + v["Histology result (EO)"].strip().rstrip(".") + ".")
     p2.append(f"Ar pozitīvu dinamiku {f['izrakstits']} ambulatori.")
     epicrisis = " ".join(s) + "\n" + " ".join(p2)
@@ -4845,19 +4875,21 @@ def n41_ward_parts(sex, v, blocks=()):
     p2.append(f"Vispārējā apmierinošā stāvoklī {f['izrakstits']} tālākai terapijai ambulatori.")
     epicrisis = " ".join(s) + "\n" + " ".join(p2)
 
+    home_catheter = (v.get("Catheter at discharge (AP)") == "Discharged with catheter" and
+                     v.get("Retention drainage (AP)") in ("Urethral catheter (small calibre)", "Suprapubic catheter"))
     recs = ["• Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā.",
-            "• Diēta – vispusīga, lietot šķidrumu 1,5–2,5 L/dnn."]
+            # with a catheter the fluid line is the first line of the catheter care list (not written twice)
+            "• Diēta – vispusīga." if home_catheter else "• Diēta – vispusīga, lietot šķidrumu 1,5–2,5 L/dnn."]
     if blocks:
         recs.append("• Nozīmē lietot:")
         recs += ["    o " + b for b in blocks]
     recs.append("• " + AP_DURATION_LINE)
-    if v.get("Catheter at discharge (AP)") == "Discharged with catheter" and \
-            v.get("Retention drainage (AP)") in ("Urethral catheter (small calibre)", "Suprapubic catheter"):
-        recs.append("• Kopt " + ("urīnpūšļa katetru" if v["Retention drainage (AP)"].startswith("Urethral") else
-                                 "epicistostomu") + "; urīna savācējmaisa maiņa ik pēc 3–7 dienām.")
+    if home_catheter:
         date = v.get("Catheter removal date (AP)")
-        recs.append("• Katetra evakuācija (urinācijas mēģinājums) " +
-                    (f"plānota {fmt_date(date)}." if date else "pēc infekcijas mazināšanās – lems ārstējošais urologs."))
+        recs += catheter_care_lines(
+            "bullet", change=False, suprapubic=v["Retention drainage (AP)"] == "Suprapubic catheter",
+            extra=["Katetra evakuācija (urinācijas mēģinājums) " +
+                   (f"plānota {fmt_date(date)}." if date else "pēc infekcijas mazināšanās – lems ārstējošais urologs.")])
     if blank(v.get("Culture result (AP)")) and any(x in (v.get("Urine tests (AP)") or []) for x in
                                                    ("Midstream urine culture", "Blood culture")):
         recs.append("• Uzsējumu rezultātus var aplūkot Datamed.lv; antibakteriālo terapiju koriģēt atbilstoši jutībai.")
@@ -5007,10 +5039,8 @@ def n44_parts(sex, v, blocks=()):
     elif drain == "Discharged with drain":
         s2.append(f"{f['Pacients']} {f['izrakstits']} ar drenu.")
     if necrotic:
-        if v.get("Histology (TT)") == "Known":
+        if v.get("Histology (TT)") == "Known":  # pending: nothing is written about it
             s2.append("Histoloģiski: " + v["Histology result (TT)"].strip().rstrip(".") + ".")
-        else:
-            s2.append("Histoloģiskās izmeklēšanas rezultāts izrakstīšanas brīdī vēl nav zināms.")
     s2.append(f"Vispārējā apmierinošā stāvoklī {f['pacients']} {f['izrakstits']} tālākai ārstēšanai ambulatori.")
     epicrisis = " ".join(s) + "\n" + " ".join(s2)
 
@@ -5151,13 +5181,10 @@ def c61_first_line(v):
 
 
 def c61_basis(v):
-    """' (Gleason 3+4=7, ISUP 2; PSA 8.4 ng/ml)' or ''."""
-    parts = []
-    if v.get("Biopsy Gleason score") not in (None, "Not known"):
-        parts.append(c61_gleason(v["Biopsy Gleason score"], "text"))
+    """' (PSA 8.4 ng/ml)' or ''. The Gleason score stays in the diagnosis and is not repeated in the epicrisis."""
     if v.get("PSA (ng/ml)") not in (None, ""):
-        parts.append(f"PSA {v['PSA (ng/ml)']:g} ng/ml")
-    return f" ({'; '.join(parts)})" if parts else ""
+        return f" (PSA {v['PSA (ng/ml)']:g} ng/ml)"
+    return ""
 
 
 def c61_courses(v):
@@ -5186,17 +5213,18 @@ def c61_catheter_sentence(f, v):
 
 
 def c61_histology(v):
+    """The histology sentence of the epicrisis: '' while pending; no Gleason score (it is in the diagnosis)."""
     if v["Histology"] == "Pending":
-        return "Histoloģiskās izmeklēšanas rezultāts izrakstīšanas brīdī vēl nav zināms."
+        return ""
     details = (v.get("Prostate histology details") or "").strip().rstrip(".")
-    parts = []
-    if v.get("Operation") == "Radical prostatectomy":
-        result = c61_pathology(v)
-        if v.get("Final Gleason score") not in (None, "Not stated"):
-            result += ", " + c61_gleason(v["Final Gleason score"], "text")
-        parts.append(result)
+    parts = [c61_pathology(v)] if v.get("Operation") == "Radical prostatectomy" else []
     parts.append(details)
     return "Histoloģiskās izmeklēšanas rezultāts: " + ", ".join(p for p in parts if p) + "."
+
+
+# Histology pending after prostate cancer surgery (department practice: no extra urology visit for it).
+C61_PENDING_TEXT = ("Histoloģiskās izmeklēšanas rezultāts būs pieejams 2 nedēļu laikā, pēc tam pacients automātiski "
+                    "tiks pieteikts onkoloģiskajam konsīlijam.")
 
 
 CATHETER_PLACE_TEXT = {"PSKUS outpatient clinic": " P. Stradiņa KUS poliklīnikā",
@@ -5207,25 +5235,29 @@ WOUND_SUTURE_TEXT = {"Absorbable": "Diegu evakuācija nav nepieciešama (intraku
 
 def c61_common_recs(f, v, blocks, extra_regime, regime=None, wound=(), numbered_blocks=False):
     """Recommendation lines shared by prostatectomy and TURP."""
+    pending = v["Histology"] == "Pending"
+    catheter = v["Catheter removal"] == "Discharged with catheter"
     recs = []
     if v["Discharge paper"] == "Temporary":
-        recs.append(TEMPORARY_PAPER_TEXT)
+        # pending histology: the 2-week result and the oncology council go into this same first line
+        recs.append(("Pagaidu izraksts. " + C61_PENDING_TEXT) if pending else TEMPORARY_PAPER_TEXT)
     recs += [
         "Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā.",
+        # with a catheter the fluid line is the first line of the catheter care list (not written twice)
+        "Diēta: vispusīga." if catheter else
         "Diēta: vispusīga. Lietot šķidrumu aptuveni 2,0 L diennaktī, ja nav medicīnisku kontrindikāciju.",
         regime or (f"Režīms: saudzējošs {WEEKS_TEXT[v['Activity restriction']]} no operācijas dienas. Atturēties no "
                    "pārmērīgas fiziskas slodzes, smagumu celšanas, pirts un baseina apmeklējuma."),
     ] + extra_regime
-    if v["Catheter removal"] == "Discharged with catheter":
-        if v.get("Planned catheter removal (optional)"):  # a removal date: no 4–6 weekly change needed
-            recs.append("Kopt urīnpūšļa ilgkatetru; " + CATHETER_CARE_LINES[1][0].lower() + CATHETER_CARE_LINES[1][1:])
-        else:
-            recs += CATHETER_CARE_LINES
-        if v.get("Planned catheter removal (optional)"):
+    if catheter:
+        planned = v.get("Planned catheter removal (optional)")
+        extra = []
+        if planned:
             place = CATHETER_PLACE_TEXT.get(v.get("Catheter removal place"), "")
             time = (v.get("Catheter removal time") or "").strip()
-            recs.append(f"Katetra evakuācija plānota{place} {fmt_date(v['Planned catheter removal (optional)'])}"
-                        + (f" plkst. {time}" if time else "") + ".")
+            extra.append(f"Katetra evakuācija plānota{place} {fmt_date(planned)}"
+                         + (f" plkst. {time}" if time else "") + ".")
+        recs += catheter_care_lines(change=not planned, extra=extra)  # a removal date: no 4–6 weekly change
     else:
         recs.append("Regulāri, ik pēc 1–2 stundām, iztukšot urīnpūsli.")
     if wound:
@@ -5237,15 +5269,18 @@ def c61_common_recs(f, v, blocks, extra_regime, regime=None, wound=(), numbered_
     elif blocks:
         recs.append("Terapijā lietot:")
         recs += ["• " + b for b in blocks]
-    visit = f"Vizīte pie urologa ambulatori: {WEEKS_TEXT[v['Urology visit']]} pēc operācijas"
-    if v["Histology"] == "Pending":
-        visit += ", lai izvērtētu histoloģisko atbildi"
-    recs.append(visit + ".")
+    if not pending:
+        recs.append(f"Vizīte pie urologa ambulatori: {WEEKS_TEXT[v['Urology visit (C61)']]} pēc operācijas.")
+    elif v["Discharge paper"] != "Temporary":  # a temporary paper already says it in its first line
+        recs.append(C61_PENDING_TEXT)
     return recs
 
 
-def c61_council(f, v):
+def c61_council(f, v, pending_line=False):
+    """pending_line: the paper already says the patient goes to the council automatically (C61, histology pending)."""
     council = v["Oncology council"]
+    if council == "Will be discussed after histology" and pending_line and v.get("Histology") == "Pending":
+        return []
     if council == "Will be discussed after histology":
         return [f"{f['pacienta'].capitalize()} gadījums tiks izskatīts onkoloģiskajā konsīlijā pēc "
                 "histoloģiskās atbildes saņemšanas."]
@@ -5279,7 +5314,7 @@ def c61_rp_parts(sex, v, blocks=()):
         f"{day} vispārējā anestēzijā veikta {operation}" + (", drenāža" if drain != "No drain" else "")
         + f". Operācija noritēja {intraop}.",
         f"Pēcoperācijas periods {postop}.{drain_course} {c61_catheter_sentence(f, v)}",
-        f"{c61_histology(v)} Uzlabojoties vispārējam stāvoklim, {f['pacients']} {f['izrakstits']} turpmākai "
+        f"{_lead(c61_histology(v))}Uzlabojoties vispārējam stāvoklim, {f['pacients']} {f['izrakstits']} turpmākai "
         "aprūpei ģimenes ārsta uzraudzībā. Sniegtas rekomendācijas.",
     ])
     rest = WEEKS_TEXT[v["Activity restriction"]]
@@ -5295,11 +5330,8 @@ def c61_rp_parts(sex, v, blocks=()):
     if drain == "Discharged with drain":
         wound.append("Drenas evakuācija pēc ārstējošā urologa norādījumiem.")
     recs = c61_common_recs(f, v, list(blocks), [], regime=regime, wound=wound, numbered_blocks=True)
-    recs.insert(recs.index(next(r for r in recs if r.startswith(("Urīnpūšļa katetra maiņa", "Kopt urīnpūšļa", "Regulāri")))),
-                "Nozīmē Kēgela vingrinājumus iegurņa pamatnes muskulatūras nostiprināšanai, sākot pēc katetra "
-                "evakuācijas (skat. izsniegtās norādes).")
     recs += tests_lines(v, "plain", after_op=True)  # e.g. PSA 3 months after the operation
-    recs += c61_council(f, v)
+    recs += c61_council(f, v, pending_line=True)
     recs.append(C61_RP_WARNING)
     return {"clinical_diagnosis": diagnosis, "epicrisis": epicrisis, "recommendations": "\n".join(recs)}
 
@@ -5323,7 +5355,7 @@ def c61_turp_parts(sex, v, blocks=()):
         f"{day} {ANESTHESIA_TEXT[v['TURP anesthesia']]} veikta transuretrāla prostatas rezekcija (TURP). "
         f"Operācija noritēja {intraop}.",
         " ".join(course),
-        f"{c61_histology(v)} Uzlabojoties vispārējam stāvoklim, {f['pacients']} {f['izrakstits']} turpmākai "
+        f"{_lead(c61_histology(v))}Uzlabojoties vispārējam stāvoklim, {f['pacients']} {f['izrakstits']} turpmākai "
         "aprūpei ģimenes ārsta uzraudzībā. Sniegtas rekomendācijas.",
     ])
     recs = c61_common_recs(f, v, list(blocks), [
@@ -5332,7 +5364,7 @@ def c61_turp_parts(sex, v, blocks=()):
     ])
     recs += tests_lines(v, "plain", after_op=True)
     recs.append("Turpināt prostatas vēža ārstēšanu un novērošanu pie ārstējošā urologa.")
-    recs += c61_council(f, v)
+    recs += c61_council(f, v, pending_line=True)
     recs.append("Ja parādās izteikta hematūrija ar asins recekļiem, nav iespējams urinēt, rodas drudzis vai "
                 "būtiski pasliktinās vispārējais stāvoklis, nekavējoties vērsties pēc neatliekamās "
                 "medicīniskās palīdzības.")
@@ -5366,16 +5398,13 @@ def nmc_cancer_parts(f, v, blocks, history, dx_first):
                      "ambulatorai ārstēšanai.")
 
     numbered = make_counter()
-    recs = [
-        numbered("Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā"),
-        numbered("Lietot daudz šķidruma, vismaz 1.5-2.5 l/DN"),
-    ]
-    if v.get("Discharged with catheter"):
-        text = ("Kopt urīnpūšļa katetru – tā maiņa ik pēc 4–6 nedēļām ģimenes ārsta praksē. Urīna "
-                "savācējmaisa maiņa ik pēc 3–7 dienām, vai biežāk, ja tas ir bojāts.")
-        if v.get("Catheter removal date"):
-            text += f" Katetra evakuācija plānota {fmt_date(v['Catheter removal date'])}."
-        recs.append(numbered(text))
+    recs = [numbered("Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā")]
+    if v.get("Discharged with catheter"):  # the fluid line is the first line of the catheter care list
+        removal_date = v.get("Catheter removal date")
+        recs += catheter_care_lines("numbered", numbered, change=not removal_date, damaged=True,
+                                    extra=[f"Katetra evakuācija plānota {fmt_date(removal_date)}."] if removal_date else ())
+    else:
+        recs.append(numbered("Lietot daudz šķidruma, vismaz 1.5-2.5 l/DN"))
     if blocks:
         recs.append(numbered("Terapijā lietot:"))
         recs += ["    " + b for b in blocks]
@@ -5531,7 +5560,7 @@ def c64_surgery_parts(sex, v, blocks=()):
         labs.append(f"GFĀ {v['eGFR at discharge']:g} ml/min/1,73 m²")
     renal = RENAL_FUNCTION_TEXT[v["Renal function at discharge"]] + (f" ({', '.join(labs)})" if labs else "") + "."
     if v["Histology"] == "Pending":
-        histology = "Histoloģiskās izmeklēšanas rezultāts izrakstīšanas brīdī vēl nav zināms."
+        histology = ""  # pending: nothing is written about it in the epicrisis
     elif benign:
         histology = f"Histoloģiskās izmeklēšanas rezultāts: {c64_subtype(v)}."
     else:
@@ -5546,7 +5575,7 @@ def c64_surgery_parts(sex, v, blocks=()):
         f"{f['Pacients']} tiek {f['gatavots']} operatīvai terapijai.",
         f"{day} vispārējā anestēzijā veikta {op_nom}. Operācija noritēja {intraop}.",
         f"Pēcoperācijas periods {postop}. {renal}",
-        f"{histology} Uzlabojoties vispārējam stāvoklim, {f['pacients']} {f['izrakstits']} turpmākai aprūpei "
+        f"{_lead(histology)}Uzlabojoties vispārējam stāvoklim, {f['pacients']} {f['izrakstits']} turpmākai aprūpei "
         "ģimenes ārsta uzraudzībā. Sniegtas rekomendācijas.",
     ])
 
@@ -5960,19 +5989,10 @@ def t83_parts(sex, v, blocks=()):
         "stacionēšanai uroloģijas nodaļā. Vispārēji apmierinošā stāvoklī un ar rekomendācijām izraksta tālākai "
         "ambulatorai ārstēšanai."
     )
-    if cystostomy:
-        care = ("Kopt epicistostomas katetru un stomas vietu (ikdienas apstrāde un pārsiešana) – katetra maiņa ik "
-                "pēc 4–6 nedēļām ģimenes ārsta praksē. Urīna savācējmaisa maiņa ik pēc 3–7 dienām, vai biežāk, ja "
-                "tas ir bojāts.")
-    else:
-        care = ("Kopt urīnpūšļa katetru – tā maiņa ik pēc 4–6 nedēļām ģimenes ārsta praksē. Urīna savācējmaisa "
-                "maiņa ik pēc 3–7 dienām, vai biežāk, ja tas ir bojāts.")
     numbered = make_counter()
-    recs = [
-        numbered("Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā"),
-        numbered("Lietot daudz šķidruma, vismaz 1.5-2.5 l/DN"),
-        numbered(care),
-    ]
+    recs = [numbered("Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā")]
+    # the fluid line is the first line of the catheter care list (not written twice)
+    recs += catheter_care_lines("numbered", numbered, suprapubic=cystostomy, damaged=True)
     if blocks:
         recs.append(numbered("Terapijā lietot:"))
         recs += ["    " + b for b in blocks]
@@ -6154,7 +6174,7 @@ def n35_parts(sex, v, blocks=()):
         f"Pēcoperācijas periods {postop}.",
     ]
     if v["Tissue for histology"] == "Pending":
-        sentences.append("Audu materiāls nosūtīts histoloģiskai izmeklēšanai, rezultāts izrakstīšanas brīdī vēl nav zināms.")
+        sentences.append("Audu materiāls nosūtīts histoloģiskai izmeklēšanai.")
     elif v["Tissue for histology"] == "Known":
         sentences.append(f"Histoloģiskās izmeklēšanas rezultāts: {v['Histology result (N35)'].strip().rstrip('.')}.")
     if not catheter_in:
@@ -6168,6 +6188,8 @@ def n35_parts(sex, v, blocks=()):
 
     # Recommendations
     recs = ["• Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā.",
+            # with a catheter the fluid line is the first line of the catheter care list (not written twice)
+            "• Diēta – vispusīga." if catheter_in else
             "• Diēta – vispusīga, lietot šķidrumu 1.5 – 2.0 L/dnn, ja nav medicīnisku kontrindikāciju."]
     if op in URETHROPLASTY:
         recs += ["• Režīms – saudzējošs 4 nedēļas no operācijas dienas; 6 nedēļas izvairīties no riteņbraukšanas, "
@@ -6184,16 +6206,15 @@ def n35_parts(sex, v, blocks=()):
         recs += [f"• Režīms – saudzējošs {rest} no operācijas dienas, izvairīties no pārmērīgas fiziskas slodzes, "
                  "necelt smagumus virs 10 kg."]
     if catheter_in:
-        recs += ["• Kopt urīna ilgkatetru: uzturēt noslēgtu drenāžas sistēmu, maisu novietot zem urīnpūšļa līmeņa, "
-                 "sekot urīna attecei; urīna savākšanas maisa maiņa ik pēc 3–7 dienām."]
         removal = v.get("Planned catheter removal (N35)")
         if removal:
             place = CATHETER_PLACE_N35.get(v.get("Catheter removal place (N35)"), "")
             time = (v.get("Catheter removal time (N35)") or "").strip()
-            recs.append(f"• Urīna ilgkatetra evakuācija plānota{place} {fmt_date(removal)}"
-                        + (f" plkst. {time}" if time else "") + ".")
+            plan = (f"Urīna ilgkatetra evakuācija plānota{place} {fmt_date(removal)}"
+                    + (f" plkst. {time}" if time else "") + ".")
         else:
-            recs.append("• Urīna ilgkatetra evakuācija plānota pēc ārstējošā urologa norādījumiem.")
+            plan = "Urīna ilgkatetra evakuācija plānota pēc ārstējošā urologa norādījumiem."
+        recs += catheter_care_lines("bullet", change=False, extra=[plan])
     if v.get("Self-dilation taught"):
         recs.append("• Turpināt urīnizvadkanāla pašdilatāciju (pašbužēšanu) saskaņā ar sniegtajām instrukcijām.")
     if cause == "Lichen sclerosus":
@@ -6288,14 +6309,9 @@ def n35_acute_parts(sex, v, blocks=()):
                      "tālākai ambulatorai ārstēšanai.")
 
     numbered = make_counter()
-    recs = [
-        numbered("Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā"),
-        numbered("Lietot daudz šķidruma, vismaz 1.5-2.5 l/DN"),
-        numbered("Kopt epicistostomas katetru: stomas vietu ikdienā apstrādāt un pārsiet, uzturēt noslēgtu drenāžas "
-                 "sistēmu, maisu novietot zem urīnpūšļa līmeņa. Katetra maiņa ik pēc 4–6 nedēļām ģimenes ārsta praksē, "
-                 "urīna savācējmaisa maiņa ik pēc 3–7 dienām."),
-        numbered("Uretrālu katetrizāciju vai urīnizvadkanāla dilatāciju neveikt bez urologa konsultācijas."),
-    ]
+    recs = [numbered("Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā")]
+    recs += catheter_care_lines("numbered", numbered, suprapubic=True)  # the fluid line is the first line of it
+    recs.append(numbered("Uretrālu katetrizāciju vai urīnizvadkanāla dilatāciju neveikt bez urologa konsultācijas."))
     if blocks:
         recs.append(numbered("Terapijā lietot:"))
         recs += ["    " + b for b in blocks]
@@ -6681,16 +6697,15 @@ def n40_parts(sex, v, blocks=()):
         course.append("Pēcoperācijas periodā veikta urīnpūšļa caurskalošana.")
     course.append(f"Pēcoperācijas periods {postop}.")
     course.append(c61_catheter_sentence(f, v))
-    if v["Histology"] == "Pending":
-        histology = "Histoloģiskās izmeklēšanas rezultāts izrakstīšanas brīdī vēl nav zināms."
-    else:
+    histology = ""  # pending: nothing is written about it in the epicrisis
+    if v["Histology"] != "Pending":
         histology = f"Histoloģiskās izmeklēšanas rezultāts: {v['Histology result (BPH)'].strip().rstrip('.')}."
     epicrisis = "\n".join([
         first,
         f"{day} {ANESTHESIA_TEXT[v['TURP anesthesia']]} veikta {TURP_TECHNIQUE_TEXT[v['TURP technique']]} "
         f"transuretrāla prostatas rezekcija (TURP). Operācija noritēja {intraop}.",
         " ".join(course),
-        f"{histology} Uzlabojoties vispārējam stāvoklim, {f['pacients']} {f['izrakstits']} turpmākai aprūpei "
+        f"{_lead(histology)}Uzlabojoties vispārējam stāvoklim, {f['pacients']} {f['izrakstits']} turpmākai aprūpei "
         "ģimenes ārsta uzraudzībā. Sniegtas rekomendācijas.",
     ])
 
@@ -6699,8 +6714,11 @@ def n40_parts(sex, v, blocks=()):
         recs.append(TEMPORARY_PAPER_TEXT)
     recs += [
         "Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā.",
-        "Diēta: vispusīga. Lietot šķidrumu 1,5–2,0 L diennaktī, ja nav medicīnisku kontrindikāciju; pirmās nedēļas "
-        "izvairīties no alkohola un kofeīnu saturošiem dzērieniem.",
+        # with a catheter the fluid line is the first line of the catheter care list (not written twice)
+        ("Diēta: vispusīga. Pirmās nedēļas izvairīties no alkohola un kofeīnu saturošiem dzērieniem."
+         if v["Catheter removal"] == "Discharged with catheter" else
+         "Diēta: vispusīga. Lietot šķidrumu 1,5–2,0 L diennaktī, ja nav medicīnisku kontrindikāciju; pirmās nedēļas "
+         "izvairīties no alkohola un kofeīnu saturošiem dzērieniem."),
         f"Režīms: saudzējošs {WEEKS_TEXT[v['Activity restriction']]} no operācijas dienas – necelt smagumus, "
         "nebraukt ar velosipēdu, izvairīties no pirts un karstām vannām.",
         "Izvairīties no aizcietējumiem un spiešanās defekācijas laikā.",
@@ -6711,9 +6729,9 @@ def n40_parts(sex, v, blocks=()):
         "uzņemšanu.",
     ]
     if v["Catheter removal"] == "Discharged with catheter":
-        recs += CATHETER_CARE_LINES
-        if v.get("Planned catheter removal (optional)"):
-            recs.append(f"Katetra evakuācija plānota {fmt_date(v['Planned catheter removal (optional)'])}.")
+        removal_date = v.get("Planned catheter removal (optional)")
+        recs += catheter_care_lines(change=not removal_date,
+                                    extra=[f"Katetra evakuācija plānota {fmt_date(removal_date)}."] if removal_date else ())
     else:
         recs.append("Regulāri iztukšot urīnpūsli, nenoturēt urīnu ilgstoši.")
     if v["Previous BPH medication"] == "Stop after surgery":
@@ -6906,9 +6924,8 @@ def n13_parts(sex, v, blocks=()):
     elif drain == "Discharged with drain":
         course.append("Izrakstīšanas brīdī drena saglabāta.")
     course.append(c61_catheter_sentence(f, v))
-    if v["Histology"] == "Pending":
-        histology = "Histoloģiskās izmeklēšanas rezultāts izrakstīšanas brīdī vēl nav zināms."
-    else:
+    histology = ""  # pending: nothing is written about it in the epicrisis
+    if v["Histology"] != "Pending":
         histology = f"Histoloģiskās izmeklēšanas rezultāts: {v['PUJ histology result'].strip().rstrip('.')}."
     epicrisis = "\n".join([
         f"{f['Pacients']} {f['stacionets']} P. Stradiņa KUS 4. uroloģijas nodaļā {admission} operatīvai ārstēšanai "
@@ -6916,7 +6933,7 @@ def n13_parts(sex, v, blocks=()):
         f"{day} vispārējā anestēzijā veikta {side} puses {adj} pieloplastika ({technique})"
         + (" ar " + lv_list(extras) if extras else "") + f". Operācija noritēja {intraop}.",
         " ".join(course),
-        f"{histology} Uzlabojoties vispārējam stāvoklim, {f['pacients']} {f['izrakstits']} turpmākai aprūpei "
+        f"{_lead(histology)}Uzlabojoties vispārējam stāvoklim, {f['pacients']} {f['izrakstits']} turpmākai aprūpei "
         "ģimenes ārsta uzraudzībā. Sniegtas rekomendācijas.",
     ])
 
@@ -6926,6 +6943,8 @@ def n13_parts(sex, v, blocks=()):
         recs.append(TEMPORARY_PAPER_TEXT)
     recs += [
         "Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā.",
+        # with a catheter the fluid line is the first line of the catheter care list (not written twice)
+        "Diēta: vispusīga." if v["Catheter removal"] == "Discharged with catheter" else
         "Diēta: vispusīga. Lietot šķidrumu 1,5–2,0 L diennaktī, ja nav medicīnisku kontrindikāciju.",
         f"Režīms: saudzējošs {WEEKS_TEXT[v['Activity restriction']]} no operācijas dienas – necelt smagumus, "
         "izvairīties no pārmērīgas fiziskas slodzes, pirts un baseina apmeklējuma.",
@@ -6937,14 +6956,14 @@ def n13_parts(sex, v, blocks=()):
             f"DJ stenta izņemšana (cistoskopiski) plānota {when}; neatlikt – ilgstoši atstāts stents var inkrustēties "
             "un izraisīt infekciju.",
             "Ar DJ stentu iespējama bieža un neatliekama urinācija, diskomforts vai sāpes sānos urinējot un neliels "
-            "asiņu piejaukums urīnā – šīs sūdzības nav bīstamas. Regulāri iztukšot urīnpūsli, nenoturēt urīnu ilgstoši.",
+            "asiņu piejaukums urīnā – šīs sūdzības nav bīstamas."
+            + ("" if v["Catheter removal"] == "Discharged with catheter"  # nothing to empty while the catheter is in
+               else " Regulāri iztukšot urīnpūsli, nenoturēt urīnu ilgstoši."),
         ]
     if v["Catheter removal"] == "Discharged with catheter":
-        if v.get("Planned catheter removal (optional)"):
-            recs.append("Kopt urīnpūšļa ilgkatetru; " + CATHETER_CARE_LINES[1][0].lower() + CATHETER_CARE_LINES[1][1:])
-            recs.append(f"Katetra evakuācija plānota {fmt_date(v['Planned catheter removal (optional)'])}.")
-        else:
-            recs += CATHETER_CARE_LINES
+        removal_date = v.get("Planned catheter removal (optional)")
+        recs += catheter_care_lines(change=not removal_date,
+                                    extra=[f"Katetra evakuācija plānota {fmt_date(removal_date)}."] if removal_date else ())
     if drain == "Discharged with drain":
         recs.append("Drenas evakuācija pēc ārstējošā urologa norādījumiem; sekot izdalījumu daudzumam.")
     recs.append("Ambulatori turpināt pēcoperācijas brūču apdari, šuvju vietas apstrādājot ar Betadine 100 mg/ml vai "
@@ -7238,6 +7257,8 @@ def n21_parts(sex, v, blocks=()):
     # Recommendations
     recs = [
         "Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā.",
+        # with a catheter the fluid line is the first line of the catheter care list (not written twice)
+        "Diēta: vispusīga." if v["Catheter removal"] == "Discharged with catheter" else
         "Diēta: vispusīga. Lietot šķidrumu 2,0–2,5 L diennaktī, ja nav medicīnisku kontrindikāciju.",
         f"Režīms: saudzējošs {WEEKS_TEXT[v['Activity restriction']]} no operācijas dienas, izvairīties no pārmērīgas "
         "fiziskas slodzes un smagumu celšanas.",
@@ -7245,11 +7266,9 @@ def n21_parts(sex, v, blocks=()):
         "šķidruma uzņemšanu.",
     ]
     if v["Catheter removal"] == "Discharged with catheter":
-        if v.get("Planned catheter removal (optional)"):
-            recs.append("Kopt urīnpūšļa ilgkatetru; " + CATHETER_CARE_LINES[1][0].lower() + CATHETER_CARE_LINES[1][1:])
-            recs.append(f"Katetra evakuācija plānota {fmt_date(v['Planned catheter removal (optional)'])}.")
-        else:
-            recs += CATHETER_CARE_LINES
+        removal_date = v.get("Planned catheter removal (optional)")
+        recs += catheter_care_lines(change=not removal_date,
+                                    extra=[f"Katetra evakuācija plānota {fmt_date(removal_date)}."] if removal_date else ())
     else:
         recs.append("Regulāri un pilnībā iztukšot urīnpūsli, nenoturēt urīnu ilgstoši.")
     cause_set = set(v.get("Bladder stone cause") or [])
@@ -7421,15 +7440,16 @@ def r33_parts(sex, v, blocks=()):
     recs = [numbered("Atrasties ģimenes ārsta uzraudzībā."),
             numbered("Lietot šķidrumu 1,5–2 l/DN, ja nav medicīnisku kontrindikāciju; izvairīties no alkohola un liela "
                      "šķidruma daudzuma īsā laikā.")]
+    # the retention fluid line above stays (no alcohol or large amounts at once), so it is not repeated;
+    # a long-term catheter gets its 4–6 weekly change from the catheter plan line further down
     if drainage == "Suprapubic catheter (epicystostomy)":
-        recs.append(numbered("Kopt epicistostomas katetru: stomas vietu ikdienā apstrādāt un pārsiet; katetra maiņa ik "
-                             "pēc 4–6 nedēļām ģimenes ārsta praksē, urīna savācējmaisa maiņa ik pēc 3–7 dienām."))
+        recs += catheter_care_lines("numbered", numbered, fluid=False, suprapubic=True,
+                                    change=v.get("Catheter plan (R33)") != "Long-term catheter")
     elif drainage == "In-out catheterisation (no catheter left)":
         recs.append(numbered("Sekot urinācijai; ja atkārtoti nav iespējams urinēt vai urinē mazām porcijām ar "
                              "pilnuma sajūtu, nekavējoties vērsties NMC."))
     else:
-        recs.append(numbered("Kopt urīnpūšļa katetru – uzturēt noslēgtu drenāžas sistēmu, maisu novietot zem "
-                             "urīnpūšļa līmeņa. Urīna savācējmaisa maiņa ik pēc 3–7 dienām vai biežāk, ja tas ir bojāts."))
+        recs += catheter_care_lines("numbered", numbered, fluid=False, change=False, damaged=True)
     if blocks:
         recs.append(numbered("Terapijā lietot:"))
         recs += ["    " + b for b in blocks]
@@ -7757,13 +7777,12 @@ def r31_nmc_parts(sex, v, blocks=()):
     recs = [numbered("Atrasties ģimenes ārsta uzraudzībā."),
             numbered("Lietot šķidrumu 2–2,5 l/DN, ja nav medicīnisku kontrindikāciju; līdz urīns kļūst dzidrs, "
                      "izvairīties no smagas fiziskas slodzes, smagumu celšanas un aizcietējumiem.")]
+    # the haematuria fluid line above stays, so it is not repeated in the catheter care list
     if how == "Discharged with a catheter":
-        recs.append(numbered("Kopt urīnpūšļa katetru – uzturēt noslēgtu drenāžas sistēmu, maisu novietot zem "
-                             "urīnpūšļa līmeņa. Par katetra evakuāciju lemt ģimenes ārstam vai urologam, kad urīns "
-                             "kļuvis dzidrs."))
+        recs += catheter_care_lines("numbered", numbered, fluid=False, change=False, extra=[
+            "Par katetra evakuāciju lemt ģimenes ārstam vai urologam, kad urīns kļuvis dzidrs."])
     elif how == "Catheter changed (blocked)":
-        recs.append(numbered("Kopt urīnpūšļa ilgkatetru; katetra maiņa ik pēc 4–6 nedēļām ģimenes ārsta praksē, urīna "
-                             "savācējmaisa maiņa ik pēc 3–7 dienām."))
+        recs += catheter_care_lines("numbered", numbered, fluid=False)
     line = _hem_antithrombotic_line(v)
     if line:
         recs.append(numbered(line))
@@ -7827,9 +7846,7 @@ def r31_ward_parts(sex, v, blocks=()):
     if "Selective embolisation" in procs:
         p3.append(f"{fmt_date(v['Embolisation date'])} veikta selektīva urīnpūšļa artēriju embolizācija.")
     histology = v.get("Histology (R31)") if names else None
-    if histology == "Pending":
-        p3.append("Histoloģiskās izmeklēšanas rezultāts izrakstīšanas brīdī vēl nav zināms.")
-    elif histology == "Known":
+    if histology == "Known":  # pending: nothing is written about it
         p3.append("Histoloģiskās izmeklēšanas rezultāts: " + v["Histology result (R31)"].strip().rstrip(".") + ".")
     colour = v["Urine colour at discharge"]
     p4 = [("Pēc ārstēšanas hematūrija izzūd, urīns dzidrs." if colour == "Clear"
@@ -7855,16 +7872,16 @@ def r31_ward_parts(sex, v, blocks=()):
     recs = [TEMPORARY_PAPER_TEXT] if (names and v.get("Discharge paper (R31)") == "Temporary") else []
     recs += [
         "Atrasties ģimenes ārsta un ārstējošā urologa uzraudzībā.",
+        # with a catheter the fluid line is the first line of the catheter care list (not written twice)
+        "Diēta: vispusīga." if v.get("Discharged with catheter") else
         "Diēta: vispusīga. Lietot šķidrumu 2,0–2,5 L diennaktī, ja nav medicīnisku kontrindikāciju.",
         f"Režīms: saudzējošs {WEEKS_TEXT[v['Activity restriction']]} no {'operācijas' if names else 'izrakstīšanas'} "
         "dienas, izvairīties no smagas fiziskas slodzes, smagumu celšanas un aizcietējumiem.",
     ]
     if v.get("Discharged with catheter"):
-        if v.get("Catheter removal date"):
-            recs.append("Kopt urīnpūšļa ilgkatetru; " + CATHETER_CARE_LINES[1][0].lower() + CATHETER_CARE_LINES[1][1:])
-            recs.append(f"Katetra evakuācija plānota {fmt_date(v['Catheter removal date'])}.")
-        else:
-            recs += CATHETER_CARE_LINES
+        removal_date = v.get("Catheter removal date")
+        recs += catheter_care_lines(change=not removal_date,
+                                    extra=[f"Katetra evakuācija plānota {fmt_date(removal_date)}."] if removal_date else ())
     line = _hem_antithrombotic_line(v)
     if line:
         recs.append(line)
@@ -11475,7 +11492,7 @@ def render_operation(sex):
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-26-torsion · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-30-catheter-care · Running file: {Path(__file__).resolve()}")
 
 # Make the two sex buttons tall rectangles
 st.markdown(
