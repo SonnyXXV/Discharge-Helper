@@ -10017,6 +10017,135 @@ def render_doc_header(kind):
     return h
 
 
+# ----- The look shared by all pages: cards on a light grey page, the paper on the right -----
+
+APP_CSS = """<style>
+.block-container {padding-top: 4rem; padding-bottom: 3rem; max-width: 1500px;}
+.app-name {font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; white-space: nowrap;}
+[class*="st-key-card-"], [class*="st-key-dd-table"] {background: #FFFFFF; border-radius: 12px;}
+[data-testid="stExpander"] details {background: #FFFFFF; border-radius: 10px;}
+[data-testid="stTabs"] [role="tabpanel"] {background: #FFFFFF; border: 1px solid #E3E6EB;
+    border-radius: 0 0 12px 12px; padding: 16px 18px;}
+[class*="st-key-paper-"] {background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 6px; padding: 16px 20px 20px;
+    box-shadow: 0 1px 3px rgba(20,30,50,0.06), 0 10px 28px rgba(20,30,50,0.06);}
+[class*="st-key-paper-"] textarea {font-family: "Times New Roman", Times, serif !important; font-size: 15px !important;
+    line-height: 1.5 !important; color: #111111 !important; background: #FFFFFF !important;}
+.paper-title {font-size: 12px; font-weight: 600; color: #5B6470; text-transform: uppercase; letter-spacing: 0.04em;}
+.dd-day {font-size: 13px; color: #3A414A; line-height: 1.25;}
+.st-key-dd-table [data-testid="stNumberInputStepUp"], .st-key-dd-table [data-testid="stNumberInputStepDown"] {display: none;}
+@media (min-width: 900px) {
+  [data-testid="stColumn"]:has([class*="st-key-paper-"]) {position: sticky; top: 3.8rem; align-self: flex-start;
+      max-height: calc(100vh - 4.6rem); overflow-y: auto;}
+}
+</style>"""
+
+COPY_CSS = """
+button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px;
+  border: 1px solid #CDD2D9; border-radius: 8px; background: #FFFFFF; color: #3A414A; cursor: pointer;
+  font: 500 13px Inter, system-ui, sans-serif; width: 100%; }
+button:hover, button.done { border-color: #1E5AA8; color: #1E5AA8; }
+"""
+COPY_JS = """
+export default function (component) {
+  const { data, parentElement } = component;
+  let btn = parentElement.querySelector("button");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "Copy";
+    parentElement.appendChild(btn);
+    btn.addEventListener("click", async () => {
+      const text = btn._text || "";
+      let ok = false;
+      try {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      } catch (e) {
+        const box = document.createElement("textarea");
+        box.value = text;
+        box.style.position = "fixed";
+        box.style.opacity = "0";
+        document.body.appendChild(box);
+        box.select();
+        try { ok = document.execCommand("copy"); } catch (e2) { ok = false; }
+        box.remove();
+      }
+      btn.textContent = ok ? "Copied" : "Copy failed";
+      btn.classList.toggle("done", ok);
+      clearTimeout(btn._timer);
+      btn._timer = setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("done"); }, 1500);
+    });
+  }
+  btn._text = data.text;
+}
+"""
+try:  # a Copy button needs Streamlit's inline components (1.51+); without it you copy from the box by hand
+    from streamlit.components.v2 import component as _copy_component_v2
+    _copy_button = _copy_component_v2("copy_button", css=COPY_CSS, js=COPY_JS)
+except Exception:
+    _copy_button = None
+
+
+def paper_area(title, text, key, label=None):
+    """One part of the paper: a small heading with a Copy button, and the text (you can still edit it)."""
+    current = st.session_state.get(key, text) or ""
+    head = st.columns([4, 1.3], vertical_alignment="center")
+    head[0].markdown(f"<div class='paper-title'>{title}</div>", unsafe_allow_html=True)
+    if _copy_button is not None:
+        with head[1]:
+            _copy_button(key=f"copy-{key}", data={"text": current})
+    lines = sum(len(line) // 58 + 1 for line in current.split("\n"))  # about 58 characters fit on a line
+    st.text_area(label or title, text, key=key, height=max(90, min(1600, 23 * lines + 40)),
+                 label_visibility="collapsed")
+
+
+def section_summary(code, groups, known, fixed):
+    """('Planned · 28.10.2026 · Epirubicin', 2): what is chosen in a section, and how many are still empty.
+    Uses the values from the last run, so it can be shown on the closed section."""
+    values = dict(known)
+    parts, missing = [], 0
+    for group in groups:
+        spec = MODIFIERS[group]
+        if not all(condition_met(values.get(o), w) for o, w in spec.get("show_if", {}).items()):
+            continue
+        if group in fixed:
+            values[group] = fixed[group]
+            continue
+        kind, key = spec["type"], f"{code}-{group}"
+        if key in st.session_state:
+            value = st.session_state[key]
+        elif kind == "single" and spec.get("default_index") is not None:
+            value = spec["options"][spec["default_index"]]
+        elif kind == "toggle":
+            value = spec.get("default", False)
+        elif kind == "multi":
+            value = list(spec.get("default_selected", []))
+        else:
+            value = None
+        values[group] = value
+        empty = value is None or value == "" or value == []
+        if empty:
+            if not spec.get("optional") and kind not in ("toggle", "table"):
+                missing += 1
+            continue
+        if kind == "toggle":
+            text = group if value else ""
+        elif kind == "date":
+            text = fmt_date(value) if hasattr(value, "strftime") else str(value)
+        elif kind == "number":
+            text = f"{group.split(' (')[0]} {value:g}" if isinstance(value, (int, float)) else ""
+        elif kind == "multi":
+            text = ", ".join(str(v) for v in value)
+        elif kind == "table":
+            text = ""
+        else:
+            text = str(value)
+        if text:
+            parts.append(text if len(text) <= 40 else text[:38] + "…")
+    summary = " · ".join(parts)
+    return (summary if len(summary) <= 120 else summary[:118] + "…"), missing
+
+
 def word_button(label, data_maker, file_name, key):
     if not HAS_DOCX:
         st.info("To download a Word file, install python-docx once: py -3.13 -m pip install python-docx")
@@ -10025,89 +10154,125 @@ def word_button(label, data_maker, file_name, key):
                        icon=":material/download:")
 
 
+PE_SYSTEMS = ["General", "Oedema, lymph nodes", "Lungs", "Abdomen", "Kidneys", "Bladder", "Genitals", "DRI"]
+
+
 def render_primary_evaluation(sex):
     f = SEX_FORMS[sex]
-    st.subheader("Urologist's primary evaluation")
-    with st.expander("1. Reason for admission", expanded=True):
-        preset = st.selectbox("Preset", list(PE_PRESETS), key="pe-preset")
+    left, right = st.columns([3, 2], gap="large")
+    with left:
+        with st.container(border=True, key="card-pe-case"):
+            preset = st.selectbox("Case", list(PE_PRESETS), key="pe-preset",
+                                  help="Type to search, e.g. URS, TURU or torsion. The case fills in typical wording.")
         adm_d, op_d, acc_d, dx_d, compl_d, course_d = PE_PRESETS[preset]
-        side = None
-        if "{part" in op_d + acc_d + dx_d:  # urethral stricture: the location words change
-            side = st.radio("Stricture location", list(PE_PARTS), horizontal=True, key="pe-part")
-            op_d, acc_d, dx_d = (t.format(**PE_PARTS[side]) for t in (op_d, acc_d, dx_d))
-        elif "{" in op_d + acc_d + dx_d:  # this preset has a side: the side words change with it
-            side = st.radio("Side", ["Left", "Right"], horizontal=True, key="pe-side")
-            words = PE_SIDE_WORDS[side]
-            op_d, acc_d, dx_d = (t.format(**words) for t in (op_d, acc_d, dx_d))
-        tag = f"{preset}-{side}"  # new boxes (with the new side words) when the preset or the side changes
-        admission = st.radio("Admission", ["Planned", "Acute"], index=0 if adm_d == "Planned" else 1,
-                             horizontal=True, key=f"pe-admission-{preset}")
-        operation = st.text_input("Operation (empty if no operation)", op_d, key=f"pe-op-{tag}")
-        if operation.strip():
-            dx_acc = st.text_input("Reason, as it follows 'sakarā ar iepriekš diagnosticētu ...'", acc_d,
-                                   key=f"pe-dxacc-{tag}")
-            complaints = st.text_input("Complaints (optional)", key=f"pe-compl-{preset}")
-            course = ""
-        else:
-            dx_acc = ""
-            complaints = st.text_input("Complaints, as they follow 'ar sūdzībām par ...'", compl_d,
-                                       key=f"pe-compl-{preset}")
-            course = st.text_area("Before admission (NMC, investigations, findings)", course_d,
-                                  key=f"pe-course-{preset}", height=90)
-        diagnosis = st.text_area("Diagnosis (Slēdziens)", dx_d, key=f"pe-dx-{tag}", height=70)
-    with st.expander("2. Past diseases", expanded=True):
-        other = st.text_area("Citas slimības (empty = Nav datu)", key="pe-other", height=70)
-        c1, c2, c3 = st.columns(3)
-        tbc = c1.radio("TBC", ["Noliedz", "Apstiprina", "Nav datu"], key="pe-tbc")
-        hep = c2.radio("Hepatīti", ["Noliedz", "Apstiprina", "Nav datu"], key="pe-hep")
-        allergy = c3.radio("Medikamentu nepanesība", ["Noliedz", "Ir", "Nav datu"], key="pe-allergy")
-        allergy_text = st.text_input("Which medications", key="pe-allergy-text") if allergy == "Ir" else ""
-        operations = st.text_area("Pārciestas operācijas (empty = Nav datu)", key="pe-ops", height=70)
-    with st.expander("3. Objective status", expanded=True):
-        c1, c2, c3 = st.columns(3)
-        general = c1.selectbox("Vispārējais stāvoklis", ["Apmierinošs", "Vidēji smags", "Smags"], key="pe-general")
-        conscious = c2.selectbox("Samaņa", ["Skaidra", "Apmiglota", "Sopors"], key="pe-conscious")
-        tongue = c3.selectbox("Mēle", ["Valga, bez aplikuma", "Sausa, bez aplikuma", "Valga, ar aplikumu",
-                                       "Sausa, ar aplikumu"], key="pe-tongue")
-        edema = c1.selectbox("Tūskas", ["Nav", "Kāju distālajās daļās", "Ģeneralizētas"], key="pe-edema")
-        nodes = c2.selectbox("Perifērie limfmezgli", ["Nepalpējas", "Palpējas palielināti"], key="pe-nodes")
-        breath = c3.selectbox("Elpošana", ["Vezikulāra", "Novājināta", "Ar sēcieniem"], key="pe-breath")
-        rr = c1.number_input("Elpošanas frekvence (x/min)", 5, 60, 16, key="pe-rr")
-        hr = c2.number_input("Sirdsdarbība (x/min)", 20, 250, 70, key="pe-hr")
-        rhythm = c3.selectbox("Ritms", ["Ritmiska", "Aritmiska"], key="pe-rhythm")
-        bp = c1.text_input("TA (mm/Hg)", "124/78", key="pe-bp")
-        abdomen = c2.text_input("Vēders", "Mīksts, neuzpūsts; nesāpīgs", key="pe-abdomen")
-        peritoneal = c3.selectbox("Peritoneja kairinājuma simptomi", ["NEGATĪVI", "POZITĪVI"], key="pe-perit")
-        kidneys = c1.selectbox("Nieres apklauvējot", ["Nesāpīgas", "Sāpīga labā", "Sāpīga kreisā", "Sāpīgas abas"],
-                               key="pe-kidneys")
-        bladder = c2.selectbox("Urīnpūslis", ["Nepalpējas", "Palpējas, pilns"], key="pe-bladder")
-        genitals_d = PE_GENITALS.get(preset, "neizmainīti").format(**PE_SIDE_WORDS.get(side, PE_SIDE_WORDS["Left"]))
-        genitals = c3.text_input("Ārējie dzimumorgāni", genitals_d, key=f"pe-genitals-{tag}")
-        dre = st.text_input("DRI / per rectum (optional)", PE_DRE.get(preset, ""), key=f"pe-dre-{tag}")
-    with st.expander("4. Conclusion and plan", expanded=True):
-        if operation.strip():
-            indication = st.text_input("Indication (empty = the diagnosis)", PE_INDICATIONS.get(preset, ""),
-                                       key=f"pe-indication-{tag}",
-                                       placeholder="e.g. ekskrēcijas traucējumi; operabls prostatas CA")
-            consent = st.checkbox(f"{f['Pacients']} operācijai piekrīt", True, key="pe-consent")
-            no_contra = st.checkbox("Kontrindikāciju nav", True, key="pe-contra")
-            prepared = st.checkbox("Operācijai sagatavots", True, key="pe-prepared")
-            surgeons = st.text_input("Operē (surgeons)", key="pe-surgeons")
-            nurse = st.text_input("Op. māsa", key="pe-nurse")
-            plan = ""
-        else:
-            plan = st.text_area("Plan", "Turpina ārstēšanos stacionārā!\nTerapija ordināciju lapā.", key="pe-plan",
-                                height=80)
-            actions = st.text_input("Done at admission (optional)",
-                                    placeholder="e.g. Ievietots Foley 18 CH urīnpūšļa ilgkatetrs.", key="pe-actions")
-            if actions.strip():
-                plan += "\n" + actions.strip().rstrip(".") + "."
-    header = render_doc_header("pe")
-    add_decursus = st.checkbox("Add decursus (daily notes) to this evaluation", key="pe-add-dec")
-    decursus = render_decursus_cards(sex) if add_decursus else ""
+        t_reason, t_history, t_status, t_plan = st.tabs(["1 · Reason", "2 · History", "3 · Status", "4 · Plan"],
+                                                         key="pe-tabs")
+        with t_reason:
+            side = None
+            if "{part" in op_d + acc_d + dx_d:  # urethral stricture: the location words change
+                side = st.radio("Stricture location", list(PE_PARTS), horizontal=True, key="pe-part")
+                op_d, acc_d, dx_d = (t.format(**PE_PARTS[side]) for t in (op_d, acc_d, dx_d))
+            elif "{" in op_d + acc_d + dx_d:  # this preset has a side: the side words change with it
+                side = st.radio("Side", ["Left", "Right"], horizontal=True, key="pe-side")
+                words = PE_SIDE_WORDS[side]
+                op_d, acc_d, dx_d = (t.format(**words) for t in (op_d, acc_d, dx_d))
+            tag = f"{preset}-{side}"  # new boxes (with the new side words) when the preset or the side changes
+            admission = st.radio("Admission", ["Planned", "Acute"], index=0 if adm_d == "Planned" else 1,
+                                 horizontal=True, key=f"pe-admission-{preset}")
+            operation = st.text_input("Operation (empty if no operation)", op_d, key=f"pe-op-{tag}")
+            if operation.strip():
+                dx_acc = st.text_input("Reason, as it follows 'sakarā ar iepriekš diagnosticētu ...'", acc_d,
+                                       key=f"pe-dxacc-{tag}")
+                complaints = st.text_input("Complaints (optional)", key=f"pe-compl-{preset}")
+                course = ""
+            else:
+                dx_acc = ""
+                complaints = st.text_input("Complaints, as they follow 'ar sūdzībām par ...'", compl_d,
+                                           key=f"pe-compl-{preset}")
+                course = st.text_area("Before admission (NMC, investigations, findings)", course_d,
+                                      key=f"pe-course-{preset}", height=90)
+            diagnosis = st.text_area("Diagnosis (Slēdziens)", dx_d, key=f"pe-dx-{tag}", height=70)
+        with t_history:
+            other = st.text_area("Citas slimības (empty = Nav datu)", key="pe-other", height=70)
+            c1, c2, c3 = st.columns(3)
+            tbc = c1.radio("TBC", ["Noliedz", "Apstiprina", "Nav datu"], key="pe-tbc")
+            hep = c2.radio("Hepatīti", ["Noliedz", "Apstiprina", "Nav datu"], key="pe-hep")
+            allergy = c3.radio("Medikamentu nepanesība", ["Noliedz", "Ir", "Nav datu"], key="pe-allergy")
+            allergy_text = st.text_input("Which medications", key="pe-allergy-text") if allergy == "Ir" else ""
+            operations = st.text_area("Pārciestas operācijas (empty = Nav datu)", key="pe-ops", height=70)
+        with t_status:
+            v = st.columns(5)
+            general = v[0].selectbox("Stāvoklis", ["Apmierinošs", "Vidēji smags", "Smags"], key="pe-general")
+            hr = v[1].number_input("Pulss (x/min)", 20, 250, 70, key="pe-hr")
+            rhythm = v[2].selectbox("Ritms", ["Ritmiska", "Aritmiska"], key="pe-rhythm")
+            bp = v[3].text_input("TA (mm/Hg)", "124/78", key="pe-bp")
+            rr = v[4].number_input("Elpošana (x/min)", 5, 60, 16, key="pe-rr")
+            # Everything is written as normal unless you pick it here (then its fields appear)
+            genitals_d = PE_GENITALS.get(preset, "neizmainīti").format(**PE_SIDE_WORDS.get(side, PE_SIDE_WORDS["Left"]))
+            dre_d = PE_DRE.get(preset, "")
+            findings = st.pills(
+                "Findings – everything you don't pick is written as normal", PE_SYSTEMS, selection_mode="multi",
+                default=(["Genitals"] if preset in PE_GENITALS else []) + (["DRI"] if dre_d else []),
+                key=f"pe-systems-{tag}") or []
+            conscious, tongue, edema, nodes = "Skaidra", "Valga, bez aplikuma", "Nav", "Nepalpējas"
+            breath, abdomen, peritoneal = "Vezikulāra", "Mīksts, neuzpūsts; nesāpīgs", "NEGATĪVI"
+            kidneys, bladder, genitals, dre = "Nesāpīgas", "Nepalpējas", "neizmainīti", ""
+            cols, slot = st.columns(3), [0]
 
+            def col():
+                slot[0] += 1
+                return cols[(slot[0] - 1) % 3]
+            if "General" in findings:
+                conscious = col().selectbox("Samaņa", ["Skaidra", "Apmiglota", "Sopors"], key="pe-conscious")
+                tongue = col().selectbox("Mēle", ["Valga, bez aplikuma", "Sausa, bez aplikuma", "Valga, ar aplikumu",
+                                                  "Sausa, ar aplikumu"], key="pe-tongue")
+            if "Oedema, lymph nodes" in findings:
+                edema = col().selectbox("Tūskas", ["Nav", "Kāju distālajās daļās", "Ģeneralizētas"], key="pe-edema")
+                nodes = col().selectbox("Perifērie limfmezgli", ["Nepalpējas", "Palpējas palielināti"], key="pe-nodes")
+            if "Lungs" in findings:
+                breath = col().selectbox("Elpošana", ["Vezikulāra", "Novājināta", "Ar sēcieniem"], key="pe-breath")
+            if "Abdomen" in findings:
+                abdomen = col().text_input("Vēders", "Mīksts, neuzpūsts; nesāpīgs", key="pe-abdomen")
+                peritoneal = col().selectbox("Peritoneja kairinājuma simptomi", ["NEGATĪVI", "POZITĪVI"],
+                                             key="pe-perit")
+            if "Kidneys" in findings:
+                kidneys = col().selectbox("Nieres apklauvējot", ["Nesāpīgas", "Sāpīga labā", "Sāpīga kreisā",
+                                                                 "Sāpīgas abas"], key="pe-kidneys")
+            if "Bladder" in findings:
+                bladder = col().selectbox("Urīnpūslis", ["Nepalpējas", "Palpējas, pilns"], key="pe-bladder")
+            if "Genitals" in findings:
+                genitals = col().text_input("Ārējie dzimumorgāni", genitals_d, key=f"pe-genitals-{tag}")
+            if "DRI" in findings:
+                dre = st.text_input("DRI / per rectum", dre_d, key=f"pe-dre-{tag}")
+        with t_plan:
+            if operation.strip():
+                indication = st.text_input("Indication (empty = the diagnosis)", PE_INDICATIONS.get(preset, ""),
+                                           key=f"pe-indication-{tag}",
+                                           placeholder="e.g. ekskrēcijas traucējumi; operabls prostatas CA")
+                c1, c2, c3 = st.columns(3)
+                consent = c1.checkbox(f"{f['Pacients']} operācijai piekrīt", True, key="pe-consent")
+                no_contra = c2.checkbox("Kontrindikāciju nav", True, key="pe-contra")
+                prepared = c3.checkbox("Operācijai sagatavots", True, key="pe-prepared")
+                c1, c2 = st.columns(2)
+                surgeons = c1.text_input("Operē (surgeons)", key="pe-surgeons")
+                nurse = c2.text_input("Op. māsa", key="pe-nurse")
+                plan = ""
+            else:
+                plan = st.text_area("Plan", "Turpina ārstēšanos stacionārā!\nTerapija ordināciju lapā.", key="pe-plan",
+                                    height=80)
+                actions = st.text_input("Done at admission (optional)",
+                                        placeholder="e.g. Ievietots Foley 18 CH urīnpūšļa ilgkatetrs.", key="pe-actions")
+                if actions.strip():
+                    plan += "\n" + actions.strip().rstrip(".") + "."
+        add_decursus = st.checkbox("Add decursus (daily notes) to this evaluation", key="pe-add-dec")
+        decursus = render_decursus_cards(sex) if add_decursus else ""
+
+    with right:
+        paper = st.container(key="paper-pe")
+    with paper:
+        header = render_doc_header("pe")
     if not diagnosis.strip() or (operation.strip() and not dx_acc.strip()) or (not operation.strip() and not complaints.strip()):
-        st.info("Fill in the reason (or complaints) and the diagnosis to see the text.")
+        paper.info("Fill in the reason (or complaints) and the diagnosis to see the text.")
         return
     kind = "plānveida kārtā" if admission == "Planned" else "akūtā kārtā"
     if operation.strip():
@@ -10172,11 +10337,11 @@ def render_primary_evaluation(sex):
     text = "\n".join(lines)
     if decursus:
         text += "\n\n" + decursus
-    st.divider()
-    st.text_area("Primary evaluation", text, height=650, key=f"pe-out-{hash(text)}")
-    word_button("Word file (Urologa apskate" + (" + decursus" if decursus else "") + ")",
-                lambda: evaluation_docx(header, reason, history, objective, dx_line, conclusion, decursus),
-                f"Urologa_apskate_{header.get('date', '').replace('.', '-') or 'bez_datuma'}.docx", "pe-word")
+    with paper:
+        paper_area("Urologa apskate", text, f"pe-out-{hash(text)}", label="Primary evaluation")
+        word_button("Word file (Urologa apskate" + (" + decursus" if decursus else "") + ")",
+                    lambda: evaluation_docx(header, reason, history, objective, dx_line, conclusion, decursus),
+                    f"Urologa_apskate_{header.get('date', '').replace('.', '-') or 'bez_datuma'}.docx", "pe-word")
 
 
 # ----- decursus: one card per day, everything visible at once -----
@@ -10379,104 +10544,178 @@ def _dec_apply_preset():
             st.session_state[f"dd{i}-{field}"] = value
 
 
+def _dec_day_type(i, op_date):
+    """The day type as it will be written ('1. pēcoperācijas diena'), or '' for none."""
+    daytype = st.session_state.get(f"dd{i}-daytype", "(auto)")
+    day = st.session_state.get(f"dd{i}-date")
+    if daytype == "(auto)" and op_date and day:
+        diff = (day - op_date).days
+        daytype = ("Operācijas diena" if diff == 0 else f"{ORDINALS[diff - 1]} pēcoperācijas diena"
+                   if 0 < diff <= len(ORDINALS) else "Pirmsoperācijas diena" if diff < 0 else "(none)")
+    return "" if daytype in ("(auto)", "(none)") else daytype
+
+
+def _dec_day_text(i, sex, op_date):
+    """One day's decursus text from that day's fields."""
+    s = st.session_state
+    g = lambda field: s.get(f"dd{i}-{field}", DEC_FIELDS.get(field))
+    day = s.get(f"dd{i}-date")
+    if not day:
+        return ""
+    if g("kind") != "Apskate":
+        until, notes = s.get(f"dd{i}-until"), (g("notes") or "").strip()
+        span = fmt_date(day) + (f"-{fmt_date(until)}" if until else "")
+        return f"{span}\nDežūrpersonāla uzraudzībā." + (f" {notes}" if notes else "")
+    parts = [fmt_date(day)]
+    daytype = _dec_day_type(i, op_date)
+    if daytype:
+        parts.append(DAY_EXTRA.get(daytype, daytype + "."))
+    said = [FEELINGS[g("feeling")], (g("complaints") or "").strip()]
+    said = " ".join(t if t.endswith(".") else t + "." for t in said if t)
+    if said:
+        parts.append(sexed(said, sex))
+    parts.append(f"Obj. Vispārējais stāvoklis {g('status')}.")
+    parts.append(f"P {g('pulse'):g} x min, {g('rhythm')}, TA {str(g('bp')).strip()} mmHg, E {g('resp'):g} x min, "
+                 f"{g('breath')}, T {g('temp'):.1f}°C.")
+    tubes = []
+    if g("cath_look") != "(no catheter)":
+        tubes.append("Pa urīnpūšļa ilgkatetru " + g("cath_look") + " urīns"
+                     + (f" ap {g('cath_ml'):g} ml/dnn" if g("cath_ml") is not None else "")
+                     + (", katetru evakuē" if g("cath_out") else ""))
+    if g("drain_look") != "(no drain)":
+        tubes.append("Pa drenu " + g("drain_look") + " izdalījumi"
+                     + (f" ap {g('drain_ml'):g} ml/dnn" if g("drain_ml") is not None else "")
+                     + (", drenu evakuē" if g("drain_out") else ""))
+    for extra in [g("abdomen") or "", g("voiding") or ""] + tubes + [DRESSINGS[g("dressing")], g("notes") or ""]:
+        if extra.strip():
+            e = sexed(extra.strip(), sex)
+            parts.append(e if e.endswith(".") else e + ".")
+    ending = g("ending")
+    if ending != "(nothing)":
+        catheter = " ar funkcionējošu urīnpūšļa ilgkatetru" if "ilgkatetru" in ending else ""
+        parts.append("Vispārējā apmierinošā stāvoklī " + ("izrakstīta" if sex == "Woman" else "izrakstīts")
+                     + catheter + " tālākai terapijai ambulatori." if ending.startswith("Izrakstīts") else ending)
+    return "\n".join(parts)
+
+
+DEC_ROW = [2.1, 1.6, 0.8, 1.1, 0.8, 0.9, 1.7]  # the day table's columns
+
+
 def render_decursus_cards(sex):
-    """The decursus as cards (one per day). Returns the decursus text."""
+    """The decursus: a table of the days (vital signs) and one tab per day for the rest. Returns the text."""
     st.session_state.setdefault("dd-count", 1)
-    st.selectbox("Typical course (fills the day cards; you can still change each day)", list(DEC_PRESETS),
-                 key="dec-preset", on_change=_dec_apply_preset)
-    op_date = st.date_input("Operation date (optional, fills the day type)", value=None, format="DD.MM.YYYY",
-                            key="dec-opdate")
-    days = []
-    for i in range(st.session_state["dd-count"]):
+    n = st.session_state["dd-count"]
+    for i in range(n):
         for field, default in DEC_FIELDS.items():
             st.session_state.setdefault(f"dd{i}-{field}", default)
         st.session_state.setdefault(f"dd{i}-date", datetime.date.today() if i == 0 else None)
-        with st.container(border=True):
-            c = st.columns([2, 2, 3, 2])
-            day = c[0].date_input(f"Day {i + 1}", format="DD.MM.YYYY", key=f"dd{i}-date")
-            kind = c[1].selectbox("Entry", ["Apskate", "Dežūrpersonāla uzraudzībā"], key=f"dd{i}-kind")
-            if kind == "Apskate":
-                daytype = c[2].selectbox("Day type", ["(auto)", "(none)"] + DAY_TYPES, key=f"dd{i}-daytype")
-                status = c[3].selectbox("Stāvoklis", ["apmierinošs", "vidēji smags", "smags"], key=f"dd{i}-status")
+
+    with st.container(border=True, key="card-dec-course"):
+        c = st.columns([3, 2], vertical_alignment="bottom")
+        c[0].selectbox("Typical course (fills the days; you can still change each day)", list(DEC_PRESETS),
+                       key="dec-preset", on_change=_dec_apply_preset)
+        op_date = c[1].date_input("Operation date (optional, fills the day type)", value=None, format="DD.MM.YYYY",
+                                  key="dec-opdate")
+        b = st.columns(3)
+        b[0].button("Add day", icon=":material/add:", on_click=_dec_add_day, key="dd-add", width="stretch",
+                    help="Copies the last examination day.")
+        b[1].button("Remove last day", icon=":material/remove:", on_click=_dec_remove_day, key="dd-remove",
+                    width="stretch", disabled=n <= 1)
+        b[2].button("Vary vitals from Day 1", icon=":material/casino:", on_click=_dec_vary_vitals, key="dd-vary-btn",
+                    width="stretch",
+                    help="Days 2 onwards get vital signs close to Day 1: pulse ±10/min and always even, blood pressure "
+                         "±15 systolic and ±10 diastolic (moving together), breathing 12–20/min, temperature with a "
+                         "normal day-to-day variation (a fever on Day 1 settles). Each day changes only a little from "
+                         "the day before. Click again for new values.")
+        if st.session_state.get("dd-vary"):
+            st.caption("Vital signs vary from Day 1 – days you add now get their own values too. "
+                       "You can still change any day by hand.")
+
+    exams = [i for i in range(n) if st.session_state.get(f"dd{i}-kind") == "Apskate"]
+
+    # Trends of the examination days
+    if len(exams) >= 2:
+        def series(field, convert):
+            out = []
+            for i in exams:
+                try:
+                    out.append(convert(st.session_state.get(f"dd{i}-{field}")))
+                except (TypeError, ValueError):
+                    pass
+            return out
+        trend = [("Pulss", series("pulse", float), "{:g}"),
+                 ("TA sistoliskais", series("bp", lambda v: float(str(v).split("/")[0])), "{:g}"),
+                 ("Temperatūra", series("temp", float), "{:.1f}")]
+        m = st.columns(3)
+        for col, (label, values, fmt) in zip(m, trend):
+            if len(values) >= 2:
+                col.metric(label, fmt.format(values[-1]), delta=fmt.format(values[-1] - values[0]),
+                           delta_color="off", chart_data=values, chart_type="line", border=True,
+                           delta_description="from Day 1")
+
+    # The days: one row each, vital signs straight in the table
+    with st.container(border=True, key="dd-table"):
+        head = st.columns(DEC_ROW)
+        for col, title in zip(head, ["Date", "Day", "P", "TA", "E", "T °C", "Catheter"]):
+            col.caption(f"**{title}**")
+        for i in range(n):
+            row = st.columns(DEC_ROW, vertical_alignment="center")
+            row[0].date_input(f"Day {i + 1} date", format="DD.MM.YYYY", key=f"dd{i}-date",
+                              label_visibility="collapsed")
+            if st.session_state.get(f"dd{i}-kind") == "Apskate":
+                row[1].markdown(f"<span class='dd-day'>Day {i + 1}<br>{_dec_day_type(i, op_date) or 'Apskate'}</span>",
+                                unsafe_allow_html=True)
+                row[2].number_input("P", 20, 250, key=f"dd{i}-pulse", label_visibility="collapsed")
+                row[3].text_input("TA", key=f"dd{i}-bp", label_visibility="collapsed")
+                row[4].number_input("E", 5, 60, key=f"dd{i}-resp", label_visibility="collapsed")
+                row[5].number_input("T °C", 34.0, 42.0, step=0.1, format="%.1f", key=f"dd{i}-temp",
+                                    label_visibility="collapsed")
+                look = st.session_state.get(f"dd{i}-cath_look")
+                ml = st.session_state.get(f"dd{i}-cath_ml")
+                row[6].markdown("<span class='dd-day'>" + ("–" if look == "(no catheter)" else
+                                look + (f" · {ml:g} ml" if ml is not None else "")) + "</span>",
+                                unsafe_allow_html=True)
             else:
-                until = c[2].date_input("Until", value=None, format="DD.MM.YYYY", key=f"dd{i}-until")
-                notes = c[3].text_input("Note", key=f"dd{i}-notes")
-                if day:
-                    span = fmt_date(day) + (f"-{fmt_date(until)}" if until else "")
-                    days.append(f"{span}\nDežūrpersonāla uzraudzībā." + (f" {notes.strip()}" if notes.strip() else ""))
+                row[1].markdown(f"<span class='dd-day'>Day {i + 1}<br>Dežūrpersonāla uzraudzībā</span>",
+                                unsafe_allow_html=True)
+
+    # The rest of each day, one tab per day
+    tabs = st.tabs([f"Day {i + 1}" for i in range(n)], key="dd-tabs")
+    for i, tab in enumerate(tabs):
+        with tab:
+            c = st.columns([2, 3, 2])
+            kind = c[0].selectbox("Entry", ["Apskate", "Dežūrpersonāla uzraudzībā"], key=f"dd{i}-kind")
+            if kind != "Apskate":
+                c[1].date_input("Until", value=None, format="DD.MM.YYYY", key=f"dd{i}-until")
+                c[2].text_input("Note", key=f"dd{i}-notes")
                 continue
+            c[1].selectbox("Day type", ["(auto)", "(none)"] + DAY_TYPES, key=f"dd{i}-daytype")
+            c[2].selectbox("Stāvoklis", ["apmierinošs", "vidēji smags", "smags"], key=f"dd{i}-status")
             q = st.columns([2, 3])
             feeling = q[0].selectbox("Sūdzības", list(FEELINGS), key=f"dd{i}-feeling")
-            complaints = q[1].text_input("Own text" if feeling == "Type my own" else "Extra complaints (optional)",
-                                         key=f"dd{i}-complaints")
-            v = st.columns(6)
-            pulse = v[0].number_input("P", 20, 250, key=f"dd{i}-pulse")
-            rhythm = v[1].selectbox("Ritms", ["ritmisks", "aritmisks"], key=f"dd{i}-rhythm")
-            bp = v[2].text_input("TA", key=f"dd{i}-bp")
-            resp = v[3].number_input("E", 5, 60, key=f"dd{i}-resp")
-            breath = v[4].selectbox("Elpošana", ["vezikulāra", "novājināta", "ar sēcieniem"], key=f"dd{i}-breath")
-            temp = v[5].number_input("T °C", 34.0, 42.0, step=0.1, format="%.1f", key=f"dd{i}-temp")
+            q[1].text_input("Own text" if feeling == "Type my own" else "Extra complaints (optional)",
+                            key=f"dd{i}-complaints")
+            r = st.columns(2)
+            r[0].selectbox("Ritms", ["ritmisks", "aritmisks"], key=f"dd{i}-rhythm")
+            r[1].selectbox("Elpošana", ["vezikulāra", "novājināta", "ar sēcieniem"], key=f"dd{i}-breath")
             a = st.columns(2)
-            abdomen = a[0].text_input("Vēders", key=f"dd{i}-abdomen")
-            voiding = a[1].text_input("Mikcija / urīns", key=f"dd{i}-voiding",
-                                      placeholder="e.g. Spontāna mikcija, izdalās dzidrs urīns.")
+            a[0].text_input("Vēders", key=f"dd{i}-abdomen")
+            a[1].text_input("Mikcija / urīns", key=f"dd{i}-voiding",
+                            placeholder="e.g. Spontāna mikcija, izdalās dzidrs urīns.")
             k = st.columns([2, 3, 2], vertical_alignment="bottom")
-            cath_ml = k[0].number_input("Katetrs ml/dnn", 0, 10000, step=100, key=f"dd{i}-cath_ml")
-            cath_look = k[1].selectbox("Urīns pa katetru", CATH_LOOKS, key=f"dd{i}-cath_look")
-            cath_out = k[2].checkbox("Katetru evakuē", key=f"dd{i}-cath_out")
+            k[0].number_input("Katetrs ml/dnn", 0, 10000, step=100, key=f"dd{i}-cath_ml")
+            k[1].selectbox("Urīns pa katetru", CATH_LOOKS, key=f"dd{i}-cath_look")
+            k[2].checkbox("Katetru evakuē", key=f"dd{i}-cath_out")
             k = st.columns([2, 3, 2], vertical_alignment="bottom")
-            drain_ml = k[0].number_input("Drena ml/dnn", 0, 5000, step=10, key=f"dd{i}-drain_ml")
-            drain_look = k[1].selectbox("Izdalījumi pa drenu", DRAIN_LOOKS, key=f"dd{i}-drain_look")
-            drain_out = k[2].checkbox("Drenu evakuē", key=f"dd{i}-drain_out")
-            dressing = st.selectbox("Pārsiešana", list(DRESSINGS), key=f"dd{i}-dressing")
-            b = st.columns([3, 2])
-            notes = b[0].text_input("Other", key=f"dd{i}-notes")
-            ending = b[1].selectbox("Ending", DEC_ENDINGS, key=f"dd{i}-ending")
-        if not day:
-            continue
-        if daytype == "(auto)" and op_date:
-            diff = (day - op_date).days
-            daytype = ("Operācijas diena" if diff == 0 else f"{ORDINALS[diff - 1]} pēcoperācijas diena"
-                       if 0 < diff <= len(ORDINALS) else "Pirmsoperācijas diena" if diff < 0 else "(none)")
-        parts = [fmt_date(day)]
-        if daytype not in ("(auto)", "(none)"):
-            parts.append(DAY_EXTRA.get(daytype, daytype + "."))
-        said = [FEELINGS[feeling], complaints.strip()]
-        said = " ".join(t if t.endswith(".") else t + "." for t in said if t)
-        if said:
-            parts.append(sexed(said, sex))
-        parts.append(f"Obj. Vispārējais stāvoklis {status}.")
-        parts.append(f"P {pulse:g} x min, {rhythm}, TA {bp.strip()} mmHg, E {resp:g} x min, {breath}, T {temp:.1f}°C.")
-        tubes = []
-        if cath_look != "(no catheter)":
-            tubes.append("Pa urīnpūšļa ilgkatetru " + cath_look + " urīns"
-                         + (f" ap {cath_ml:g} ml/dnn" if cath_ml is not None else "")
-                         + (", katetru evakuē" if cath_out else ""))
-        if drain_look != "(no drain)":
-            tubes.append("Pa drenu " + drain_look + " izdalījumi" + (f" ap {drain_ml:g} ml/dnn" if drain_ml is not None else "")
-                         + (", drenu evakuē" if drain_out else ""))
-        for extra in [abdomen, voiding] + tubes + [DRESSINGS[dressing], notes]:
-            if extra.strip():
-                e = sexed(extra.strip(), sex)
-                parts.append(e if e.endswith(".") else e + ".")
-        if ending != "(nothing)":
-            catheter = " ar funkcionējošu urīnpūšļa ilgkatetru" if "ilgkatetru" in ending else ""
-            parts.append("Vispārējā apmierinošā stāvoklī " + ("izrakstīta" if sex == "Woman" else "izrakstīts")
-                         + catheter + " tālākai terapijai ambulatori." if ending.startswith("Izrakstīts") else ending)
-        days.append("\n".join(parts))
-    b = st.columns(3)
-    b[0].button("＋ Add next day (copies the last one)", on_click=_dec_add_day, key="dd-add", width="stretch")
-    b[1].button("－ Remove last day", on_click=_dec_remove_day, key="dd-remove", width="stretch",
-                disabled=st.session_state["dd-count"] <= 1)
-    b[2].button("🎲 Vary vitals from Day 1", on_click=_dec_vary_vitals, key="dd-vary-btn", width="stretch",
-                help="Days 2 onwards get vital signs close to Day 1: pulse ±10/min and always even, blood pressure "
-                     "±15 systolic and ±10 diastolic (moving together), breathing 12–20/min, temperature with a "
-                     "normal day-to-day variation (a fever on Day 1 settles). Each day changes only a little from "
-                     "the day before. Click again for new values.")
-    if st.session_state.get("dd-vary"):
-        st.caption("Vital signs vary from Day 1 – days you add now get their own values too. "
-                   "You can still change any day by hand.")
-    return "\n\n".join(days)
+            k[0].number_input("Drena ml/dnn", 0, 5000, step=10, key=f"dd{i}-drain_ml")
+            k[1].selectbox("Izdalījumi pa drenu", DRAIN_LOOKS, key=f"dd{i}-drain_look")
+            k[2].checkbox("Drenu evakuē", key=f"dd{i}-drain_out")
+            st.selectbox("Pārsiešana", list(DRESSINGS), key=f"dd{i}-dressing")
+            e = st.columns([3, 2])
+            e[0].text_input("Other", key=f"dd{i}-notes")
+            e[1].selectbox("Ending", DEC_ENDINGS, key=f"dd{i}-ending")
+
+    return "\n\n".join(t for t in (_dec_day_text(i, sex, op_date) for i in range(n)) if t)
 
 
 def render_decursus_table(sex):
@@ -10485,20 +10724,20 @@ def render_decursus_table(sex):
 
 
 def render_decursus(sex):
-    st.subheader("Decursus")
     left, right = st.columns([3, 2], gap="large")
     with left:
         text = render_decursus_cards(sex)
     with right:
-        header = render_doc_header("dec")
-        st.text_area("Decursus text", text, height=900, key=f"dec-out-{hash(text)}")
-        if text:
-            def make():
-                doc = _docx_new()
-                _docx_page_header(doc, header)  # name and number at the top right of every page
-                decursus_docx(doc, text)
-                return _docx_bytes(doc)
-            word_button("Word file (decursus)", make, "Decursus.docx", "dec-word")
+        with st.container(key="paper-dec"):
+            header = render_doc_header("dec")
+            paper_area("Decursus", text, f"dec-out-{hash(text)}", label="Decursus text")
+            if text:
+                def make():
+                    doc = _docx_new()
+                    _docx_page_header(doc, header)  # name and number at the top right of every page
+                    decursus_docx(doc, text)
+                    return _docx_bytes(doc)
+                word_button("Word file (decursus)", make, "Decursus.docx", "dec-word")
 
 
 # ---------------------------------------------------------------
@@ -11548,407 +11787,435 @@ def urs_operation(flexible, c1, c2, c3, pt_dat, pt_acc):
     return text, name[0].upper() + name[1:]
 
 
+# The operations, grouped for the picker (the group shows in front of the name)
+OP_GROUPS = {
+    'Endoscopic': ['TURP', 'TURU', 'Re-TURU (scar resection)', 'Cystoscopy (diagnostic) ± biopsy', 'Cystoscopy, stent removal', 'URS (semirigid)', 'FURS (flexible)', 'Cystolithotripsy', 'Cystoscopy – clot evacuation, coagulation (hematuria)', 'Optical urethrotomy (DVIU)', 'Urethral dilation', 'Prostatic abscess drainage'],
+    'Laparoscopic': ['Laparoscopic radical prostatectomy', 'Laparoscopic nephrectomy', 'Laparoscopic kidney resection', 'Laparoscopic pyeloplasty'],
+    'Open': ['Radical cystectomy', 'Urethroplasty (EPA / buccal graft)'],
+    'Penile and scrotal': ['Circumcision', 'Dorsumcision (dorsal slit)', 'Meatotomy', 'Testicular torsion – exploration', 'Orchiectomy (scrotal)', 'Inguinal orchifuniculectomy', 'Epididymectomy', 'Epididymal tumour extirpation', 'Scrotal / funicular revision, drainage', 'Hydrocele plasty', 'Scrotal mass excision'],
+    '48. nodaļa': ['Percutaneous trocar epicystostomy (48)', 'Nephrostomy change under US (48)'],
+}
+OP_GROUP_OF = {op: group for group, names in OP_GROUPS.items() for op in names}
+
+
+def _op_recent_picked():
+    picked = st.session_state.get("op-recent-pick")
+    if picked:
+        st.session_state["op-type"] = picked
+    st.session_state["op-recent-pick"] = None
+
+
+def op_picker():
+    """Search an operation (grouped), with the last ones you used one click away."""
+    current = st.session_state.get("op-type")
+    recent = st.session_state.get("op-recent", [])
+    if current and (not recent or recent[0] != current):
+        recent = ([current] + [o for o in recent if o != current])[:5]
+        st.session_state["op-recent"] = recent
+    others = [o for o in recent if o != current]  # the ones used before this one
+    if others:
+        st.pills("Recent", others, key="op-recent-pick", on_change=_op_recent_picked)
+    return st.selectbox("Operation", [o for names in OP_GROUPS.values() for o in names], key="op-type",
+                        format_func=lambda o: f"{OP_GROUP_OF[o]} · {o}",
+                        help="Type to search, e.g. TUR, URS or orhi.")
+
+
 def render_operation(sex):
     woman = sex == "Woman"
     pt_dat = "pacientei" if woman else "pacientam"
     pt_acc = "Pacienti" if woman else "Pacientu"
-    st.subheader("Operācijas apraksts")
-    op = st.selectbox("Operation", ["TURP", "TURU", "Re-TURU (scar resection)", "Radical cystectomy", "Cystoscopy (diagnostic) ± biopsy", "Circumcision", "Dorsumcision (dorsal slit)", "Cystoscopy, stent removal", "URS (semirigid)", "FURS (flexible)",
-                                    "Cystolithotripsy", "Cystoscopy – clot evacuation, coagulation (hematuria)", "Optical urethrotomy (DVIU)", "Urethral dilation", "Meatotomy",
-                                    "Urethroplasty (EPA / buccal graft)",
-                                    "Epididymal tumour extirpation", "Prostatic abscess drainage", "Testicular torsion – exploration", "Orchiectomy (scrotal)", "Inguinal orchifuniculectomy",
-                                    "Epididymectomy", "Scrotal / funicular revision, drainage", "Hydrocele plasty", "Scrotal mass excision",
-                                    "Laparoscopic radical prostatectomy", "Laparoscopic nephrectomy",
-                                    "Laparoscopic kidney resection",
-                                    "Laparoscopic pyeloplasty",
-                                    "Percutaneous trocar epicystostomy (48)",
-                                    "Nephrostomy change under US (48)"], key="op-type")
-    text, name = [], {"TURP": "TURP", "TURU": "TURU", "Circumcision": "Cirkumcīzija"}.get(op, "")
-    sites, figure = [], None  # TURU / re-TURU: the sites on the bladder map, and the marked map for the Word file
-    with st.expander("Details", expanded=True):
-        c1, c2, c3 = st.columns(3)
-        if op == "TURP":
-            scope = c1.selectbox("Rezektoskops (Ch)", ["24", "26"], index=1, key="op-turp-scope")
-            mucosa = st.text_input("Urīnpūšļa atrade", "gļotāda vizuāli neizmainīta, uretera ostijas brīvas", key="op-turp-mucosa")
-            neck = c2.checkbox("Urīnpūšļa kakliņa incīzija", True, key="op-turp-neck")
-            hemostasis = c3.selectbox("Hemostāze", ["ar vaporizācijas rullīti", "ar koagulācijas cilpu"], key="op-turp-hemo")
-            fr = c1.selectbox("Katetrs (Fr)", ["18", "20", "22", "24"], index=1, key="op-turp-fr")
-            balloon = c2.number_input("Balons (ml)", 5, 80, 40, key="op-turp-balloon")
-            traction = c3.checkbox("Vieglā ekstenzijā", True, key="op-turp-traction")
-            urine = c1.selectbox("Urīns pa katetru", ["viegli sārtas krāsas", "sārtas krāsas", "dzidrs"], key="op-turp-urine")
-            ward = c2.text_input("Pārved uz", "4. nodaļu", key="op-turp-ward")
-            histology = c3.checkbox("Čipsi uz histoloģiju", True, key="op-turp-hist")
-            urine_text = "dzidrs urīns" if urine == "dzidrs" else f"{urine} urīns"
-            text = [
-                f"Pēc operācijas lauka tualetes, {pt_dat} atrodoties dorsālas litotomijas guļā urīnpūslī ievadīts "
-                f"{scope} Ch rezektoskops; {mucosa.strip().rstrip('.')}.",
-                "Veic prostatas hiperplazēto audu rezekciju no urīnpūšļa kakliņa līdz Colliculus seminalis. Līdzīgā "
-                "kārtā veic hiperplazēto audu rezekciju lb. daivai un sekojoši kr. daivai līdz nosacītiem pl. 12:00. "
-                "Rezekciju veic līdz prostatas ķirurģiskai kapsulai. Atskaloti rezekcijas čipsi."
-                + (" Ar endoskopijas āķīti veikta urīnpūšļa kakliņa incīzija proksimāli no Colliculus seminalis." if neck else ""),
-                f"Rūpīga hemostāze {hemostasis}, sākot no urīnpūšļa kakliņa un tālāk par prostatas ložu.",
-                f"Operāciju nobeidzot urīnpūslī ievadīts 3-kanālu Foley tipa {fr} Fr katetrs. Balons uzpildīts līdz "
-                f"{balloon} ml." + (" Vieglā ekstenzijā." if traction else ""),
-                f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz {ward.strip()}. Pa katetru {urine_text}.",
-            ]
-            if histology:
-                text.append("Rezekcijas čipsi nosūtīti histoloģiskai izmeklēšanai.")
-        elif op == "TURU":
-            scope = c1.selectbox("Rezektoskops (Ch)", ["24", "26"], index=1, key="op-turu-scope")
-            number = c2.radio("Veidojumi", ["Viens", "Vairāki"], index=1, horizontal=True, key="op-turu-number")
-            kind = c3.selectbox("Izskats", ["papillārs", "solīds", "plakans (CIS aizdomas)"], key="op-turu-kind")
-            sites = bladder_site_picker("op-turu", woman, "Veidojumu lokalizācija")
-            detrusor = c1.checkbox("Paraugā detruzora muskulis", True, key="op-turu-det")
-            fr = c2.selectbox("Katetrs (Fr)", ["18", "20", "22"], index=1, key="op-turu-fr")
-            balloon = c3.number_input("Balons (ml)", 5, 60, 20, key="op-turu-balloon")
-            ward = c1.text_input("Pārved uz", "nodaļu", key="op-turu-ward")
-            instill = c2.checkbox("Agrīna instilācija", True, key="op-turu-inst")
-            drug = st.text_input("Instilācija", "Sol. Epirubicini 50 mg", key="op-turu-drug") if instill else ""
-            single = number == "Viens"
-            adjective = {"papillārs": ("papillāru", "papillārus"), "solīds": ("solīdu", "solīdus"),
-                         "plakans (CIS aizdomas)": ("plakanu, sārtu", "plakanus, sārtus")}[kind][0 if single else 1]
-            noun = "veidojumu" if single else "veidojumus"
-            place = bladder_place(sites) or "—"
-            if sites:
-                figure = (bladder_map_png(sites), "Veidojumu lokalizācija: " + bladder_legend(sites))
-            text = [
-                f"Pēc operācijas lauka tualetes, {pt_dat} atrodoties dorsālas litotomijas guļā urīnpūslī ievada "
-                f"{scope} Ch rezektoskopu. {place} vizualizē {adjective} {noun}.",
-                ("Veikta veidojuma rezekcija" if single else "Veikta veidojumu rezekcija")
-                + (", iegūstot arī detruzora muskuļa paraugu." if detrusor else ".") + " Rūpīga hemostāze.",
-                f"{fr} Fr 3-kanālu ilgkatetrs, balons uzpildīts līdz {balloon} ml. {pt_acc} apmierinošā stāvoklī "
-                f"pārved uz {ward.strip()}. Rezekcijas materiāls nosūtīts histoloģiskai izmeklēšanai.",
-            ]
-            if instill and drug.strip():
-                text.append(f"Agrīnā pēcoperācijas periodā saņēma {drug.strip()} intravezikālu instilāciju.")
-        elif op == "Re-TURU (scar resection)":
-            st.caption("EAU NMIBC: a second resection 2–6 weeks after the first (T1, incomplete resection, no detrusor "
-                       "muscle); it must include the primary tumour site. A single early instillation is meant for the "
-                       "first TURU, not routinely for re-TURU.")
-            scope = c1.selectbox("Rezektoskops (Ch)", ["24", "26"], index=1, key="op-rt-scope")
-            sites = bladder_site_picker("op-rt", woman, "Rētas lokalizācija")
-            finding = c2.selectbox("Rētas atrade", ["bez redzama atlikušā audzēja", "ar atlikušiem papillāriem audiem",
-                                                    "ar aizdomīgu, sārtu gļotādu"], key="op-rt-find")
-            new = c3.text_input("Jauni veidojumi (empty = nav)", key="op-rt-new",
-                                placeholder="e.g. jumtā papillārs veidojums 5 mm")
-            separate = c1.checkbox("Rezekcijas pamatne atsevišķi", True, key="op-rt-sep")
-            fr = c2.selectbox("Katetrs (Fr)", ["18", "20", "22"], index=1, key="op-rt-fr")
-            balloon = c3.number_input("Balons (ml)", 5, 60, 20, key="op-rt-balloon")
-            ward = c1.text_input("Pārved uz", "nodaļu", key="op-rt-ward")
-            name = "Atkārtota TURU (re-TURU)"
-            place = bladder_place(sites) or "—"
-            if sites:
-                figure = (bladder_map_png(sites), "Rētas lokalizācija: " + bladder_legend(sites))
-            mucosa = (f"Konstatēti jauni veidojumi: {new.strip().rstrip('.')}; tie rezecēti." if new.strip()
-                      else "Pārējā urīnpūšļa gļotāda bez jauniem veidojumiem.")
-            text = [
-                f"Pēc operācijas lauka tualetes, {pt_dat} atrodoties dorsālas litotomijas guļā urīnpūslī ievada "
-                f"{scope} Ch rezektoskopu. Urīnpūšļa gļotādu pārskata sistemātiski. {place} vizualizē "
-                f"iepriekšējās rezekcijas rētu {finding}. {mucosa}",
-                "Veic rētaudu un primārā audzēja vietas rezekciju dziļumā līdz detruzora muskulim, iegūstot detruzora "
-                "muskuļa paraugu." + (" Rezekcijas pamatnes paraugu nosūta atsevišķi." if separate else "")
-                + " Rūpīga hemostāze.",
-                f"{fr} Fr 3-kanālu ilgkatetrs, balons uzpildīts līdz {balloon} ml. {pt_acc} apmierinošā stāvoklī "
-                f"pārved uz {ward.strip()}. Rezekcijas materiāls nosūtīts histoloģiskai izmeklēšanai.",
-            ]
-        elif op == "Cystoscopy, stent removal":
-            side = c1.radio("Puse", ["Kreisā", "Labā", "Abas"], horizontal=True, key="op-cs-side")
-            findings = st.text_input("Atrade", "uretra normāla platuma, urīnpūšļa gļotāda nav izmainīta, urēteru ostijas "
-                                     "normālas, simetriskas", key="op-cs-find")
-            removal = c2.checkbox("Stenta evakuācija", True, key="op-cs-remove")
-            ostium = "kreiso" if side == "Kreisā" else "labo"
-            if side == "Abas":
-                name = "Cistoskopija, abpusēja pielovezikālo stentu evakuācija" if removal else "Cistoskopija"
-            else:
-                name = ("Cistoskopija, " + ("kr." if side == "Kreisā" else "lb.") + " puses pielovezikāla stenta "
-                        "evakuācija" if removal else "Cistoskopija")
-            text = [f"Pēc operācijas lauka tualetes, {pt_dat} atrodoties dorsālas guļā tiek ievadīts cistoskops, "
-                    f"{findings.strip().rstrip('.')}."]
-            if removal and side == "Abas":
-                text.append("Vizualizē abas ostijas un pielovezikālo stentu galus. Ievada standziņas, stentus pēc kārtas "
-                            "evakuē. Evakuācija veiksmīga.")
-            elif removal:
-                text.append(f"Vizualizē {ostium} ostiju un pielovezikālā stenta galu. Ievada standziņas, stentu evakuē. "
-                            "Evakuācija veiksmīga.")
-            text.append("Evakuē instrumentu.")
-        elif op == "Percutaneous trocar epicystostomy (48)":
-            incision = c1.number_input("Griezums virs simfīzes (cm)", 1, 5, 2, key="op-ec-cm")
-            ch = c2.selectbox("Katetrs (Ch)", ["Not stated", "12", "14", "16", "18"], key="op-ec-ch")
-            balloon = c3.number_input("Balons (ml NaCl 0,9%)", 2, 20, 5, key="op-ec-balloon")
-            volume = c1.number_input("Izdalās urīns (ml)", 0, 5000, 400, step=50, key="op-ec-vol")
-            look = c2.selectbox("Urīns", ["dzidra", "duļķaina", "ar asiņu piejaukumu"], key="op-ec-look")
-            name = "Perkutāna troakāra epicistostomija"
-            catheter = "epicistostomas katetru" if ch == "Not stated" else f"Ch {ch} epicistostomas katetru"
-            text = [f"Pēc operācijas lauka apdares ar polispirtu šķīdumu lokālā anestēzijā ar Sol. Lidocaini 2%, veic "
-                    f"ādas griezienu {incision} cm virs simfīzes. US kontrolē veic troakāra cistostomiju. Ievada "
-                    f"{catheter}, iegūst urīnu, evakuē troakāru. Uzpilda katetra balonu ar {balloon} ml NaCl 0,9% "
-                    "šķīduma. Fiksē katetru ar ādas šuvi. Pārsējs. "
-                    f"Pa epicistostomu izdalās {volume} ml {look} urīna."]
-        elif op == "Nephrostomy change under US (48)":
-            side = c1.radio("Puse", ["Kreisā", "Labā", "Abas"], horizontal=True, key="op-nc-side")
-            ch = c2.selectbox("Nefrostoma (Ch)", ["8", "10", "12", "14"], index=1, key="op-nc-ch")
-            position = c3.selectbox("Novietojums", ["adekvāts", "neadekvāts – koriģēts"], key="op-nc-pos")
-            if side == "Abas":
-                name = "Abpusēja nefrostomu nomaiņa USS kontrolē"
-                text = ["Pēc operācijas lauka apdares abās pusēs secīgi caur nefrostomu ievada stīgu. Uz stīgas evakuē "
-                        f"nefrostomu. Uz stīgas ievada Ch {ch} nefrostomas katetru. Evakuē stīgu. USS kontrolē konstatē "
-                        f"nefrostomu novietojumu. Nefrostomu novietojums {position}. Fiksē nefrostomu katetrus."]
-            else:
-                name = f"{'Kreisās' if side == 'Kreisā' else 'Labās'} nefrostomas nomaiņa USS kontrolē"
-                text = ["Pēc operācijas lauka apdares caur nefrostomu ievada stīgu. Uz stīgas evakuē nefrostomu. Uz "
-                        f"stīgas ievada Ch {ch} nefrostomas katetru. Evakuē stīgu. USS kontrolē konstatē nefrostomas "
-                        f"novietojumu. Nefrostomas novietojums {position}. Fiksē nefrostomas katetru."]
-        elif op == "Epididymal tumour extirpation":
-            side = c1.radio("Puse", ["Labā", "Kreisā"], horizontal=True, key="op-ep-side")
-            part = c2.selectbox("Daļa", ["Cauda epididimis", "Corpus epididimis", "Caput epididimis"], key="op-ep-part")
-            size = c3.text_input("Izmērs", "~ 1 x 2 cm", key="op-ep-size")
-            look = st.text_input("Veidojums", "blīvu, labi norobežotu veidojumu", key="op-ep-look")
-            histology = st.text_input("Histoloģija (optional)", key="op-ep-hist")
-            short, word = ("lb.", "lb.") if side == "Labā" else ("kr.", "kr.")
-            name = f"Epididimis jaunveidojuma ekstirpācija {short} pusē"
-            text = [f"Pēc op. lauka trīsreizējas apdares, veic griezienu skrotum ādā {short} pusē, šķeļ tunica vaginalis "
-                    f"testis, izdala {word} sēklinieku. {part} rajonā konstatē {look.strip()} {size.strip()}, ko izdala un "
-                    "rezecē. Rūpīga hemostāze. Brūci slēdz pa kārtām. Sterils pārsējs. "
-                    f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz nodaļu."]
-            if histology.strip():
-                text.append(f"\nHistoloģija: {histology.strip()}")
-        elif op == "Cystoscopy – clot evacuation, coagulation (hematuria)":
-            text, name = hematuria_operation(c1, c2, c3, pt_acc)
-        elif op == "Cystolithotripsy":
-            text, name = cystolithotripsy_operation(c1, c2, c3, pt_acc)
-        elif op in ("Optical urethrotomy (DVIU)", "Urethral dilation", "Meatotomy", "Urethroplasty (EPA / buccal graft)"):
-            text, name = stricture_operation(op, c1, c2, c3, pt_dat, pt_acc)
-        elif op in ("URS (semirigid)", "FURS (flexible)"):
-            text, name = urs_operation(op == "FURS (flexible)", c1, c2, c3, pt_dat, pt_acc)
-        elif op == "Laparoscopic radical prostatectomy":
-            lnd = c1.checkbox("Iegurņa limfadenektomija", True, key="op-rp-lnd")
-            nerve = c2.selectbox("Nervu saudzēšana", ["Nav", "Labajā pusē", "Kreisajā pusē", "Abās pusēs"],
-                                 key="op-rp-nerve")
-            fr = c3.selectbox("Katetrs (Fr)", ["16", "18", "20"], index=1, key="op-rp-fr")
-            balloon = c1.number_input("Balons (ml)", 5, 40, 20, key="op-rp-balloon")
-            drain = c2.checkbox("Drena pie anastomozes", True, key="op-rp-drain")
-            extras = (["iegurņa limfadenektomiju"] if lnd else []) + \
-                     ([f"nervu saudzēšanu ({nerve.lower()})"] if nerve != "Nav" else [])
-            name = "Laparoskopiska radikāla prostatektomija" + (" ar " + lv_list(extras) if extras else "")
-            text = [
-                f"Pēc operācijas lauka 3x apdares ar polialkohola šķīdumu intubācijas narkozē, {pt_dat} atrodoties "
-                "muguras guļā, veic 1,5 cm griezienu zem umbo, iekļūst prevezikālajā telpā. Neasā ceļā atbīdot "
-                "taukaudus, izveido telpu priekšpusē peritonejam. Ievieto 10 mm troakāru, piešuj, ievada optiku, "
-                "vizualizējot ekstraperitoneālo telpu, uzpilda līdz 15 mmHg. Redzes kontrolē hipogastrijā pa kreisi un "
-                "pa labi ievada divus 12 mm troakārus. 4 cm pa labi no umbo ievieto 5 mm darba troakāru.",
-            ]
-            if lnd:
-                text.append("Vizualizē a. iliaca externa dxt. Mobilizē un izdala limfmezglu paketi labajā iliakālajā un "
-                            "obturatorajā zonā. Vizualizē a. iliaca externa sin. Mobilizē un izdala limfmezglu paketi "
-                            "kreisajā iliakālajā un obturatorajā zonā.")
-            text.append("Mobilizē prostatu un urīnpūšļa kaklu, incidē fascia endopelvina, pārdala ligamenta "
-                        "puboprostatica" + (f", trulā ceļā atejot no nervu-asinsvadu kūlīša {nerve.lower()}"
-                                            if nerve != "Nav" else "") + ".")
-            text.append("Ar bipolāro elektrokoagulāciju pārdala plexus dorsalis, rūpīga hemostāze.")
-            text.append("Atver urīnpūsli, vizualizē ostijas un prostatas malu. Pārdala urīnpūšļa gļotādu, mobilizē "
-                        "priekšdziedzeri, abus ductus deferens un sēklas pūslīšus izdala, klipē un pārdala. Apeksa "
-                        "rajonā atdala prostatu no uretras. Prostatas preparātu ievieto laparoskopijas maisiņā un uz "
-                        "laiku novieto labajā apakšējā kvadrantā.")
-            text.append(f"Izveido vezikouretrālo anastomozi ar nepārtrauktu šuvi. Ievieto urīnpūslī {fr} Fr katetru, "
-                        f"balons {balloon} ml, savelk anastomozes šuves, pārbauda šuvju hermētismu. Hemostāze laba. "
-                        "Izvelk prostatas preparātu. Evakuē troakārus."
-                        + (" Retropubiski caur kontrapertūru pie anastomozes atstāj drenu." if drain else "")
-                        + " Brūces sašuj pa kārtām. Sterils pārsējs.")
-            text.append("Preparāts: " + ("lb. puses l/m; kr. puses l/m; prostata." if lnd else "prostata.")
-                        + " Preparātu nosūta histoloģiskai izmeklēšanai.")
-        elif op in ("Laparoscopic nephrectomy", "Laparoscopic kidney resection", "Laparoscopic pyeloplasty"):
-            side = c1.radio("Puse", ["Labā", "Kreisā"], horizontal=True, key="op-lap-side")
-            right = side == "Labā"
-            adj = "labās" if right else "kreisās"        # labās puses ..., labās lumbotomijas guļā
-            loc = "labajā" if right else "kreisajā"     # labajā pararektālajā rajonā
-            lat = "dx." if right else "sin."
-            kidney_acc = "labo nieri" if right else "kreiso nieri"
-            access = (f"Pēc operācijas lauka 3x apdares ar polialkohola šķīdumu intubācijas narkozē, {pt_dat} atrodoties "
-                      f"{adj} lumbotomijas guļā, veic griezienu 2 cm virs umbo {loc} pararektālajā rajonā.")
-            if op == "Laparoscopic nephrectomy":
-                fr = c2.selectbox("Katetrs (Fr)", ["14", "16", "18", "20"], index=2, key="op-nx-fr")
-                drain = c3.checkbox("Drena nieres gultnē", False, key="op-nx-drain")
-                name = f"Laparoskopiska {adj} puses nefrektomija"
+    left, right = st.columns([3, 2], gap="large")
+    with left:
+        with st.container(border=True, key="card-op"):
+            op = op_picker()
+        text, name = [], {"TURP": "TURP", "TURU": "TURU", "Circumcision": "Cirkumcīzija"}.get(op, "")
+        sites, figure = [], None  # TURU / re-TURU: the sites on the bladder map, and the marked map for the Word file
+        with st.container(border=True, key="card-op-details"):
+            c1, c2, c3 = st.columns(3)
+            if op == "TURP":
+                scope = c1.selectbox("Rezektoskops (Ch)", ["24", "26"], index=1, key="op-turp-scope")
+                mucosa = st.text_input("Urīnpūšļa atrade", "gļotāda vizuāli neizmainīta, uretera ostijas brīvas", key="op-turp-mucosa")
+                neck = c2.checkbox("Urīnpūšļa kakliņa incīzija", True, key="op-turp-neck")
+                hemostasis = c3.selectbox("Hemostāze", ["ar vaporizācijas rullīti", "ar koagulācijas cilpu"], key="op-turp-hemo")
+                fr = c1.selectbox("Katetrs (Fr)", ["18", "20", "22", "24"], index=1, key="op-turp-fr")
+                balloon = c2.number_input("Balons (ml)", 5, 80, 40, key="op-turp-balloon")
+                traction = c3.checkbox("Vieglā ekstenzijā", True, key="op-turp-traction")
+                urine = c1.selectbox("Urīns pa katetru", ["viegli sārtas krāsas", "sārtas krāsas", "dzidrs"], key="op-turp-urine")
+                ward = c2.text_input("Pārved uz", "4. nodaļu", key="op-turp-ward")
+                histology = c3.checkbox("Čipsi uz histoloģiju", True, key="op-turp-hist")
+                urine_text = "dzidrs urīns" if urine == "dzidrs" else f"{urine} urīns"
                 text = [
-                    f"Ievieto urīnpūšļa ilgkatetru Foley tipa {fr} Fr, izdalās dzeltens urīns.",
-                    access + " Ievada Veress adatu, uzpilda vēdera dobumu līdz 14 mmHg. Ievada 10 mm troakāru. "
-                    f"Vizualizē vēdera dobumu. Veic griezienu un ievada 12 mm troakāru pa lin. parasternalis {lat} "
-                    "Pa l. axillaris anterior subkostāli ievada 5 mm darba troakāru. 2 cm virs spina iliaca "
-                    f"{lat} ievada 5 mm darba troakāru.",
-                    f"Pārdala peritoneja parietālo lapiņu, vizualizē {kidney_acc}. Mobilizē un atbrīvo {adj} nieres "
-                    "kājiņu, kuru pārdala ar endoskopisku griezējšuvēju. Mobilizē ureteru, ko klipē un pārdala. Veic "
-                    f"nefrektomiju. Hemostāzes kontrole. Pagarinot griezienu, evakuē {kidney_acc} pa pararektālā "
-                    "troakāra atveri." + (" Nieres gultnē pievada drenu." if drain else ""),
-                    "Evakuē troakārus. Brūces sašuj pa kārtām.",
-                    f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz nodaļu.",
-                    "",
-                    f"Preparāts: {'labā' if right else 'kreisā'} niere.",
-                    "Preparātu nosūta histoloģiskai izmeklēšanai.",
+                    f"Pēc operācijas lauka tualetes, {pt_dat} atrodoties dorsālas litotomijas guļā urīnpūslī ievadīts "
+                    f"{scope} Ch rezektoskops; {mucosa.strip().rstrip('.')}.",
+                    "Veic prostatas hiperplazēto audu rezekciju no urīnpūšļa kakliņa līdz Colliculus seminalis. Līdzīgā "
+                    "kārtā veic hiperplazēto audu rezekciju lb. daivai un sekojoši kr. daivai līdz nosacītiem pl. 12:00. "
+                    "Rezekciju veic līdz prostatas ķirurģiskai kapsulai. Atskaloti rezekcijas čipsi."
+                    + (" Ar endoskopijas āķīti veikta urīnpūšļa kakliņa incīzija proksimāli no Colliculus seminalis." if neck else ""),
+                    f"Rūpīga hemostāze {hemostasis}, sākot no urīnpūšļa kakliņa un tālāk par prostatas ložu.",
+                    f"Operāciju nobeidzot urīnpūslī ievadīts 3-kanālu Foley tipa {fr} Fr katetrs. Balons uzpildīts līdz "
+                    f"{balloon} ml." + (" Vieglā ekstenzijā." if traction else ""),
+                    f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz {ward.strip()}. Pa katetru {urine_text}.",
                 ]
-            elif op == "Laparoscopic kidney resection":
-                where = c2.text_input("Tumors (kur nierē)", "vidējā sienā, dorsāli", key="op-pn-where")
-                margin = c3.number_input("Atkāpe (cm)", 0.1, 2.0, 0.5, step=0.1, format="%.1f", key="op-pn-margin")
-                clamp = c1.checkbox("Nieres artērijas klemmēšana", False, key="op-pn-clamp")
-                ischemia = (c2.number_input("Siltā išēmija (min)", 1, 60, 15, key="op-pn-isch") if clamp else 0)
-                drain = c3.checkbox("Drena", True, key="op-pn-drain")
-                name = f"Laparoskopiska {adj} nieres rezekcija"
-                margin_text = f"{margin:.1f}".replace(".", ",")
+                if histology:
+                    text.append("Rezekcijas čipsi nosūtīti histoloģiskai izmeklēšanai.")
+            elif op == "TURU":
+                scope = c1.selectbox("Rezektoskops (Ch)", ["24", "26"], index=1, key="op-turu-scope")
+                number = c2.radio("Veidojumi", ["Viens", "Vairāki"], index=1, horizontal=True, key="op-turu-number")
+                kind = c3.selectbox("Izskats", ["papillārs", "solīds", "plakans (CIS aizdomas)"], key="op-turu-kind")
+                sites = bladder_site_picker("op-turu", woman, "Veidojumu lokalizācija")
+                detrusor = c1.checkbox("Paraugā detruzora muskulis", True, key="op-turu-det")
+                fr = c2.selectbox("Katetrs (Fr)", ["18", "20", "22"], index=1, key="op-turu-fr")
+                balloon = c3.number_input("Balons (ml)", 5, 60, 20, key="op-turu-balloon")
+                ward = c1.text_input("Pārved uz", "nodaļu", key="op-turu-ward")
+                instill = c2.checkbox("Agrīna instilācija", True, key="op-turu-inst")
+                drug = st.text_input("Instilācija", "Sol. Epirubicini 50 mg", key="op-turu-drug") if instill else ""
+                single = number == "Viens"
+                adjective = {"papillārs": ("papillāru", "papillārus"), "solīds": ("solīdu", "solīdus"),
+                             "plakans (CIS aizdomas)": ("plakanu, sārtu", "plakanus, sārtus")}[kind][0 if single else 1]
+                noun = "veidojumu" if single else "veidojumus"
+                place = bladder_place(sites) or "—"
+                if sites:
+                    figure = (bladder_map_png(sites), "Veidojumu lokalizācija: " + bladder_legend(sites))
                 text = [
-                    access + " Paņemot uz turētājiem, pārdala aponeirozi un peritoneju. Ievada Veress adatu, uzpilda "
-                    "vēdera dobumu līdz 14 mmHg. Ievada 10 mm troakāru. Veic griezienu un ievada 12 mm troakāru pa lin. "
-                    f"parasternalis {lat} Pa l. axillaris anterior subkostāli ievada 5 mm darba troakāru. 2 cm virs spina "
-                    f"iliaca {lat} ievada 5 mm darba troakāru. Vizualizē vēdera dobumu.",
-                    f"Pārdala peritoneja parietālo lapiņu, vizualizē {kidney_acc}. Nieres {where.strip().rstrip('.')} "
-                    "vizualizē tumoru."
-                    + (" Izdala nieres artēriju, uzliek asinsvadu klemmi." if clamp else "")
-                    + f" Veic peritumorozu veidojuma rezekciju ar {margin_text} cm atkāpi. Rūpīga hemostāze, ar Z veida "
-                    "šuvēm apšujot nieres defektu."
-                    + (f" Noņem klemmi, siltās išēmijas laiks {ischemia} min." if clamp else "")
-                    + " Hemostāze apmierinoša."
-                    + (f" Caur darba kanālu virs spina iliaca {lat} ievieto drenu." if drain else "")
-                    + " Evakuē rezecētos audus pa pararektālā troakāra atveri.",
-                    "Evakuē troakārus. Brūces sašuj pa kārtām.",
-                    "",
-                    f"Preparāts: {adj} nieres rezekcijas audi.",
-                    "Preparātu nosūta histoloģiskai izmeklēšanai.",
+                    f"Pēc operācijas lauka tualetes, {pt_dat} atrodoties dorsālas litotomijas guļā urīnpūslī ievada "
+                    f"{scope} Ch rezektoskopu. {place} vizualizē {adjective} {noun}.",
+                    ("Veikta veidojuma rezekcija" if single else "Veikta veidojumu rezekcija")
+                    + (", iegūstot arī detruzora muskuļa paraugu." if detrusor else ".") + " Rūpīga hemostāze.",
+                    f"{fr} Fr 3-kanālu ilgkatetrs, balons uzpildīts līdz {balloon} ml. {pt_acc} apmierinošā stāvoklī "
+                    f"pārved uz {ward.strip()}. Rezekcijas materiāls nosūtīts histoloģiskai izmeklēšanai.",
                 ]
-            else:
-                stent = c2.checkbox("Uretera stents", True, key="op-pp-stent")
-                drain = c3.checkbox("Drena pie anastomozes", True, key="op-pp-drain")
-                suture = c1.text_input("Šuve", "3.0 Vicryl", key="op-pp-suture")
-                name = f"{'Labās' if right else 'Kreisās'} puses laparoskopiska pieloplastika"
+                if instill and drug.strip():
+                    text.append(f"Agrīnā pēcoperācijas periodā saņēma {drug.strip()} intravezikālu instilāciju.")
+            elif op == "Re-TURU (scar resection)":
+                st.caption("EAU NMIBC: a second resection 2–6 weeks after the first (T1, incomplete resection, no detrusor "
+                           "muscle); it must include the primary tumour site. A single early instillation is meant for the "
+                           "first TURU, not routinely for re-TURU.")
+                scope = c1.selectbox("Rezektoskops (Ch)", ["24", "26"], index=1, key="op-rt-scope")
+                sites = bladder_site_picker("op-rt", woman, "Rētas lokalizācija")
+                finding = c2.selectbox("Rētas atrade", ["bez redzama atlikušā audzēja", "ar atlikušiem papillāriem audiem",
+                                                        "ar aizdomīgu, sārtu gļotādu"], key="op-rt-find")
+                new = c3.text_input("Jauni veidojumi (empty = nav)", key="op-rt-new",
+                                    placeholder="e.g. jumtā papillārs veidojums 5 mm")
+                separate = c1.checkbox("Rezekcijas pamatne atsevišķi", True, key="op-rt-sep")
+                fr = c2.selectbox("Katetrs (Fr)", ["18", "20", "22"], index=1, key="op-rt-fr")
+                balloon = c3.number_input("Balons (ml)", 5, 60, 20, key="op-rt-balloon")
+                ward = c1.text_input("Pārved uz", "nodaļu", key="op-rt-ward")
+                name = "Atkārtota TURU (re-TURU)"
+                place = bladder_place(sites) or "—"
+                if sites:
+                    figure = (bladder_map_png(sites), "Rētas lokalizācija: " + bladder_legend(sites))
+                mucosa = (f"Konstatēti jauni veidojumi: {new.strip().rstrip('.')}; tie rezecēti." if new.strip()
+                          else "Pārējā urīnpūšļa gļotāda bez jauniem veidojumiem.")
                 text = [
-                    access + " Paņemot uz turētājiem, pārdala aponeirozi un peritoneju. Ievada Veresa adatu, uzpilda "
-                    "vēdera dobumu līdz 14 mmHg. Ievada 10 mm troakāru. 5 cm laterālāk no optikas troakāra veic "
-                    "griezienu un ievada 12 mm troakāru. Pa l. axillaris anterior subkostāli ievada 5 mm darba "
-                    f"troakāru. 2 cm virs spina iliaca {lat} ievada 5 mm darba troakāru. Vizualizē vēdera dobumu.",
-                    f"Pārdala peritoneja parietālo lapiņu, vizualizē {kidney_acc}. Asā un neasā ceļā eksplorē nieres "
-                    f"bļodiņu. Mobilizē ureteru. Ar {suture.strip()} uzšuj uretera dorsālo sienu. Pārdala ureteru, "
-                    "iešķeļ to pa mugurējo sienu. Veic bļodiņas rezekciju. Ar nepārtrauktu šuvi veido anastomozes "
-                    "mugurējo sienu." + (" Veic uretera stenta intubāciju." if stent else "")
-                    + " Ar otru nepārtrauktu šuvi veido anastomozes priekšējo sienu un slēdz atlikušo defektu nieres "
-                    "bļodiņā." + (" Pie anastomozes pievada drenu." if drain else ""),
-                    "Evakuē troakārus. Brūces sašuj pa kārtām.",
-                    f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz nodaļu.",
+                    f"Pēc operācijas lauka tualetes, {pt_dat} atrodoties dorsālas litotomijas guļā urīnpūslī ievada "
+                    f"{scope} Ch rezektoskopu. Urīnpūšļa gļotādu pārskata sistemātiski. {place} vizualizē "
+                    f"iepriekšējās rezekcijas rētu {finding}. {mucosa}",
+                    "Veic rētaudu un primārā audzēja vietas rezekciju dziļumā līdz detruzora muskulim, iegūstot detruzora "
+                    "muskuļa paraugu." + (" Rezekcijas pamatnes paraugu nosūta atsevišķi." if separate else "")
+                    + " Rūpīga hemostāze.",
+                    f"{fr} Fr 3-kanālu ilgkatetrs, balons uzpildīts līdz {balloon} ml. {pt_acc} apmierinošā stāvoklī "
+                    f"pārved uz {ward.strip()}. Rezekcijas materiāls nosūtīts histoloģiskai izmeklēšanai.",
                 ]
-        elif op == "Scrotal mass excision":
-            st.caption("Every scrotal mass needs an ultrasound first. A solid intratesticular mass is treated with an "
-                       "inguinal orchidectomy (EAU), and a suspected paratesticular sarcoma with an inguinal approach – "
-                       "not with a scrotal excision.")
-            anesthesia = c1.selectbox("Anestēzija", ["spinālā anestēzijā", "vispārējā anestēzijā",
-                                                     "vietējā anestēzijā ar Sol. Lidocaini 1%"], key="op-sm-an")
-            position = c2.selectbox("Guļa", ["dorsālas litotomijas guļā", "muguras guļā"], key="op-sm-pos")
-            place = c3.selectbox("Vieta", list(SCROTAL_PLACE), key="op-sm-place")
-            side = c1.selectbox("Puse", list(SCROTAL_SIDE), key="op-sm-side")
-            many = c2.radio("Veidojumi", ["Viens", "Vairāki"], horizontal=True, key="op-sm-many") == "Vairāki"
-            size = c3.number_input("Izmērs (cm)", 0.0, 30.0, value=None, step=0.5, key="op-sm-size")
-            incision = c1.selectbox("Griezums", ["virs veidojuma", "pa scrotum viduslīniju (raphe)",
-                                                 "scrotum/perineālā rajonā", "elipsveida ādas griezums ap veidojumu"],
-                                    key="op-sm-inc")
-            looks = {  # (before the noun, singular / plural, after the noun)
-                "iekapsulēts, mīksti elastīgs": ("iekapsulētu, mīksti elastīgu", "iekapsulētus, mīksti elastīgus", ""),
-                "cistisks, ar biezu, baltu saturu": ("cistisku", "cistiskus", " ar biezu, baltu saturu"),
-                "mīksts, lipomatozs": ("mīkstu, lipomatozu", "mīkstus, lipomatozus", ""),
-                "blīvs, ar skaidrām robežām": ("blīvu", "blīvus", " ar skaidrām robežām"),
-            }
-            look = c2.selectbox("Veidojuma raksturs", list(looks), key="op-sm-look")
-            free = c3.checkbox("Nav saistīts ar sēklinieku un sēklas virvīti", True, key="op-sm-free")
-            drain = c1.checkbox("Drenāža (gumijas strēmele)", False, key="op-sm-drain")
-            closure = c2.selectbox("Šuves", ["Zemādas šuve. Ādas šuves.", "Zemādas šuve. Intrakutāna uzsūcoša šuve."],
-                                   key="op-sm-close")
-            name = scrotal_words({"Scrotal mass location": place, "Scrotal mass number": "Multiple" if many else "Single"})[2]
-            name = name[0].upper() + name[1:]
-            noun = "veidojumus" if many else "veidojumu"
-            size_text = (f" Ø {size:g} cm".replace(".", ",") if size else "")
-            where = "Zemādā" if place != "Spermatic cord / paratesticular" else "Paratestikulāri, sēklas virvītes apvidū,"
-            cut = ("veic elipsveida ādas griezienu ap veidojumu" if incision.startswith("elipsveida")
-                   else f"izdara griezienu {incision.replace('virs veidojuma', 'virs veidojumiem') if many else incision}")
-            text = [
-                f"{pt_acc.replace('Pacientu', 'Pacients').replace('Pacienti', 'Paciente')} atrodas {position}. Pēc "
-                f"operācijas lauka apdares {anesthesia} {cut} ({SCROTAL_SIDE[side]}). {where} vizualizē "
-                f"{looks[look][1 if many else 0]} {noun}{size_text}{looks[look][2]}"
-                + ((", kas nav saistīti ar sēklinieku un sēklas virvīti" if many else
-                    ", kas nav saistīts ar sēklinieku un sēklas virvīti") if free else "")
-                + f". Neasā ceļā {'tos' if many else 'to'} izdala un evakuē. Rūpīga hemostāze."
-                + (" Brūcē atstāj gumijas strēmeli." if drain else "") + f" {closure} Sterils pārsējs.",
-                f"{'Veidojumus' if many else 'Veidojumu'} nosūta patohistoloģiskai izmeklēšanai.",
-            ]
-        elif op == "Hydrocele plasty":
-            side = c1.radio("Puse", ["Labā", "Kreisā"], horizontal=True, key="op-h-side")
-            technique = c2.selectbox("Tehnika", ["Izvēršana (Winkelmann)", "Ekscīzija (Bergmann)", "Plikācija (Lord)"],
-                                     key="op-h-tech")
-            fluid = c3.selectbox("Šķidrums", ["serozs", "hemorāģisks", "duļķains"], key="op-h-fluid")
-            drain = c1.checkbox("Drenāža", True, key="op-h-drain")
-            ward = c2.text_input("Pārved uz", "nodaļu", key="op-h-ward")
-            short = "lb." if side == "Labā" else "kr."
-            step = {"Izvēršana (Winkelmann)": "Veic tunica vaginalis sieniņas incīziju un izvēršanu uz āru, fiksē ar "
-                                              "nepārtrauktu šuvi.",
-                    "Ekscīzija (Bergmann)": "Veic tunica vaginalis parietālās lapiņas ekscīziju, brīvās malas apšuj ar "
-                                            "nepārtrauktu šuvi.",
-                    "Plikācija (Lord)": "Veic tunica vaginalis plikāciju ar atsevišķām šuvēm."}[technique]
-            name = f"{'Labās' if side == 'Labā' else 'Kreisās'} puses hidrocēles plastika"
-            text = [f"Pēc op. lauka apdares veic griezienu scrotum ādā pa viduslīniju. Izdala {short} puses testis līdz "
-                    f"apvalkiem. Konstatē hidrocēli. Pārdala to, izdalās {fluid} šķidrums. {step} Rūpīga hemostāze."
-                    + (" Drena." if drain else "") + " Ādu slēdz ar atsevišķām šuvēm. Sterils pārsējs.",
-                    f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz {ward.strip()}."]
-        elif op == "Testicular torsion – exploration":
-            text, name = torsion_operation(c1, c2, c3, pt_acc)
-        elif op == "Prostatic abscess drainage":
-            text, name = prostatic_abscess_operation(c1, c2, c3, pt_acc)
-        elif op in ("Orchiectomy (scrotal)", "Inguinal orchifuniculectomy", "Epididymectomy",
-                    "Scrotal / funicular revision, drainage"):
-            text, name = scrotal_infection_operation(op, c1, c2, c3, pt_acc)
-        elif op == "Radical cystectomy":
-            text, name = cystectomy_operation(woman, c1, c2, c3, pt_dat, pt_acc)
-        elif op == "Cystoscopy (diagnostic) ± biopsy":
-            text, name = cystoscopy_operation(c1, c2, c3, pt_acc)
-        elif op == "Dorsumcision (dorsal slit)":
-            reason = c1.selectbox("Indikācija", ["parafimoze", "fimoze"], key="op-ds-reason")
-            anesthesia = c2.selectbox("Anestēzija", ["lokālā anestēzijā", "spinālā anestēzijā", "vispārējā anestēzijā"],
-                                      key="op-ds-an")
-            suture = c3.text_input("Šuves", "4.0 Vicryl", key="op-ds-suture")
-            ward = c1.selectbox("Pēc operācijas", ["pārved uz palātu", "izraksta ambulatori"], key="op-ds-ward")
-            name = "Dorsumcīzija"
-            ring = "parafimozes (iespīlējuma) gredzenu" if reason == "parafimoze" else "fimozes gredzenu"
-            text = [
-                f"Pēc op. lauka apdares ar \"Braunol\" {anesthesia} iešķeļ {ring} uz plkst. 12.00. "
-                + ("Priekšādiņu reponē pāri dzimumlocekļa galviņai. " if reason == "parafimoze" else "Atver priekšādiņu. ")
-                + f"Brūci apstrādā ar \"Braunol\". Brūces malas apšuj ar {suture.strip()} atsevišķām šuvēm. "
-                "Hemostāze apmierinoša. Sterils pārsējs. "
-                + (f"{pt_acc} vispārējā apmierinošā stāvoklī pārved uz palātu." if ward == "pārved uz palātu"
-                   else f"{pt_acc} vispārējā apmierinošā stāvoklī izraksta ambulatori.")
-            ]
-        elif op == "Circumcision":
-            anesthesia = c1.selectbox("Anestēzija", ["spinālā anestēzijā", "vispārējā anestēzijā", "vietējā anestēzijā"], key="op-c-an")
-            antiseptic = c2.text_input("Lauka apdare ar", "polispirtu šķīdumu", key="op-c-anti")
-            margin = c3.number_input("Atkāpe no corona glandis (mm)", 2, 15, 5, key="op-c-margin")
-            suture = c1.text_input("Šuves", "SafilQuick 4.0", key="op-c-suture")
-            frenulum = c2.checkbox("Frenuloplastika", key="op-c-fren")
-            ward = c3.text_input("Pārved uz", "nodaļu", key="op-c-ward")
-            text = [
-                f"Pacients {anesthesia}. Pēc op. lauka apdares ar {antiseptic.strip()} izdara cirkulāru griezienu "
-                "Corona glandis rajonā, izpreparē preputium ārējo lapiņu. Iešķeļ preputium pret 12.00, atvirza to pār "
-                "glans penis, notīra smegmas kārtu ar Sol. Braunoli. Veic preputium iekšējās lapiņas rezekciju kopā ar "
-                f"preputium ar aptuveni {margin} mm atkāpi no corona glandis."
-                + (" Veic frenuloplastiku." if frenulum else "")
-                + f" Rūpīga hemostāze. Brūci slēdz ar atsevišķām {suture.strip()} šuvēm. Sterils pārsējs. Pacientu "
-                f"vispārēji apmierinošā stāvoklī pārved uz {ward.strip()}."
-            ]
-        complications = st.text_input("Intraoperatīvas komplikācijas / papildus atrade (optional)", key=f"op-extra-{op}")
+            elif op == "Cystoscopy, stent removal":
+                side = c1.radio("Puse", ["Kreisā", "Labā", "Abas"], horizontal=True, key="op-cs-side")
+                findings = st.text_input("Atrade", "uretra normāla platuma, urīnpūšļa gļotāda nav izmainīta, urēteru ostijas "
+                                         "normālas, simetriskas", key="op-cs-find")
+                removal = c2.checkbox("Stenta evakuācija", True, key="op-cs-remove")
+                ostium = "kreiso" if side == "Kreisā" else "labo"
+                if side == "Abas":
+                    name = "Cistoskopija, abpusēja pielovezikālo stentu evakuācija" if removal else "Cistoskopija"
+                else:
+                    name = ("Cistoskopija, " + ("kr." if side == "Kreisā" else "lb.") + " puses pielovezikāla stenta "
+                            "evakuācija" if removal else "Cistoskopija")
+                text = [f"Pēc operācijas lauka tualetes, {pt_dat} atrodoties dorsālas guļā tiek ievadīts cistoskops, "
+                        f"{findings.strip().rstrip('.')}."]
+                if removal and side == "Abas":
+                    text.append("Vizualizē abas ostijas un pielovezikālo stentu galus. Ievada standziņas, stentus pēc kārtas "
+                                "evakuē. Evakuācija veiksmīga.")
+                elif removal:
+                    text.append(f"Vizualizē {ostium} ostiju un pielovezikālā stenta galu. Ievada standziņas, stentu evakuē. "
+                                "Evakuācija veiksmīga.")
+                text.append("Evakuē instrumentu.")
+            elif op == "Percutaneous trocar epicystostomy (48)":
+                incision = c1.number_input("Griezums virs simfīzes (cm)", 1, 5, 2, key="op-ec-cm")
+                ch = c2.selectbox("Katetrs (Ch)", ["Not stated", "12", "14", "16", "18"], key="op-ec-ch")
+                balloon = c3.number_input("Balons (ml NaCl 0,9%)", 2, 20, 5, key="op-ec-balloon")
+                volume = c1.number_input("Izdalās urīns (ml)", 0, 5000, 400, step=50, key="op-ec-vol")
+                look = c2.selectbox("Urīns", ["dzidra", "duļķaina", "ar asiņu piejaukumu"], key="op-ec-look")
+                name = "Perkutāna troakāra epicistostomija"
+                catheter = "epicistostomas katetru" if ch == "Not stated" else f"Ch {ch} epicistostomas katetru"
+                text = [f"Pēc operācijas lauka apdares ar polispirtu šķīdumu lokālā anestēzijā ar Sol. Lidocaini 2%, veic "
+                        f"ādas griezienu {incision} cm virs simfīzes. US kontrolē veic troakāra cistostomiju. Ievada "
+                        f"{catheter}, iegūst urīnu, evakuē troakāru. Uzpilda katetra balonu ar {balloon} ml NaCl 0,9% "
+                        "šķīduma. Fiksē katetru ar ādas šuvi. Pārsējs. "
+                        f"Pa epicistostomu izdalās {volume} ml {look} urīna."]
+            elif op == "Nephrostomy change under US (48)":
+                side = c1.radio("Puse", ["Kreisā", "Labā", "Abas"], horizontal=True, key="op-nc-side")
+                ch = c2.selectbox("Nefrostoma (Ch)", ["8", "10", "12", "14"], index=1, key="op-nc-ch")
+                position = c3.selectbox("Novietojums", ["adekvāts", "neadekvāts – koriģēts"], key="op-nc-pos")
+                if side == "Abas":
+                    name = "Abpusēja nefrostomu nomaiņa USS kontrolē"
+                    text = ["Pēc operācijas lauka apdares abās pusēs secīgi caur nefrostomu ievada stīgu. Uz stīgas evakuē "
+                            f"nefrostomu. Uz stīgas ievada Ch {ch} nefrostomas katetru. Evakuē stīgu. USS kontrolē konstatē "
+                            f"nefrostomu novietojumu. Nefrostomu novietojums {position}. Fiksē nefrostomu katetrus."]
+                else:
+                    name = f"{'Kreisās' if side == 'Kreisā' else 'Labās'} nefrostomas nomaiņa USS kontrolē"
+                    text = ["Pēc operācijas lauka apdares caur nefrostomu ievada stīgu. Uz stīgas evakuē nefrostomu. Uz "
+                            f"stīgas ievada Ch {ch} nefrostomas katetru. Evakuē stīgu. USS kontrolē konstatē nefrostomas "
+                            f"novietojumu. Nefrostomas novietojums {position}. Fiksē nefrostomas katetru."]
+            elif op == "Epididymal tumour extirpation":
+                side = c1.radio("Puse", ["Labā", "Kreisā"], horizontal=True, key="op-ep-side")
+                part = c2.selectbox("Daļa", ["Cauda epididimis", "Corpus epididimis", "Caput epididimis"], key="op-ep-part")
+                size = c3.text_input("Izmērs", "~ 1 x 2 cm", key="op-ep-size")
+                look = st.text_input("Veidojums", "blīvu, labi norobežotu veidojumu", key="op-ep-look")
+                histology = st.text_input("Histoloģija (optional)", key="op-ep-hist")
+                short, word = ("lb.", "lb.") if side == "Labā" else ("kr.", "kr.")
+                name = f"Epididimis jaunveidojuma ekstirpācija {short} pusē"
+                text = [f"Pēc op. lauka trīsreizējas apdares, veic griezienu skrotum ādā {short} pusē, šķeļ tunica vaginalis "
+                        f"testis, izdala {word} sēklinieku. {part} rajonā konstatē {look.strip()} {size.strip()}, ko izdala un "
+                        "rezecē. Rūpīga hemostāze. Brūci slēdz pa kārtām. Sterils pārsējs. "
+                        f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz nodaļu."]
+                if histology.strip():
+                    text.append(f"\nHistoloģija: {histology.strip()}")
+            elif op == "Cystoscopy – clot evacuation, coagulation (hematuria)":
+                text, name = hematuria_operation(c1, c2, c3, pt_acc)
+            elif op == "Cystolithotripsy":
+                text, name = cystolithotripsy_operation(c1, c2, c3, pt_acc)
+            elif op in ("Optical urethrotomy (DVIU)", "Urethral dilation", "Meatotomy", "Urethroplasty (EPA / buccal graft)"):
+                text, name = stricture_operation(op, c1, c2, c3, pt_dat, pt_acc)
+            elif op in ("URS (semirigid)", "FURS (flexible)"):
+                text, name = urs_operation(op == "FURS (flexible)", c1, c2, c3, pt_dat, pt_acc)
+            elif op == "Laparoscopic radical prostatectomy":
+                lnd = c1.checkbox("Iegurņa limfadenektomija", True, key="op-rp-lnd")
+                nerve = c2.selectbox("Nervu saudzēšana", ["Nav", "Labajā pusē", "Kreisajā pusē", "Abās pusēs"],
+                                     key="op-rp-nerve")
+                fr = c3.selectbox("Katetrs (Fr)", ["16", "18", "20"], index=1, key="op-rp-fr")
+                balloon = c1.number_input("Balons (ml)", 5, 40, 20, key="op-rp-balloon")
+                drain = c2.checkbox("Drena pie anastomozes", True, key="op-rp-drain")
+                extras = (["iegurņa limfadenektomiju"] if lnd else []) + \
+                         ([f"nervu saudzēšanu ({nerve.lower()})"] if nerve != "Nav" else [])
+                name = "Laparoskopiska radikāla prostatektomija" + (" ar " + lv_list(extras) if extras else "")
+                text = [
+                    f"Pēc operācijas lauka 3x apdares ar polialkohola šķīdumu intubācijas narkozē, {pt_dat} atrodoties "
+                    "muguras guļā, veic 1,5 cm griezienu zem umbo, iekļūst prevezikālajā telpā. Neasā ceļā atbīdot "
+                    "taukaudus, izveido telpu priekšpusē peritonejam. Ievieto 10 mm troakāru, piešuj, ievada optiku, "
+                    "vizualizējot ekstraperitoneālo telpu, uzpilda līdz 15 mmHg. Redzes kontrolē hipogastrijā pa kreisi un "
+                    "pa labi ievada divus 12 mm troakārus. 4 cm pa labi no umbo ievieto 5 mm darba troakāru.",
+                ]
+                if lnd:
+                    text.append("Vizualizē a. iliaca externa dxt. Mobilizē un izdala limfmezglu paketi labajā iliakālajā un "
+                                "obturatorajā zonā. Vizualizē a. iliaca externa sin. Mobilizē un izdala limfmezglu paketi "
+                                "kreisajā iliakālajā un obturatorajā zonā.")
+                text.append("Mobilizē prostatu un urīnpūšļa kaklu, incidē fascia endopelvina, pārdala ligamenta "
+                            "puboprostatica" + (f", trulā ceļā atejot no nervu-asinsvadu kūlīša {nerve.lower()}"
+                                                if nerve != "Nav" else "") + ".")
+                text.append("Ar bipolāro elektrokoagulāciju pārdala plexus dorsalis, rūpīga hemostāze.")
+                text.append("Atver urīnpūsli, vizualizē ostijas un prostatas malu. Pārdala urīnpūšļa gļotādu, mobilizē "
+                            "priekšdziedzeri, abus ductus deferens un sēklas pūslīšus izdala, klipē un pārdala. Apeksa "
+                            "rajonā atdala prostatu no uretras. Prostatas preparātu ievieto laparoskopijas maisiņā un uz "
+                            "laiku novieto labajā apakšējā kvadrantā.")
+                text.append(f"Izveido vezikouretrālo anastomozi ar nepārtrauktu šuvi. Ievieto urīnpūslī {fr} Fr katetru, "
+                            f"balons {balloon} ml, savelk anastomozes šuves, pārbauda šuvju hermētismu. Hemostāze laba. "
+                            "Izvelk prostatas preparātu. Evakuē troakārus."
+                            + (" Retropubiski caur kontrapertūru pie anastomozes atstāj drenu." if drain else "")
+                            + " Brūces sašuj pa kārtām. Sterils pārsējs.")
+                text.append("Preparāts: " + ("lb. puses l/m; kr. puses l/m; prostata." if lnd else "prostata.")
+                            + " Preparātu nosūta histoloģiskai izmeklēšanai.")
+            elif op in ("Laparoscopic nephrectomy", "Laparoscopic kidney resection", "Laparoscopic pyeloplasty"):
+                side = c1.radio("Puse", ["Labā", "Kreisā"], horizontal=True, key="op-lap-side")
+                right = side == "Labā"
+                adj = "labās" if right else "kreisās"        # labās puses ..., labās lumbotomijas guļā
+                loc = "labajā" if right else "kreisajā"     # labajā pararektālajā rajonā
+                lat = "dx." if right else "sin."
+                kidney_acc = "labo nieri" if right else "kreiso nieri"
+                access = (f"Pēc operācijas lauka 3x apdares ar polialkohola šķīdumu intubācijas narkozē, {pt_dat} atrodoties "
+                          f"{adj} lumbotomijas guļā, veic griezienu 2 cm virs umbo {loc} pararektālajā rajonā.")
+                if op == "Laparoscopic nephrectomy":
+                    fr = c2.selectbox("Katetrs (Fr)", ["14", "16", "18", "20"], index=2, key="op-nx-fr")
+                    drain = c3.checkbox("Drena nieres gultnē", False, key="op-nx-drain")
+                    name = f"Laparoskopiska {adj} puses nefrektomija"
+                    text = [
+                        f"Ievieto urīnpūšļa ilgkatetru Foley tipa {fr} Fr, izdalās dzeltens urīns.",
+                        access + " Ievada Veress adatu, uzpilda vēdera dobumu līdz 14 mmHg. Ievada 10 mm troakāru. "
+                        f"Vizualizē vēdera dobumu. Veic griezienu un ievada 12 mm troakāru pa lin. parasternalis {lat} "
+                        "Pa l. axillaris anterior subkostāli ievada 5 mm darba troakāru. 2 cm virs spina iliaca "
+                        f"{lat} ievada 5 mm darba troakāru.",
+                        f"Pārdala peritoneja parietālo lapiņu, vizualizē {kidney_acc}. Mobilizē un atbrīvo {adj} nieres "
+                        "kājiņu, kuru pārdala ar endoskopisku griezējšuvēju. Mobilizē ureteru, ko klipē un pārdala. Veic "
+                        f"nefrektomiju. Hemostāzes kontrole. Pagarinot griezienu, evakuē {kidney_acc} pa pararektālā "
+                        "troakāra atveri." + (" Nieres gultnē pievada drenu." if drain else ""),
+                        "Evakuē troakārus. Brūces sašuj pa kārtām.",
+                        f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz nodaļu.",
+                        "",
+                        f"Preparāts: {'labā' if right else 'kreisā'} niere.",
+                        "Preparātu nosūta histoloģiskai izmeklēšanai.",
+                    ]
+                elif op == "Laparoscopic kidney resection":
+                    where = c2.text_input("Tumors (kur nierē)", "vidējā sienā, dorsāli", key="op-pn-where")
+                    margin = c3.number_input("Atkāpe (cm)", 0.1, 2.0, 0.5, step=0.1, format="%.1f", key="op-pn-margin")
+                    clamp = c1.checkbox("Nieres artērijas klemmēšana", False, key="op-pn-clamp")
+                    ischemia = (c2.number_input("Siltā išēmija (min)", 1, 60, 15, key="op-pn-isch") if clamp else 0)
+                    drain = c3.checkbox("Drena", True, key="op-pn-drain")
+                    name = f"Laparoskopiska {adj} nieres rezekcija"
+                    margin_text = f"{margin:.1f}".replace(".", ",")
+                    text = [
+                        access + " Paņemot uz turētājiem, pārdala aponeirozi un peritoneju. Ievada Veress adatu, uzpilda "
+                        "vēdera dobumu līdz 14 mmHg. Ievada 10 mm troakāru. Veic griezienu un ievada 12 mm troakāru pa lin. "
+                        f"parasternalis {lat} Pa l. axillaris anterior subkostāli ievada 5 mm darba troakāru. 2 cm virs spina "
+                        f"iliaca {lat} ievada 5 mm darba troakāru. Vizualizē vēdera dobumu.",
+                        f"Pārdala peritoneja parietālo lapiņu, vizualizē {kidney_acc}. Nieres {where.strip().rstrip('.')} "
+                        "vizualizē tumoru."
+                        + (" Izdala nieres artēriju, uzliek asinsvadu klemmi." if clamp else "")
+                        + f" Veic peritumorozu veidojuma rezekciju ar {margin_text} cm atkāpi. Rūpīga hemostāze, ar Z veida "
+                        "šuvēm apšujot nieres defektu."
+                        + (f" Noņem klemmi, siltās išēmijas laiks {ischemia} min." if clamp else "")
+                        + " Hemostāze apmierinoša."
+                        + (f" Caur darba kanālu virs spina iliaca {lat} ievieto drenu." if drain else "")
+                        + " Evakuē rezecētos audus pa pararektālā troakāra atveri.",
+                        "Evakuē troakārus. Brūces sašuj pa kārtām.",
+                        "",
+                        f"Preparāts: {adj} nieres rezekcijas audi.",
+                        "Preparātu nosūta histoloģiskai izmeklēšanai.",
+                    ]
+                else:
+                    stent = c2.checkbox("Uretera stents", True, key="op-pp-stent")
+                    drain = c3.checkbox("Drena pie anastomozes", True, key="op-pp-drain")
+                    suture = c1.text_input("Šuve", "3.0 Vicryl", key="op-pp-suture")
+                    name = f"{'Labās' if right else 'Kreisās'} puses laparoskopiska pieloplastika"
+                    text = [
+                        access + " Paņemot uz turētājiem, pārdala aponeirozi un peritoneju. Ievada Veresa adatu, uzpilda "
+                        "vēdera dobumu līdz 14 mmHg. Ievada 10 mm troakāru. 5 cm laterālāk no optikas troakāra veic "
+                        "griezienu un ievada 12 mm troakāru. Pa l. axillaris anterior subkostāli ievada 5 mm darba "
+                        f"troakāru. 2 cm virs spina iliaca {lat} ievada 5 mm darba troakāru. Vizualizē vēdera dobumu.",
+                        f"Pārdala peritoneja parietālo lapiņu, vizualizē {kidney_acc}. Asā un neasā ceļā eksplorē nieres "
+                        f"bļodiņu. Mobilizē ureteru. Ar {suture.strip()} uzšuj uretera dorsālo sienu. Pārdala ureteru, "
+                        "iešķeļ to pa mugurējo sienu. Veic bļodiņas rezekciju. Ar nepārtrauktu šuvi veido anastomozes "
+                        "mugurējo sienu." + (" Veic uretera stenta intubāciju." if stent else "")
+                        + " Ar otru nepārtrauktu šuvi veido anastomozes priekšējo sienu un slēdz atlikušo defektu nieres "
+                        "bļodiņā." + (" Pie anastomozes pievada drenu." if drain else ""),
+                        "Evakuē troakārus. Brūces sašuj pa kārtām.",
+                        f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz nodaļu.",
+                    ]
+            elif op == "Scrotal mass excision":
+                st.caption("Every scrotal mass needs an ultrasound first. A solid intratesticular mass is treated with an "
+                           "inguinal orchidectomy (EAU), and a suspected paratesticular sarcoma with an inguinal approach – "
+                           "not with a scrotal excision.")
+                anesthesia = c1.selectbox("Anestēzija", ["spinālā anestēzijā", "vispārējā anestēzijā",
+                                                         "vietējā anestēzijā ar Sol. Lidocaini 1%"], key="op-sm-an")
+                position = c2.selectbox("Guļa", ["dorsālas litotomijas guļā", "muguras guļā"], key="op-sm-pos")
+                place = c3.selectbox("Vieta", list(SCROTAL_PLACE), key="op-sm-place")
+                side = c1.selectbox("Puse", list(SCROTAL_SIDE), key="op-sm-side")
+                many = c2.radio("Veidojumi", ["Viens", "Vairāki"], horizontal=True, key="op-sm-many") == "Vairāki"
+                size = c3.number_input("Izmērs (cm)", 0.0, 30.0, value=None, step=0.5, key="op-sm-size")
+                incision = c1.selectbox("Griezums", ["virs veidojuma", "pa scrotum viduslīniju (raphe)",
+                                                     "scrotum/perineālā rajonā", "elipsveida ādas griezums ap veidojumu"],
+                                        key="op-sm-inc")
+                looks = {  # (before the noun, singular / plural, after the noun)
+                    "iekapsulēts, mīksti elastīgs": ("iekapsulētu, mīksti elastīgu", "iekapsulētus, mīksti elastīgus", ""),
+                    "cistisks, ar biezu, baltu saturu": ("cistisku", "cistiskus", " ar biezu, baltu saturu"),
+                    "mīksts, lipomatozs": ("mīkstu, lipomatozu", "mīkstus, lipomatozus", ""),
+                    "blīvs, ar skaidrām robežām": ("blīvu", "blīvus", " ar skaidrām robežām"),
+                }
+                look = c2.selectbox("Veidojuma raksturs", list(looks), key="op-sm-look")
+                free = c3.checkbox("Nav saistīts ar sēklinieku un sēklas virvīti", True, key="op-sm-free")
+                drain = c1.checkbox("Drenāža (gumijas strēmele)", False, key="op-sm-drain")
+                closure = c2.selectbox("Šuves", ["Zemādas šuve. Ādas šuves.", "Zemādas šuve. Intrakutāna uzsūcoša šuve."],
+                                       key="op-sm-close")
+                name = scrotal_words({"Scrotal mass location": place, "Scrotal mass number": "Multiple" if many else "Single"})[2]
+                name = name[0].upper() + name[1:]
+                noun = "veidojumus" if many else "veidojumu"
+                size_text = (f" Ø {size:g} cm".replace(".", ",") if size else "")
+                where = "Zemādā" if place != "Spermatic cord / paratesticular" else "Paratestikulāri, sēklas virvītes apvidū,"
+                cut = ("veic elipsveida ādas griezienu ap veidojumu" if incision.startswith("elipsveida")
+                       else f"izdara griezienu {incision.replace('virs veidojuma', 'virs veidojumiem') if many else incision}")
+                text = [
+                    f"{pt_acc.replace('Pacientu', 'Pacients').replace('Pacienti', 'Paciente')} atrodas {position}. Pēc "
+                    f"operācijas lauka apdares {anesthesia} {cut} ({SCROTAL_SIDE[side]}). {where} vizualizē "
+                    f"{looks[look][1 if many else 0]} {noun}{size_text}{looks[look][2]}"
+                    + ((", kas nav saistīti ar sēklinieku un sēklas virvīti" if many else
+                        ", kas nav saistīts ar sēklinieku un sēklas virvīti") if free else "")
+                    + f". Neasā ceļā {'tos' if many else 'to'} izdala un evakuē. Rūpīga hemostāze."
+                    + (" Brūcē atstāj gumijas strēmeli." if drain else "") + f" {closure} Sterils pārsējs.",
+                    f"{'Veidojumus' if many else 'Veidojumu'} nosūta patohistoloģiskai izmeklēšanai.",
+                ]
+            elif op == "Hydrocele plasty":
+                side = c1.radio("Puse", ["Labā", "Kreisā"], horizontal=True, key="op-h-side")
+                technique = c2.selectbox("Tehnika", ["Izvēršana (Winkelmann)", "Ekscīzija (Bergmann)", "Plikācija (Lord)"],
+                                         key="op-h-tech")
+                fluid = c3.selectbox("Šķidrums", ["serozs", "hemorāģisks", "duļķains"], key="op-h-fluid")
+                drain = c1.checkbox("Drenāža", True, key="op-h-drain")
+                ward = c2.text_input("Pārved uz", "nodaļu", key="op-h-ward")
+                short = "lb." if side == "Labā" else "kr."
+                step = {"Izvēršana (Winkelmann)": "Veic tunica vaginalis sieniņas incīziju un izvēršanu uz āru, fiksē ar "
+                                                  "nepārtrauktu šuvi.",
+                        "Ekscīzija (Bergmann)": "Veic tunica vaginalis parietālās lapiņas ekscīziju, brīvās malas apšuj ar "
+                                                "nepārtrauktu šuvi.",
+                        "Plikācija (Lord)": "Veic tunica vaginalis plikāciju ar atsevišķām šuvēm."}[technique]
+                name = f"{'Labās' if side == 'Labā' else 'Kreisās'} puses hidrocēles plastika"
+                text = [f"Pēc op. lauka apdares veic griezienu scrotum ādā pa viduslīniju. Izdala {short} puses testis līdz "
+                        f"apvalkiem. Konstatē hidrocēli. Pārdala to, izdalās {fluid} šķidrums. {step} Rūpīga hemostāze."
+                        + (" Drena." if drain else "") + " Ādu slēdz ar atsevišķām šuvēm. Sterils pārsējs.",
+                        f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz {ward.strip()}."]
+            elif op == "Testicular torsion – exploration":
+                text, name = torsion_operation(c1, c2, c3, pt_acc)
+            elif op == "Prostatic abscess drainage":
+                text, name = prostatic_abscess_operation(c1, c2, c3, pt_acc)
+            elif op in ("Orchiectomy (scrotal)", "Inguinal orchifuniculectomy", "Epididymectomy",
+                        "Scrotal / funicular revision, drainage"):
+                text, name = scrotal_infection_operation(op, c1, c2, c3, pt_acc)
+            elif op == "Radical cystectomy":
+                text, name = cystectomy_operation(woman, c1, c2, c3, pt_dat, pt_acc)
+            elif op == "Cystoscopy (diagnostic) ± biopsy":
+                text, name = cystoscopy_operation(c1, c2, c3, pt_acc)
+            elif op == "Dorsumcision (dorsal slit)":
+                reason = c1.selectbox("Indikācija", ["parafimoze", "fimoze"], key="op-ds-reason")
+                anesthesia = c2.selectbox("Anestēzija", ["lokālā anestēzijā", "spinālā anestēzijā", "vispārējā anestēzijā"],
+                                          key="op-ds-an")
+                suture = c3.text_input("Šuves", "4.0 Vicryl", key="op-ds-suture")
+                ward = c1.selectbox("Pēc operācijas", ["pārved uz palātu", "izraksta ambulatori"], key="op-ds-ward")
+                name = "Dorsumcīzija"
+                ring = "parafimozes (iespīlējuma) gredzenu" if reason == "parafimoze" else "fimozes gredzenu"
+                text = [
+                    f"Pēc op. lauka apdares ar \"Braunol\" {anesthesia} iešķeļ {ring} uz plkst. 12.00. "
+                    + ("Priekšādiņu reponē pāri dzimumlocekļa galviņai. " if reason == "parafimoze" else "Atver priekšādiņu. ")
+                    + f"Brūci apstrādā ar \"Braunol\". Brūces malas apšuj ar {suture.strip()} atsevišķām šuvēm. "
+                    "Hemostāze apmierinoša. Sterils pārsējs. "
+                    + (f"{pt_acc} vispārējā apmierinošā stāvoklī pārved uz palātu." if ward == "pārved uz palātu"
+                       else f"{pt_acc} vispārējā apmierinošā stāvoklī izraksta ambulatori.")
+                ]
+            elif op == "Circumcision":
+                anesthesia = c1.selectbox("Anestēzija", ["spinālā anestēzijā", "vispārējā anestēzijā", "vietējā anestēzijā"], key="op-c-an")
+                antiseptic = c2.text_input("Lauka apdare ar", "polispirtu šķīdumu", key="op-c-anti")
+                margin = c3.number_input("Atkāpe no corona glandis (mm)", 2, 15, 5, key="op-c-margin")
+                suture = c1.text_input("Šuves", "SafilQuick 4.0", key="op-c-suture")
+                frenulum = c2.checkbox("Frenuloplastika", key="op-c-fren")
+                ward = c3.text_input("Pārved uz", "nodaļu", key="op-c-ward")
+                text = [
+                    f"Pacients {anesthesia}. Pēc op. lauka apdares ar {antiseptic.strip()} izdara cirkulāru griezienu "
+                    "Corona glandis rajonā, izpreparē preputium ārējo lapiņu. Iešķeļ preputium pret 12.00, atvirza to pār "
+                    "glans penis, notīra smegmas kārtu ar Sol. Braunoli. Veic preputium iekšējās lapiņas rezekciju kopā ar "
+                    f"preputium ar aptuveni {margin} mm atkāpi no corona glandis."
+                    + (" Veic frenuloplastiku." if frenulum else "")
+                    + f" Rūpīga hemostāze. Brūci slēdz ar atsevišķām {suture.strip()} šuvēm. Sterils pārsējs. Pacientu "
+                    f"vispārēji apmierinošā stāvoklī pārved uz {ward.strip()}."
+                ]
+            complications = st.text_input("Intraoperatīvas komplikācijas / papildus atrade (optional)", key=f"op-extra-{op}")
     if complications.strip():
         text.append(complications.strip().rstrip(".") + ".")
+    with right:
+        paper = st.container(key="paper-op")
     if op in ("TURU", "Re-TURU (scar resection)") and not sites:
-        st.info("Choose where the tumour is." if op == "TURU" else "Choose where the scar is.")
+        paper.info("Choose where the tumour is." if op == "TURU" else "Choose where the scar is.")
         return
-    header = render_doc_header("op")
-    output = ((f"Operācija: {name}\n" if name else "")
-              + (f"Anesteziologs: {header['anesth']}\n" if header.get("anesth") else "")
-              + ("\n" if name or header.get("anesth") else "") + "Operācijas apraksts:\n\n" + "\n".join(text))
-    st.divider()
-    st.text_area("Operācijas apraksts", output, height=420, key=f"op-out-{hash(output)}")
-    word_button("Word file (Operācijas apraksts)", lambda: operation_docx(header, name, text, figure),
-                f"Operacijas_apraksts_{header.get('date', '').strip('.').replace('.', '-') or 'bez_datuma'}.docx",
-                "op-word")
+    with paper:
+        header = render_doc_header("op")
+        output = ((f"Operācija: {name}\n" if name else "")
+                  + (f"Anesteziologs: {header['anesth']}\n" if header.get("anesth") else "")
+                  + ("\n" if name or header.get("anesth") else "") + "Operācijas apraksts:\n\n" + "\n".join(text))
+        paper_area("Operācijas apraksts", output, f"op-out-{hash(output)}")
+        word_button("Word file (Operācijas apraksts)", lambda: operation_docx(header, name, text, figure),
+                    f"Operacijas_apraksts_{header.get('date', '').strip('.').replace('.', '-') or 'bez_datuma'}.docx",
+                    "op-word")
 
 
 # ---------------------------------------------------------------
@@ -11956,59 +12223,30 @@ def render_operation(sex):
 # ---------------------------------------------------------------
 
 st.set_page_config(page_title="Discharge helper", layout="wide")
-st.markdown("<h1 style='text-align: center;'>Discharge helper</h1>", unsafe_allow_html=True)
-st.caption(f"Build: 2026-10-30-vitals · Running file: {Path(__file__).resolve()}")
+st.markdown(APP_CSS, unsafe_allow_html=True)
 
-# Make the two sex buttons tall rectangles
-st.markdown(
-    "<style>"
-    ".st-key-sex_woman button, .st-key-sex_man button {height: 3.4rem; font-size: 1.25rem;}"
-    "</style>",
-    unsafe_allow_html=True,
-)
-
-# Bar 0: which document to write
-doc_type = st.segmented_control(
+# Top bar: the app's name, which document to write, and the patient's sex
+bar = st.columns([1.4, 5, 2.2], vertical_alignment="center")
+bar[0].markdown("<div class='app-name'>Discharge helper</div>", unsafe_allow_html=True)
+doc_type = bar[1].segmented_control(
     "Document", ["Discharge", "Primary evaluation", "Decursus", "Operation description"], default="Discharge",
-    selection_mode="single", key="doc_type", width="stretch",
+    selection_mode="single", key="doc_type", label_visibility="collapsed",
 ) or "Discharge"
-
-# Bar 1: where the patient is discharged from (only for discharge papers)
-department = None if doc_type != "Discharge" else st.segmented_control(
-    "Discharged from",
-    options=list(DEPARTMENTS),
-    format_func=lambda key: DEPARTMENTS[key],
-    selection_mode="single",
-    default=None,
-    key="department",
-    width="stretch",
+sex = bar[2].segmented_control(
+    "Patient", ["Woman", "Man"], format_func=lambda s: {"Woman": "♀  Woman", "Man": "♂  Man"}[s],
+    selection_mode="single", key="sex", label_visibility="collapsed", width="stretch",
 )
-
-# Bar 2: patient sex, two equal rectangles (woman left, man right)
-def set_sex(value):
-    st.session_state["sex"] = value
-
-
-st.session_state.setdefault("sex", None)
-sex = st.session_state["sex"]
-st.caption("Patient")
-col_woman, col_man = st.columns(2)
-with col_woman:
-    st.button("♀  Woman", key="sex_woman", on_click=set_sex, args=("Woman",),
-              type="primary" if sex == "Woman" else "secondary", width="stretch")
-with col_man:
-    st.button("♂  Man", key="sex_man", on_click=set_sex, args=("Man",),
-              type="primary" if sex == "Man" else "secondary", width="stretch")
+st.caption(f"Build: 2026-10-30-new-layout · Running file: {Path(__file__).resolve()}")
 
 # Keep the Word header fields (and the surgeons) when you switch between pages
 for _key in HDR_KEYS + ["pe-surgeons", "pe-nurse"]:
     if _key in st.session_state:
         st.session_state[_key] = st.session_state[_key]
 
-# Primary evaluation and decursus have their own pages
+# Primary evaluation, decursus and operation description have their own pages
 if doc_type != "Discharge":
     if sex is None:
-        st.info("Choose the patient's sex first.")
+        st.info("Choose the patient's sex first (top right).")
     elif doc_type == "Primary evaluation":
         render_primary_evaluation(sex)
     elif doc_type == "Operation description":
@@ -12017,13 +12255,23 @@ if doc_type != "Discharge":
         render_decursus(sex)
     st.stop()
 
-# The central bar: type a name or a code, pick one or several
-selected = st.multiselect(
-    "Search diagnosis",
-    options=list(DIAGNOSES),
-    format_func=lambda code: f"{code} - {DIAGNOSES[code]}",
-    placeholder="Start typing a diagnosis or ICD-10 code, e.g. prostate or N40",
-)
+# Where the patient goes home from, and the diagnoses
+with st.container(border=True, key="card-dx"):
+    department = st.segmented_control(
+        "Discharged from",
+        options=list(DEPARTMENTS),
+        format_func=lambda key: DEPARTMENTS[key],
+        selection_mode="single",
+        default=None,
+        key="department",
+        width="stretch",
+    )
+    selected = st.multiselect(
+        "Diagnosis",
+        options=list(DIAGNOSES),
+        format_func=lambda code: f"{code} - {DIAGNOSES[code]}",
+        placeholder="Start typing a diagnosis or ICD-10 code, e.g. prostate or N40",
+    )
 
 choices = {}
 chosen_blocks = {}
@@ -12032,77 +12280,35 @@ if selected:
     col_main, col_side = st.columns([3, 2], gap="large")
 
     # -----------------------------------------------------------
-    # Right side: recommendation blocks you can drag in
-    # -----------------------------------------------------------
-    with col_side:
-        st.subheader("Recommendation blocks")
-        classic = st.checkbox("Use the old panel (if the new one does not load)", key="classic_panel_v2")
-        any_blocks = False
-        for code in selected:
-            blocks = BLOCKS.get(code)
-            if not blocks:
-                continue
-            any_blocks = True
-            st.markdown(f"**{code} - {DIAGNOSES[code]}**")
-            by_id = {b["id"]: b for b in blocks}
-            label_to_id = {block_label(b): b["id"] for b in blocks}
-
-            if not classic:
-                st.caption("Drag blocks into Chosen, or hold Ctrl and click a block to move it "
-                           "between the lists. Hover a block to read its notes.")
-                chosen_ids = block_picker(code, blocks)
-            elif HAS_SORTABLES:
-                st.caption("Drag blocks from Available to Chosen. "
-                           "The order in Chosen is the order in the text.")
-                result = sort_items(
-                    [{"header": "Available", "items": list(label_to_id)},
-                     {"header": "Chosen", "items": []}],
-                    multi_containers=True,
-                    direction="vertical",
-                    key=f"blocks-{code}",
-                )
-                try:
-                    chosen_ids = [label_to_id[t] for t in result[1]["items"] if t in label_to_id]
-                except (TypeError, IndexError, KeyError):
-                    chosen_ids = []
-            else:
-                st.caption("Drag and drop is not installed, so pick the blocks from a list.")
-                picked = st.multiselect("Choose blocks", list(label_to_id), key=f"blocks-{code}")
-                chosen_ids = [label_to_id[t] for t in picked]
-
-            chosen_blocks[code] = [by_id[i] for i in chosen_ids if i in by_id]
-
-            for warning in BLOCK_WARNINGS.get(code, []):
-                if all(i in chosen_ids for i in warning["ids"]):
-                    st.warning(warning["text"])
-
-            with st.expander("Clinical notes"):
-                for b in blocks:
-                    st.markdown(f"**{b['title']}** ({b['group']})  \n{b['note']}")
-        if not any_blocks:
-            st.caption("No blocks for the selected diagnoses yet.")
-
-    # -----------------------------------------------------------
-    # Left side: modifiers and the discharge text
+    # Left: the choices for each diagnosis, then the medications
     # -----------------------------------------------------------
     with col_main:
         for code in selected:
             fixed = fixed_values(code, department)
-            with st.container(border=True):
-                st.subheader(f"{code} - {DIAGNOSES[code]}")
+            with st.container(border=True, key=f"card-dx-{code}"):
+                st.markdown(f"#### {code} · {DIAGNOSES[code]}")
                 # lets sections and rules depend on the department and the patient's sex
                 choices[code] = {"_department": department, "_sex": sex}
                 layout = DIAGNOSIS_MODIFIERS.get(code, DEFAULT_MODIFIERS)
                 # A list of (title, [modifiers]) pairs gives sections; a plain list is one block
                 sections = layout if layout and isinstance(layout[0], tuple) else [(None, layout)]
 
-                for section in sections:
+                for s_index, section in enumerate(sections):
                     title, groups = section[0], section[1]
                     condition = section[2] if len(section) > 2 else {}
                     if not all(condition_met(choices[code].get(other), wanted)
                                for other, wanted in condition.items()):
                         continue  # this section does not apply to the current choices
-                    holder = st.expander(title, expanded=True) if title else st.container()
+                    if title:
+                        # the closed section shows what is chosen in it, and how much is still empty
+                        summary, missing = section_summary(code, groups, choices[code], fixed)
+                        exp_key = f"exp-{code}-{title}"
+                        first_open = st.session_state.setdefault(f"{exp_key}-open", bool(missing))
+                        label = (f"**{title}**" + (f"  ·  {summary}" if summary else "")
+                                 + (f"  ·  :orange[{missing} to choose]" if missing else ""))
+                        holder = st.expander(label, expanded=first_open, key=exp_key)
+                    else:
+                        holder = st.container()
                     with holder:
                         for group in groups:
                             spec = MODIFIERS[group]
@@ -12160,68 +12366,114 @@ if selected:
                 choices[code]["_test_ids"] = [t["id"] for t in tests]
                 choices[code]["_tests_by"] = tests_by
 
-        # -------------------------------------------------------
-        # Discharge text
-        # -------------------------------------------------------
-        st.divider()
-        st.header("Discharge text")
-
-        if department is None or sex is None:
-            st.info("Choose where the patient is discharged from and the patient's sex to see the text.")
-        else:
+        # Medications: the recommendation blocks you drag in
+        with st.container(border=True, key="card-meds"):
+            st.markdown("#### Medications and advice")
+            classic = st.checkbox("Use the old panel (if the new one does not load)", key="classic_panel_v2")
+            any_blocks = False
             for code in selected:
-                st.subheader(f"{code} - {DIAGNOSES[code]}")
-                values = choices[code]
-                values["_blocks"] = [b["id"] for b in chosen_blocks.get(code, [])]  # for the safety checks
-
-                missing = [g for g, v in values.items() if v is None and not g.startswith("_")]
-                if missing:
-                    st.info("Choose all options above to see the text. Not chosen yet: " + ", ".join(missing))
+                blocks = BLOCKS.get(code)
+                if not blocks:
                     continue
+                any_blocks = True
+                if len(selected) > 1:
+                    st.markdown(f"**{code} - {DIAGNOSES[code]}**")
+                by_id = {b["id"]: b for b in blocks}
+                label_to_id = {block_label(b): b["id"] for b in blocks}
 
-                template = find_template(code, department, values)
-                if template is None:
-                    st.warning("No text template for this combination of choices yet.")
-                    continue
-
-                # Safety checks: some situations need a clinician's review instead of a routine text
-                checker = CHECKS.get(code)
-                blockers, cautions = checker(values) if checker else ([], [])
-                if blockers:
-                    st.error("Clinical review is needed before a routine discharge text can be written:\n\n"
-                             + "\n".join(f"- {b}" for b in blockers))
-                    continue
-                for caution in cautions:
-                    st.warning(caution)
-
-                block_texts = [b["text"] for b in chosen_blocks.get(code, [])]
-                if template.get("builder"):
-                    parts = BUILDERS[template["builder"]](sex, values, block_texts)
-                    dx_text = parts["clinical_diagnosis"]
-                    epi_text = parts["epicrisis"]
-                    recs = parts["recommendations"]
+                if not classic:
+                    st.caption("Drag blocks into Chosen, or hold Ctrl and click a block to move it "
+                               "between the lists. Hover a block to read its notes.")
+                    chosen_ids = block_picker(code, blocks)
+                elif HAS_SORTABLES:
+                    st.caption("Drag blocks from Available to Chosen. "
+                               "The order in Chosen is the order in the text.")
+                    result = sort_items(
+                        [{"header": "Available", "items": list(label_to_id)},
+                         {"header": "Chosen", "items": []}],
+                        multi_containers=True,
+                        direction="vertical",
+                        key=f"blocks-{code}",
+                    )
+                    try:
+                        chosen_ids = [label_to_id[t] for t in result[1]["items"] if t in label_to_id]
+                    except (TypeError, IndexError, KeyError):
+                        chosen_ids = []
                 else:
-                    forms = build_forms(sex, values)
-                    dx_text = template.get("clinical_diagnosis", "").format(**forms)
-                    epi_text = template["epicrisis"].format(**forms)
-                    recs = add_blocks(template["recommendations"], block_texts)
-                block_sig = "|".join(b["id"] for b in chosen_blocks.get(code, []))
-                # The text boxes are editable, so you can adjust the wording before
-                # copying it. Changing the choices above regenerates the texts.
-                digest = hashlib.md5(repr(sorted(values.items())).encode("utf-8")).hexdigest()
-                sig = f"{template['id']}|{sex}|{digest}"
+                    st.caption("Drag and drop is not installed, so pick the blocks from a list.")
+                    picked = st.multiselect("Choose blocks", list(label_to_id), key=f"blocks-{code}")
+                    chosen_ids = [label_to_id[t] for t in picked]
 
-                tab_dx, tab_epi, tab_rec = st.tabs(["Clinical diagnosis", "Epicrisis", "Recommendations"])
-                with tab_dx:
-                    if not dx_text:
-                        st.info("No clinical diagnosis text for this template yet. You can type it in the box.")
-                    st.text_area("Clinical diagnosis", dx_text, height=170, key=f"dx-{sig}")
-                with tab_epi:
-                    st.text_area("Epicrisis", epi_text, height=420, key=f"epi-{sig}")
-                with tab_rec:
-                    st.text_area("Recommendations", recs, height=600,
-                                 key=f"rec-{sig}-{block_sig}")
+                chosen_blocks[code] = [by_id[i] for i in chosen_ids if i in by_id]
+
+                for warning in BLOCK_WARNINGS.get(code, []):
+                    if all(i in chosen_ids for i in warning["ids"]):
+                        st.warning(warning["text"])
+
+                with st.expander("Clinical notes"):
+                    for b in blocks:
+                        st.markdown(f"**{b['title']}** ({b['group']})  \n{b['note']}")
+            if not any_blocks:
+                st.caption("No blocks for the selected diagnoses yet.")
 
         with st.expander("Current selection (technical view)"):
             technical = {"department": department, "sex": sex, "diagnoses": choices}
             st.json(json.loads(json.dumps(technical, default=str)))
+
+    # -----------------------------------------------------------
+    # Right: the paper (each part with its own Copy button)
+    # -----------------------------------------------------------
+    with col_side:
+        with st.container(key="paper-dx"):
+            if department is None or sex is None:
+                st.info("Choose where the patient is discharged from and the patient's sex to see the text.")
+            else:
+                for code in selected:
+                    if len(selected) > 1:
+                        st.markdown(f"**{code} · {DIAGNOSES[code]}**")
+                    values = choices[code]
+                    values["_blocks"] = [b["id"] for b in chosen_blocks.get(code, [])]  # for the safety checks
+
+                    missing = [g for g, v in values.items() if v is None and not g.startswith("_")]
+                    if missing:
+                        st.info("Choose all options to see the text. Not chosen yet: " + ", ".join(missing))
+                        continue
+
+                    template = find_template(code, department, values)
+                    if template is None:
+                        st.warning("No text template for this combination of choices yet.")
+                        continue
+
+                    # Safety checks: some situations need a clinician's review instead of a routine text
+                    checker = CHECKS.get(code)
+                    blockers, cautions = checker(values) if checker else ([], [])
+                    if blockers:
+                        st.error("Clinical review is needed before a routine discharge text can be written:\n\n"
+                                 + "\n".join(f"- {b}" for b in blockers))
+                        continue
+                    if cautions:
+                        st.warning(("1 thing to check" if len(cautions) == 1 else f"{len(cautions)} things to check")
+                                   + ":\n\n" + "\n".join(f"- {c}" for c in cautions))
+
+                    block_texts = [b["text"] for b in chosen_blocks.get(code, [])]
+                    if template.get("builder"):
+                        parts = BUILDERS[template["builder"]](sex, values, block_texts)
+                        dx_text = parts["clinical_diagnosis"]
+                        epi_text = parts["epicrisis"]
+                        recs = parts["recommendations"]
+                    else:
+                        forms = build_forms(sex, values)
+                        dx_text = template.get("clinical_diagnosis", "").format(**forms)
+                        epi_text = template["epicrisis"].format(**forms)
+                        recs = add_blocks(template["recommendations"], block_texts)
+                    block_sig = "|".join(b["id"] for b in chosen_blocks.get(code, []))
+                    # The text boxes are editable, so you can adjust the wording before
+                    # copying it. Changing the choices regenerates the texts.
+                    digest = hashlib.md5(repr(sorted(values.items())).encode("utf-8")).hexdigest()
+                    sig = f"{template['id']}|{sex}|{digest}"
+
+                    if not dx_text:
+                        st.caption("No clinical diagnosis text for this template yet – you can type it in the box.")
+                    paper_area("Klīniskā diagnoze", dx_text, f"dx-{sig}", label="Clinical diagnosis")
+                    paper_area("Epikrīze", epi_text, f"epi-{sig}", label="Epicrisis")
+                    paper_area("Rekomendācijas", recs, f"rec-{sig}-{block_sig}", label="Recommendations")

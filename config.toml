@@ -1,0 +1,13 @@
+# Discharge helper – the look (colours and font). Put this file in a folder called ".streamlit"
+# next to app.py (on GitHub: .streamlit/config.toml). Without it the app still works, in Streamlit's default colours.
+[theme]
+base = "light"
+primaryColor = "#1E5AA8"
+backgroundColor = "#F5F6F8"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1B1F24"
+borderColor = "#D5DAE0"
+showWidgetBorder = true
+baseRadius = "0.5rem"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap, sans-serif"
+headingFontSizes = ["1.6rem", "1.3rem", "1.1rem", "1rem"]
