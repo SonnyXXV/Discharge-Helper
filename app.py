@@ -995,6 +995,86 @@ MODIFIERS = {
     "Definitive plan (NF)": {"type": "single", "default_index": 0,
                              "options": ["Urologist: plan definitive treatment", "Oncologist: oncology plan",
                                          "Long-term nephrostomy"]},
+    # ----- N13.3 other and unspecified hydronephrosis (NMC or 4. Urology) -----
+    "Hydronephrosis grade (HN)": {"type": "single", "options": ["I", "II", "III", "IV"]},
+    "Ureter dilated (HN)": {"type": "toggle"},
+    "Symptoms (HN)": {"type": "multi", "optional": True,
+                      "options": ["Flank or lumbar pain", "Fever", "Chills", "Nausea / vomiting",
+                                  "Reduced urine output", "Visible hematuria"]},
+    "Imaging (HN)": {"type": "single", "default_index": 0,
+                     "options": ["Ultrasound", "Non-contrast CT", "Contrast CT", "MRI"]},
+    "Imaging details (HN)": {"type": "text", "optional": True,
+                             "placeholder": "neobligāti, piem., iegurnī 6 cm veidojums, kas nospiež kreiso urīnvadu"},
+    "Hydronephrosis cause (HN)": {"type": "single", "default_index": 0,
+                                  "options": ["Not clear yet", "Tumour compression", "Ureteral tumour suspected",
+                                              "Retroperitoneal fibrosis", "After pelvic surgery / radiotherapy",
+                                              "Pregnancy", "Bladder outlet obstruction / retention",
+                                              "Other (type it)"]},
+    "Cause details (HN)": {"type": "text", "optional": True,
+                           "placeholder": "neobligāti, piem., st. pēc staru terapijas 2023. gadā; 28. grūtniecības nedēļa"},
+    "Co-diagnoses (HN)": {
+        "type": "multi", "optional": True, "custom": True,
+        "options": [k for k in NEPHROSTOMY_CODIAGNOSES if not k.startswith("N13.3")],
+        "custom_help": "Ierakstiet, ja iespējams, ar SSK-10 kodu, piem., C54 Dzemdes ķermeņa ļaundabīgs audzējs",
+    },
+    "Inflammation (HN)": {"type": "single", "default_index": 0,
+                          "options": ["Not done", "No inflammatory changes", "Raised CRP / leukocytosis"]},
+    "Sepsis signs (HN)": {"type": "toggle"},
+    "Renal function (HN)": {"type": "single",
+                            "options": ["Normal", "Raised creatinine (AKI)", "Known CKD, stable",
+                                        "Known CKD, worse than usual"]},
+    "Creatinine (HN)": {"type": "number", "min": 0.0, "max": 3000.0, "step": 1.0, "optional": True},
+    "eGFR (HN)": {"type": "number", "min": 0.0, "max": 200.0, "step": 1.0, "optional": True},
+    "Potassium raised (HN)": {"type": "toggle"},
+    "Drainage (HN)": {"type": "single",
+                      "options": ["No drainage", "JJ stent", "Percutaneous nephrostomy", "Urethral catheter"]},
+    "Drainage date (HN)": {"type": "date",
+                           "show_if": {"Drainage (HN)": ["JJ stent", "Percutaneous nephrostomy", "Urethral catheter"]}},
+    "Nephrostomy size (HN)": {"type": "single", "options": ["8", "10", "12", "14"], "default_index": 1,
+                              "show_if": {"Drainage (HN)": "Percutaneous nephrostomy"}},
+    "Catheter size (HN)": {"type": "single", "options": ["14", "16", "18", "20"], "default_index": 2,
+                           "show_if": {"Drainage (HN)": "Urethral catheter"}},
+    "Drained volume (HN)": {"type": "number", "min": 0.0, "max": 5000.0, "step": 50.0, "optional": True,
+                            "show_if": {"Drainage (HN)": "Urethral catheter"}},
+    "Urine on drainage (HN)": {"type": "single", "default_index": 0,
+                               "options": ["Clear", "Blood-tinged", "Cloudy / purulent"],
+                               "show_if": {"Drainage (HN)": ["JJ stent", "Percutaneous nephrostomy",
+                                                             "Urethral catheter"]}},
+    "Urine culture taken (HN)": {"type": "toggle"},
+    "IV antibiotics (HN)": {"type": "toggle"},
+    "Antibiotic in the ward (HN)": {"type": "text", "optional": True,
+                                    "placeholder": "neobligāti, piem., Sol. Ceftriaxoni 2 g i/v 1 reizi dienā",
+                                    "show_if": {"IV antibiotics (HN)": True}},
+    "Urine culture result (HN)": {"type": "text", "optional": True,
+                                  "placeholder": "neobligāti, piem., E. coli, jutīga pret cefuroksīmu"},
+    "Post-obstructive diuresis (HN)": {"type": "toggle"},
+    "Renal function at discharge (HN)": {
+        "type": "single", "options": ["Normalised", "Improving", "Not improved"],
+        "show_if": {"Renal function (HN)": ["Raised creatinine (AKI)", "Known CKD, stable", "Known CKD, worse than usual"]},
+    },
+    "Creatinine at discharge (HN)": {
+        "type": "number", "min": 0.0, "max": 3000.0, "step": 1.0, "optional": True,
+        "show_if": {"Renal function (HN)": ["Raised creatinine (AKI)", "Known CKD, stable", "Known CKD, worse than usual"]},
+    },
+    "eGFR at discharge (HN)": {
+        "type": "number", "min": 0.0, "max": 200.0, "step": 1.0, "optional": True,
+        "show_if": {"Renal function (HN)": ["Raised creatinine (AKI)", "Known CKD, stable", "Known CKD, worse than usual"]},
+    },
+    "Work-up in the ward (HN)": {"type": "multi", "optional": True,
+                                 "options": ["CT urography", "Contrast CT", "MRI", "Diuretic renography (MAG3)",
+                                             "Cystoscopy", "Ureteroscopy with biopsy"]},
+    "Work-up result (HN)": {"type": "text", "optional": True,
+                            "placeholder": "neobligāti, piem., kreisā urīnvada distālās daļas ekstrinsiska kompresija"},
+    "Ward course (HN)": {"type": "single", "options": ["Uneventful", "Fever resolved, CRP falling", "Pain resolved"]},
+    "Definitive plan (HN)": {"type": "single", "default_index": 0,
+                             "options": ["Urologist: find and treat the cause", "Oncologist: oncology plan",
+                                         "Long-term drainage", "Gynaecologist (pregnancy)"]},
+    "Urology visit (HN)": {"type": "single", "default_index": 1,
+                           "options": ["Urologist in 1 week", "Urologist in 2 weeks", "Urologist in 1 month",
+                                       "Not needed"]},
+    "Next drainage change (HN)": {"type": "date", "optional": True,
+                                  "show_if": {"Drainage (HN)": ["JJ stent", "Percutaneous nephrostomy"]}},
+    "Nephrology referral (HN)": {"type": "toggle"},
     # ----- N40 benign prostatic hyperplasia (TURP) -----
     "BPH indication": {
         "type": "multi",
@@ -1504,6 +1584,27 @@ DIAGNOSIS_MODIFIERS = {
           "Urine culture result (NF)", "Ward course (NF)"], {"_department": "4"}),
         ("5. Recommendations", ["Supervising doctor", "Next nephrostomy change", "Definitive plan (NF)"],
          {"_department": ["NMC", "4"]}),
+    ],
+    "N13.3": [
+        ("1. Admission and findings",
+         ["Admission", "Side", "Hydronephrosis grade (HN)", "Ureter dilated (HN)", "Symptoms (HN)", "Imaging (HN)",
+          "Imaging details (HN)", "Solitary kidney"]),
+        ("2. Cause", ["Hydronephrosis cause (HN)", "Cause details (HN)", "Co-diagnoses (HN)"]),
+        ("3. Laboratory",
+         ["Inflammation (HN)", "Sepsis signs (HN)", "Renal function (HN)", "Creatinine (HN)", "eGFR (HN)",
+          "Potassium raised (HN)"]),
+        ("4. Drainage",
+         ["Drainage (HN)", "Drainage date (HN)", "Nephrostomy size (HN)", "Catheter size (HN)", "Drained volume (HN)",
+          "Urine on drainage (HN)", "Urine culture taken (HN)"]),
+        ("5. NMC decision", ["Pain controlled"], {"_department": "NMC"}),
+        ("5. Stay in 4. Urology",
+         ["IV antibiotics (HN)", "Antibiotic in the ward (HN)",
+          "Urine culture result (HN)", "Post-obstructive diuresis (HN)", "Renal function at discharge (HN)",
+          "Creatinine at discharge (HN)", "eGFR at discharge (HN)", "Work-up in the ward (HN)", "Work-up result (HN)",
+          "Ward course (HN)"], {"_department": "4"}),
+        ("6. Recommendations",
+         ["Supervising doctor", "Definitive plan (HN)", "Urology visit (HN)", "Next drainage change (HN)",
+          "Nephrology referral (HN)"]),
     ],
     "N40": [
         ("1. Admission and indication", ["Admission", "BPH indication", "Prostate volume (ml)", "Preoperative catheter"]),
@@ -2685,6 +2786,22 @@ BLOCK_WARNINGS["N10"] += [
 # match AND every modifier listed under "when" has that value.
 # Each template has: clinical_diagnosis (optional), epicrisis, recommendations.
 TEMPLATES = [
+    {
+        # Other / unspecified hydronephrosis at NMC, sent home. Written by hn_nmc_parts.
+        "id": "N13.3-NMC",
+        "diagnosis": "N13.3",
+        "department": "NMC",
+        "when": {},
+        "builder": "hn_nmc",
+    },
+    {
+        # Other / unspecified hydronephrosis admitted to 4. Urology. Written by hn_ward_parts.
+        "id": "N13.3-4",
+        "diagnosis": "N13.3",
+        "department": "4",
+        "when": {},
+        "builder": "hn_ward",
+    },
     {
         # Testicular infarction in 4. Urology: conservative or surgery. Written by n50_parts.
         "id": "N50.1-4",
@@ -12481,6 +12598,563 @@ def render_operation(sex):
 
 
 # ---------------------------------------------------------------
+# 2k-c. OTHER AND UNSPECIFIED HYDRONEPHROSIS (N13.3): NMC (sent home) or 4. Urology (admitted)
+# ---------------------------------------------------------------
+# Hydronephrosis that is not a stone (N20), a PUJ obstruction (N13.0) or a known stricture (N13.1): tumour
+# compression, a suspected ureteral tumour, retroperitoneal fibrosis, after pelvic surgery / radiotherapy,
+# pregnancy, bladder outlet obstruction, or not clear yet. The texts and checks follow:
+# - EAU (urolithiasis, urological infections): an obstructed kidney with infection is an emergency – urgent
+#   decompression (JJ stent or percutaneous nephrostomy), antibiotics at once, a urine culture after the
+#   decompression, and the definitive treatment only after the infection has settled (all strong).
+# - KDIGO (AKI 2012, CKD 2024): look for every cause of AKI, avoid nephrotoxic drugs, recheck kidney function
+#   until it is stable and again at 3 months; refer to a nephrologist with eGFR < 30, a sustained fall in eGFR
+#   or persistent hyperkalaemia.
+# - Post-obstructive diuresis (Campbell-Walsh-Wein): > 200 ml/h for 2 hours in a row or > 3 l/24 h after a
+#   bilateral obstruction or a solitary kidney is drained – fluids and electrolytes need watching.
+# - Pregnancy (EAU): ultrasound first, MRI second, low-dose CT last; stents encrust faster.
+# - Suspected upper tract tumour (EAU UTUC): CT urography, urine cytology, cystoscopy; ureteroscopy with biopsy
+#   when imaging and cytology are not enough.
+
+HN_SIDE = {  # (diagnosis, kidney genitive, after "sakarā ar", pain place)
+    "Right": ("Labās puses", "labās nieres", "labās puses", "labajā jostas apvidū"),
+    "Left": ("Kreisās puses", "kreisās nieres", "kreisās puses", "kreisajā jostas apvidū"),
+    "Both": ("Abpusēja", "abu nieru", "abpusēju", "jostas apvidū abās pusēs"),
+}
+HN_SYMPTOMS = {"Fever": "paaugstinātu ķermeņa temperatūru", "Chills": "drebuļiem",
+               "Nausea / vomiting": "sliktu dūšu, vemšanu", "Reduced urine output": "samazinātu urīna daudzumu",
+               "Visible hematuria": "asinīm urīnā"}
+HN_IMAGING = {"Ultrasound": "veikta USS", "Non-contrast CT": "veikta DT bez kontrastvielas",
+              "Contrast CT": "veikta DT ar kontrastvielu", "MRI": "veikta MR"}
+HN_CAUSE_DX = {"Tumour compression": "Urīnvada ekstrinsiska kompresija ar audzēju.",
+               "Ureteral tumour suspected": "Aizdomas par urīnvada jaunveidojumu.",
+               "Retroperitoneal fibrosis": "Retroperitoneāla fibroze.",
+               "After pelvic surgery / radiotherapy": "Stāvoklis pēc iegurņa operācijas / staru terapijas.",
+               "Pregnancy": "Grūtniecība.",
+               "Bladder outlet obstruction / retention": "Infravezikāla obstrukcija. Urīna retence."}
+HN_CAUSE_EPI = {"Not clear yet": "Hidronefrozes cēlonis pagaidām nav skaidrs.",
+                "Tumour compression": "Hidronefrozes iespējamais cēlonis – urīnvada ekstrinsiska kompresija ar audzēju.",
+                "Ureteral tumour suspected": "Ir aizdomas par urīnvada jaunveidojumu.",
+                "Retroperitoneal fibrosis": "Hidronefrozes iespējamais cēlonis – retroperitoneāla fibroze.",
+                "After pelvic surgery / radiotherapy": "Anamnēzē iegurņa operācija / staru terapija.",
+                "Pregnancy": "Grūtniecība.",
+                "Bladder outlet obstruction / retention": "Hidronefroze saistīta ar infravezikālu obstrukciju un "
+                                                          "urīna retenci."}
+HN_INFLAMMATION = {"No inflammatory changes": "Asins analīzēs bez iekaisuma izmaiņām.",
+                   "Raised CRP / leukocytosis": "Asins analīzēs – paaugstināts CRO / leikocitoze."}
+HN_RENAL = {"Normal": "Nieru funkcija normas robežās",
+            "Raised creatinine (AKI)": "Paaugstināts kreatinīna līmenis – akūts nieru bojājums",
+            "Known CKD, stable": "Zināma hroniska nieru slimība, nieru funkcija ierastajā līmenī",
+            "Known CKD, worse than usual": "Zināma hroniska nieru slimība, nieru funkcija pasliktinājusies "
+                                           "salīdzinājumā ar iepriekšējo"}
+HN_RENAL_COURSE = {"Normalised": "Nieru funkcija normalizējusies", "Improving": "Nieru funkcija uzlabojas",
+                   "Not improved": "Nieru funkcija būtiski neuzlabojas"}
+HN_URINE = {"Clear": "dzidrs urīns", "Blood-tinged": "urīns ar nelielu asiņu piejaukumu",
+            "Cloudy / purulent": "duļķains, strutains urīns"}
+HN_URINE_GEN = {"Clear": "dzidra urīna", "Blood-tinged": "urīna ar nelielu asiņu piejaukumu",
+                "Cloudy / purulent": "duļķaina, strutaina urīna"}
+HN_WORKUP = {"CT urography": "DT urogrāfija", "Contrast CT": "DT ar kontrastvielu", "MRI": "MR",
+             "Diuretic renography (MAG3)": "diurētiskā renoscintigrāfija (MAG3)", "Cystoscopy": "cistoskopija",
+             "Ureteroscopy with biopsy": "ureteroskopija ar biopsiju"}
+HN_WARD_COURSE = {"Uneventful": "Periods nodaļā bez īpatnībām.",
+                  "Fever resolved, CRP falling": "Uz terapijas fona stāvoklis uzlabojas, normalizējas ķermeņa "
+                                                 "temperatūra, iekaisuma rādītāji mazinās.",
+                  "Pain resolved": "Sāpes izzudušas, stāvoklis stabils."}
+HN_VISIT = {"Urologist in 1 week": " pēc 1 nedēļas", "Urologist in 2 weeks": " pēc 2 nedēļām",
+            "Urologist in 1 month": " pēc 1 mēneša"}
+HN_DRAINED = ("JJ stent", "Percutaneous nephrostomy", "Urethral catheter")
+HN_RENAL_BAD = ("Raised creatinine (AKI)", "Known CKD, stable", "Known CKD, worse than usual")
+HN_AKI = ("Raised creatinine (AKI)", "Known CKD, worse than usual")
+HN_ORAL_ABX = ("cefuroxime-7", "amoxiclav-7")
+
+
+def _hn_number(x):
+    return isinstance(x, (int, float)) and not isinstance(x, bool) and x == x  # not empty and not a draft gap
+
+
+def _hn_infected(v):
+    return bool(v.get("Sepsis signs (HN)")) or any(s in (v.get("Symptoms (HN)") or []) for s in ("Fever", "Chills"))
+
+
+def _hn_noun(v, accusative=False):
+    return ("hidroureteronefroz" if v.get("Ureter dilated (HN)") else "hidronefroz") + ("i" if accusative else "e")
+
+
+def _hn_sentence(text):
+    text = (text or "").strip()
+    if not text:
+        return ""
+    text = text[0].upper() + text[1:]
+    return text if text.endswith((".", "!", "?")) else text + "."
+
+
+def _hn_values(creat, egfr):
+    parts = []
+    if _hn_number(creat):
+        parts.append(f"kreatinīns {_comma(creat)} µmol/l")
+    if _hn_number(egfr):
+        parts.append(f"eGFR {_comma(egfr)} ml/min/1,73 m²")
+    return parts
+
+
+def _hn_codx(v):
+    return [NEPHROSTOMY_CODIAGNOSES.get(c, c).rstrip(".") for c in (v.get("Co-diagnoses (HN)") or [])
+            if not str(c).startswith("[")]
+
+
+def _hn_diagnosis(v):
+    side = v["Side"]
+    lines = [f"{HN_SIDE[side][0]} {v['Hydronephrosis grade (HN)']} pakāpes {_hn_noun(v)}."]
+    if _hn_infected(v):
+        lines.append("Akūts obstruktīvs pielonefrīts.")
+    if v.get("Sepsis signs (HN)"):
+        lines.append("Urosepse.")
+    renal = v.get("Renal function (HN)")
+    if renal == "Raised creatinine (AKI)":
+        lines.append("Akūts nieru bojājums (postrenāls)." if (side == "Both" or v.get("Solitary kidney"))
+                     else "Akūts nieru bojājums.")
+    elif renal == "Known CKD, worse than usual":
+        lines.append("Akūts nieru bojājums hroniskas nieru slimības fonā.")
+    elif renal == "Known CKD, stable":
+        lines.append("Hroniska nieru slimība.")
+    if v.get("Potassium raised (HN)"):
+        lines.append("Hiperkaliēmija.")
+    if v.get("Solitary kidney"):
+        lines.append("Vienīgā funkcionējošā niere.")
+    cause = v.get("Hydronephrosis cause (HN)")
+    if cause == "Other (type it)":
+        if not blank(v.get("Cause details (HN)")):
+            lines.append(_hn_sentence(v["Cause details (HN)"]))
+    elif HN_CAUSE_DX.get(cause):
+        lines.append(HN_CAUSE_DX[cause])
+    drain = v.get("Drainage (HN)")
+    if drain in ("JJ stent", "Percutaneous nephrostomy"):
+        lines.append(f"St. pēc {DRAIN_TEXT[drain][side][1]} ({fmt_date(v['Drainage date (HN)'])}).")
+    elif drain == "Urethral catheter":
+        lines.append(f"Urīnpūšļa katetrizācija ({fmt_date(v['Drainage date (HN)'])}).")
+    codx = _hn_codx(v)
+    if codx:
+        lines.append("Blakusdiagnozes:")
+        lines += [c + "." for c in codx]
+    return "\n".join(lines)
+
+
+def _hn_findings(sex, v, where):
+    """Complaints aside: the history, imaging and laboratory sentences."""
+    f = SEX_FORMS[sex]
+    side = v["Side"]
+    s = []
+    codx = _hn_codx(v)
+    if codx:
+        s.append("Anamnēzē: " + "; ".join(codx) + ".")
+    cause = v.get("Hydronephrosis cause (HN)")
+    if cause in HN_CAUSE_EPI and not (cause == "Not clear yet" and not blank(v.get("Work-up result (HN)"))):
+        s.append(HN_CAUSE_EPI[cause])
+    if not blank(v.get("Cause details (HN)")) and cause != "Other (type it)":
+        s.append(_hn_sentence(v["Cause details (HN)"]))
+    elif cause == "Other (type it)" and not blank(v.get("Cause details (HN)")):
+        s.append("Hidronefrozes iespējamais cēlonis – " + v["Cause details (HN)"].strip().rstrip(".") + ".")
+    if v.get("Solitary kidney"):
+        s.append("Vienīgā funkcionējošā niere.")
+    s.append(f"{where} vispusīgi {f['izmekleta']}; {HN_IMAGING.get(v.get('Imaging (HN)'), 'veikta USS')}, kur "
+             f"vizualizē {HN_SIDE[side][1]} {v['Hydronephrosis grade (HN)']} pakāpes {_hn_noun(v, True)}.")
+    if not blank(v.get("Imaging details (HN)")):
+        s.append(_hn_sentence(v["Imaging details (HN)"]))
+    if v.get("Inflammation (HN)") in HN_INFLAMMATION:
+        s.append(HN_INFLAMMATION[v["Inflammation (HN)"]])
+    renal = v.get("Renal function (HN)")
+    if renal in HN_RENAL:
+        values = _hn_values(v.get("Creatinine (HN)"), v.get("eGFR (HN)"))
+        s.append(HN_RENAL[renal] + (f" ({', '.join(values)})" if values else "") + ".")
+    if v.get("Potassium raised (HN)"):
+        s.append("Hiperkaliēmija.")
+    if v.get("Sepsis signs (HN)"):
+        s.append("Ir sepses pazīmes.")
+    return s
+
+
+def _hn_drainage(v):
+    """The drainage sentences ([] when there was none)."""
+    drain = v.get("Drainage (HN)")
+    if drain not in HN_DRAINED:
+        return []
+    side, day = v["Side"], fmt_date(v["Drainage date (HN)"])
+    urine = v.get("Urine on drainage (HN)") or "Clear"
+    culture = " Paņemts urīna uzsējums." if v.get("Urine culture taken (HN)") else ""
+    if drain == "JJ stent":
+        return [f"{day} cistoskopiski veikta {DRAIN_TEXT[drain][side][0]}.",
+                f"Pēc stenta ievietošanas no nieres izdalās {HN_URINE[urine]}.{culture}"]
+    if drain == "Percutaneous nephrostomy":
+        return [f"{day} ultrasonogrāfijas kontrolē veikta {DRAIN_TEXT[drain][side][0]} "
+                f"(Ch{v.get('Nephrostomy size (HN)') or 10}).",
+                f"Pa {'nefrostomām' if side == 'Both' else 'nefrostomu'} izdalās {HN_URINE[urine]}.{culture}"]
+    ml = v.get("Drained volume (HN)")
+    if _hn_number(ml):
+        return [f"{day} sterilos apstākļos ievietots urīnpūšļa Foley {v.get('Catheter size (HN)') or 18} Fr katetrs, "
+                f"izdalās {_comma(ml)} ml {HN_URINE_GEN[urine]}.{culture}"]
+    return [f"{day} sterilos apstākļos ievietots urīnpūšļa Foley {v.get('Catheter size (HN)') or 18} Fr katetrs.",
+            f"Pa katetru izdalās {HN_URINE[urine]}.{culture}"]
+
+
+def _hn_complaints(v):
+    symptoms = v.get("Symptoms (HN)") or []
+    words = []
+    if "Flank or lumbar pain" in symptoms:
+        words.append(f"sāpēm {HN_SIDE[v['Side']][3]}")
+    words += [HN_SYMPTOMS[x] for x in symptoms if x in HN_SYMPTOMS]
+    return words
+
+
+def _hn_recs(v, blocks):
+    drain = v.get("Drainage (HN)")
+    side = v.get("Side")
+    renal_bad = v.get("Renal function (HN)") in HN_RENAL_BAD
+    nmc = v.get("_department") == "NMC"
+    recs = [f"• Atrasties {SUPERVISOR_TEXT.get(v.get('Supervising doctor'), 'ģimenes ārsta')} uzraudzībā!"]
+    if drain == "Urethral catheter":
+        recs += catheter_care_lines("bullet")  # has its own fluid line
+    elif renal_bad or v.get("Post-obstructive diuresis (HN)"):
+        recs.append("• Šķidrumu lietot pēc slāpju sajūtas (apmēram 1,5–2 l/DN), ja ārsts nav noteicis citu daudzumu.")
+    else:
+        recs.append("• Lietot šķidrumu vismaz 2 l/DN, ja nav medicīnisku kontrindikāciju.")
+    nxt = v.get("Next drainage change (HN)")
+    if drain == "JJ stent":
+        stent = "JJ stentu" if side == "Both" else "JJ stenta"
+        recs.append("• JJ stents: iespējama bieža urinācija, neatliekama vēlme urinēt, diskomforts vēdera lejasdaļā vai "
+                    "sānos un neliels asiņu piejaukums urīnā.")
+        when = (f"plānota {fmt_date(nxt)}" if nxt else
+                "pēc ārstējošā urologa norādījumiem (parasti ne vēlāk kā pēc 3–6 mēnešiem)")
+        recs.append(f"• {stent} maiņa vai izņemšana {when} – stentu nedrīkst aizmirst!")
+    elif drain == "Percutaneous nephrostomy":
+        recs += NF_CARE
+        when = fmt_date(nxt) if nxt else "pēc 3 mēnešiem (datumu precizēt)"
+        change = "nefrostomu maiņa" if side == "Both" else "nefrostomas maiņa"
+        recs.append(f"• Nākamā {change} paredzēta PSKUS 4. uroloģijas nodaļas DS {when}. Ierasties ar ģimenes "
+                    "ārsta nosūtījumu!")
+    plan = v.get("Definitive plan (HN)")
+    visit = HN_VISIT.get(v.get("Urology visit (HN)"))
+    if plan == "Urologist: find and treat the cause":
+        recs.append(f"• Ambulatori urologa konsultācija{visit or ''} – hidronefrozes cēloņa noskaidrošana un ārstēšanas "
+                    "taktikas noteikšana.")
+        visit = None
+    elif plan == "Oncologist: oncology plan":
+        recs.append("• Turpināt onkologa uzraudzību un ārstēšanu; par hidronefrozes un drenāžas turpmāko taktiku lemt "
+                    "kopā ar urologu.")
+    elif plan == "Long-term drainage":
+        both = side == "Both"
+        what = {"JJ stent": "stentu" if both else "stenta",
+                "Percutaneous nephrostomy": "nefrostomu" if both else "nefrostomas"}.get(drain, "drenāžas")
+        recs.append(f"• Ilgstoša drenāža – {what} maiņu turpināt regulāri urologa uzraudzībā.")
+    elif plan == "Gynaecologist (pregnancy)":
+        recs.append("• Turpināt grūtniecības uzraudzību pie ginekologa; hidronefrozes un drenāžas taktiku pēc "
+                    "dzemdībām noteiks urologs.")
+    if visit:
+        recs.append(f"• Kontrole pie urologa{visit}.")
+    if v.get("Nephrology referral (HN)"):
+        recs.append("• Nefrologa konsultācija nieru funkcijas traucējumu dēļ (ar ģimenes ārsta nosūtījumu).")
+    if renal_bad:
+        if "nsaid" not in (v.get("_blocks") or []):
+            recs.append("• Nelietot nefrotoksiskus medikamentus (NPL – ibuprofēns, diklofenaks u.c.); medikamentu devas "
+                        "pielāgot nieru funkcijai.")
+        recs.append("• Pirms izmeklējumiem ar i/v kontrastvielu kontrolēt nieru funkciju.")
+    if v.get("Urine culture taken (HN)") and (nmc or blank(v.get("Urine culture result (HN)"))):
+        recs.append("• Urīna uzsējuma rezultātus var aplūkot Datamed.lv pēc 3–5 dienām; antibakteriālo terapiju "
+                    "koriģēt atbilstoši jutībai, ja ir infekcijas simptomi.")
+    if blocks:
+        recs.append("• Terapijā lietot:")
+        recs += ["    o " + b for b in blocks]
+    recs += tests_lines(v, "bullet")
+    extra = {"Percutaneous nephrostomy": ", nefrostoma izkrīt vai pa to neizdalās urīns",
+             "Urethral catheter": ", pa katetru neizdalās urīns"}.get(drain, "")
+    recs.append(f"• Ja parādās drudzis, drebuļi, stipras sāpes sānos, samazinās urīna daudzums{extra} vai pasliktinās "
+                "vispārējais stāvoklis, nekavējoties vērsties NMC.")
+    return recs
+
+
+def hn_nmc_parts(sex, v, blocks=()):
+    f = SEX_FORMS[sex]
+    complaints = _hn_complaints(v)
+    if complaints:
+        first = f"{f['Pacients']} {f['iestajies']} akūtā kārtā PSKUS NMC ar sūdzībām par {lv_list(complaints)}."
+    else:
+        first = (f"{f['Pacients']} {f['iestajies']} PSKUS NMC sakarā ar attēldiagnostikā konstatētu "
+                 f"{_hn_noun(v, True)}; sūdzību nav.")
+    s = [first] + _hn_findings(sex, v, "NMC etapā") + _hn_drainage(v)
+    if v.get("Drainage (HN)") in HN_DRAINED:
+        s.append(f"Pēc manipulācijas {'novērota' if sex == 'Woman' else 'novērots'}, stāvoklis stabils.")
+    else:
+        s.append("Dinamikā vispārējais stāvoklis stabils" +
+                 (", sāpes mazinās." if "Flank or lumbar pain" in (v.get("Symptoms (HN)") or []) else "."))
+    s.append("Dotajā brīdī nav indikāciju neatliekamai stacionēšanai. Vispārēji apmierinošā stāvoklī un ar "
+             "rekomendācijām izraksta tālākai ambulatorai izmeklēšanai un ārstēšanai.")
+    return {"clinical_diagnosis": _hn_diagnosis(v), "epicrisis": " ".join(s),
+            "recommendations": "\n".join(_hn_recs(v, blocks))}
+
+
+def hn_ward_parts(sex, v, blocks=()):
+    f = SEX_FORMS[sex]
+    side = v["Side"]
+    kind = "plānveida" if v.get("Admission") == "Planned" else "akūtā"
+    p1 = [f"{f['Pacients']} {f['stacionets']} P. Stradiņa KUS 4. uroloģijas nodaļā {kind} kārtā sakarā ar "
+          f"{HN_SIDE[side][2]} {v['Hydronephrosis grade (HN)']} pakāpes {_hn_noun(v, True)}."]
+    complaints = _hn_complaints(v)
+    if complaints:
+        p1.append(f"Sūdzības par {lv_list(complaints)}.")
+    p1 += _hn_findings(sex, v, "NMC etapā" if kind == "akūtā" else "Iestājoties")
+    drain = v.get("Drainage (HN)")
+    p2 = _hn_drainage(v) or [f"Drenāža netika veikta, {'paciente novērota' if sex == 'Woman' else 'pacients novērots'} "
+                             "dinamikā."]
+    p3 = []
+    if v.get("IV antibiotics (HN)"):
+        abx = (v.get("Antibiotic in the ward (HN)") or "").strip().rstrip(".")
+        p3.append("Nozīmēta i/v antibakteriālā terapija" + (f" ({abx})" if abx else "") + ".")
+    if v.get("Post-obstructive diuresis (HN)"):
+        p3.append("Pēc drenāžas novērota pēcobstrukcijas poliūrija – veikta šķidruma un elektrolītu korekcija.")
+    result = (v.get("Urine culture result (HN)") or "").strip().rstrip(".")
+    if result:
+        p3.append(f"Urīna uzsējumā – {result}.")
+    course = v.get("Renal function at discharge (HN)")
+    if v.get("Renal function (HN)") in HN_RENAL_BAD and course in HN_RENAL_COURSE:
+        values = _hn_values(v.get("Creatinine at discharge (HN)"), v.get("eGFR at discharge (HN)"))
+        p3.append(HN_RENAL_COURSE[course] + (f" (izrakstoties {', '.join(values)})" if values else "") + ".")
+    done = [HN_WORKUP[x] for x in (v.get("Work-up in the ward (HN)") or []) if x in HN_WORKUP]
+    found = (v.get("Work-up result (HN)") or "").strip().rstrip(".")
+    if done:
+        p3.append("Hidronefrozes cēloņa noskaidrošanai veikta " + lv_list(done) + (f": {found}" if found else "") + ".")
+    elif found:
+        p3.append(_hn_sentence(found))
+    if v.get("Ward course (HN)") in HN_WARD_COURSE:
+        p3.append(HN_WARD_COURSE[v["Ward course (HN)"]])
+    if drain == "Percutaneous nephrostomy":
+        p3.append("Nefrostoma funkcionē apmierinoši." if side != "Both" else "Nefrostomas funkcionē apmierinoši.")
+    with_drain = (DRAIN_TEXT[drain][side][2] + " " if drain in ("JJ stent", "Percutaneous nephrostomy")
+                  else "ar urīnpūšļa ilgkatetru " if drain == "Urethral catheter" else "")
+    p4 = f"Vispārēji apmierinošā stāvoklī {f['izrakstits']} {with_drain}tālākai ārstēšanai ambulatori."
+    epicrisis = "\n".join(x for x in (" ".join(p1), " ".join(p2), " ".join(p3), p4) if x)
+    return {"clinical_diagnosis": _hn_diagnosis(v), "epicrisis": epicrisis,
+            "recommendations": "\n".join(_hn_recs(v, blocks))}
+
+
+def hn_checks(v):
+    blockers, cautions = [], []
+    nmc = v.get("_department") == "NMC"
+    infected = _hn_infected(v)
+    drain = v.get("Drainage (HN)")
+    drained = drain in HN_DRAINED
+    renal = v.get("Renal function (HN)")
+    aki = renal in HN_AKI
+    both_or_single = v.get("Side") == "Both" or bool(v.get("Solitary kidney"))
+    symptoms = v.get("Symptoms (HN)") or []
+    cause = v.get("Hydronephrosis cause (HN)")
+    blocks = v.get("_blocks") or []
+    tests = v.get("_test_ids") or []
+    raised_crp = v.get("Inflammation (HN)") == "Raised CRP / leukocytosis"
+    purulent = drained and v.get("Urine on drainage (HN)") == "Cloudy / purulent"
+    egfr = next((x for x in (v.get("eGFR at discharge (HN)"), v.get("eGFR (HN)")) if _hn_number(x)), None)
+    low_egfr = egfr is not None and egfr < 30
+
+    if infected and not drained:
+        blockers.append("Obstruēta niere ar infekcijas pazīmēm: EAU (stipra rekomendācija) – neatliekama savākšanas "
+                        "sistēmas dekompresija (JJ stents vai perkutāna nefrostoma) un tūlītēja antibakteriālā terapija; "
+                        "galīgo ārstēšanu atlikt līdz infekcijas izzušanai.")
+    if cause == "Other (type it)" and blank(v.get("Cause details (HN)")):
+        blockers.append("Ierakstiet hidronefrozes cēloni laukā \"Cēloņa detaļas\".")
+    if cause == "Pregnancy" and v.get("_sex") == "Man":
+        blockers.append("Grūtniecība izvēlēta vīrietim.")
+    if nmc:
+        if infected and drained:
+            blockers.append("Inficēta obstruēta niere: pēc drenāžas nepieciešama i/v antibakteriālā terapija un "
+                            "novērošana – stacionēt 4. uroloģijas nodaļā (izmantojiet 4. nodaļu).")
+        if "Reduced urine output" in symptoms:
+            blockers.append("Samazināts urīna daudzums (oligūrija / anūrija) ar hidronefrozi: neatliekama drenāža un "
+                            "stacionēšana.")
+        if v.get("Potassium raised (HN)"):
+            blockers.append("Hiperkaliēmija: nepieciešama ārstēšana un monitorēšana – stacionēt (KDIGO).")
+        if aki and both_or_single and not drained:
+            blockers.append("Akūts nieru bojājums ar abpusēju obstrukciju vai vienīgās nieres obstrukciju: neatliekama "
+                            "drenāža un stacionēšana.")
+        if aki and both_or_single and drained:
+            cautions.append("Pēc abpusējas / vienīgās nieres drenāžas: pēcobstrukcijas poliūrijas un elektrolītu "
+                            "traucējumu risks (> 200 ml/h 2 stundas pēc kārtas vai > 3 l/24 h) – apsveriet "
+                            "stacionēšanu; kreatinīnu un K⁺ atkārtoti 48–72 h laikā.")
+        if v.get("Pain controlled") == "No":
+            blockers.append("Sāpes nav kontrolētas: stacionēt.")
+        if raised_crp and not infected:
+            cautions.append("Paaugstināts CRO / leikocitoze ar hidronefrozi bez drudža: iespējama obstruētās nieres "
+                            "infekcija – apsveriet stacionēšanu; vismaz paņemiet urīna uzsējumu un atkārtoti "
+                            "izvērtējiet pēc 48–72 h.")
+        if cause == "Not clear yet" and not any(t in tests for t in ("ctu", "mru", "ct_abd")):
+            cautions.append("Hidronefrozes cēlonis nav noskaidrots: nodrošiniet ambulatoru izmeklēšanu (DT urogrāfija "
+                            "vai MR urogrāfija) un urologa konsultāciju – atzīmējiet izmeklējumu.")
+        if cause == "Pregnancy" and not (drained or infected or aki):
+            cautions.append("Grūtniecības hidronefroze (biežāk labajā pusē) bieži ir fizioloģiska: drenāža "
+                            "nepieciešama tikai infekcijas, nekontrolētu sāpju vai nieru funkcijas pasliktināšanās "
+                            "gadījumā.")
+        if drain == "Urethral catheter" and _hn_number(v.get("Drained volume (HN)")) and v["Drained volume (HN)"] >= 1500:
+            cautions.append("Liels izvadītais apjoms: pēcobstrukcijas poliūrijas risks (> 200 ml/h 2 stundas pēc kārtas "
+                            "vai > 3 l/24 h) – kontrolējiet diurēzi un elektrolītus; apsveriet stacionēšanu.")
+    else:
+        if infected and not v.get("IV antibiotics (HN)"):
+            cautions.append("Inficēta obstruēta niere: EAU (stipra rekomendācija) – antibakteriālo terapiju uzsākt "
+                            "nekavējoties.")
+        if infected and not any(b in blocks for b in HN_ORAL_ABX):
+            cautions.append("Obstruktīvs pielonefrīts: turpiniet ar perorālu antibiotiku pēc uzsējuma, lai kopā būtu "
+                            "7–14 dienas (izvēlieties bloku), ja vien viss kurss netika veikts nodaļā.")
+        if aki and both_or_single and not drained:
+            cautions.append("Akūts nieru bojājums ar abpusēju / vienīgās nieres obstrukciju bez drenāžas: obstrukcija "
+                            "jānovērš – pārbaudiet plānu.")
+        if v.get("Post-obstructive diuresis (HN)") and "nak" not in tests:
+            cautions.append("Pēcobstrukcijas poliūrija: pirms izrakstīšanas pārbaudiet Na un K un atzīmējiet elektrolītu "
+                            "kontroli izmeklējumos.")
+        if v.get("Renal function at discharge (HN)") == "Not improved" and not v.get("Nephrology referral (HN)"):
+            cautions.append("Nieru funkcija pēc drenāžas neuzlabojas: izvērtējiet citus cēloņus un apsveriet nefrologa "
+                            "konsultāciju (KDIGO).")
+    if aki and not both_or_single:
+        cautions.append("Paaugstināts kreatinīns ar vienpusēju hidronefrozi: ja otra niere funkcionē, obstrukcija vien to "
+                        "parasti neizskaidro – meklējiet arī citus cēloņus (dehidratācija, sepse, nefrotoksiski "
+                        "medikamenti, HNS) (KDIGO).")
+    if renal == "Raised creatinine (AKI)" and not _hn_number(v.get("Creatinine (HN)")):
+        cautions.append("Norādiet kreatinīna vērtību.")
+    if drained and (infected or purulent) and not v.get("Urine culture taken (HN)"):
+        cautions.append("EAU (stipra rekomendācija): pēc dekompresijas paņemiet urīna uzsējumu antibiogrammai.")
+    if any(b in blocks for b in HN_ORAL_ABX) and not (infected or raised_crp or purulent):
+        cautions.append("Antibiotika bez infekcijas pazīmēm: EAU – asimptomātisku bakteriūriju neārstēt (nefrostomas un "
+                        "stenta urīns bieži ir kolonizēts).")
+    if drain in ("JJ stent", "Percutaneous nephrostomy") and not v.get("Next drainage change (HN)"):
+        cautions.append("Norādiet konkrētu nākamās stenta / nefrostomas maiņas datumu, lai drenāža netiktu aizmirsta.")
+    if low_egfr and not v.get("Nephrology referral (HN)"):
+        cautions.append("eGFR < 30 ml/min/1,73 m²: KDIGO – nosūtīt pie nefrologa (atzīmējiet \"Nefrologa konsultācija\").")
+    if "ctu" in tests and (low_egfr or aki):
+        cautions.append("Atzīmēta DT urogrāfija, bet nieru funkcija ir samazināta: kontrastvielas risks – apsveriet "
+                        "MR urogrāfiju vai bezkontrasta DT, vai nodrošiniet profilaktisku hidratāciju.")
+    if cause == "Pregnancy":
+        if v.get("Imaging (HN)") in ("Non-contrast CT", "Contrast CT"):
+            cautions.append("Grūtniecība: EAU (stipra rekomendācija) – vispirms USS, otrā izvēle MR; zemas devas DT tikai "
+                            "kā pēdējā iespēja.")
+        if drain == "JJ stent":
+            cautions.append("Grūtniecības laikā stenti inkrustējas biežāk (EAU): plānojiet biežāku maiņu un ginekologa "
+                            "uzraudzību.")
+    if cause == "Bladder outlet obstruction / retention" and drain in ("JJ stent", "Percutaneous nephrostomy"):
+        cautions.append("Infravezikāla obstrukcija: pirmā drenāža ir urīnpūšļa katetrs; augšējo urīnceļu drenāža "
+                        "parasti nepieciešama tikai tad, ja hidronefroze pēc katetra nemazinās vai ir infekcija.")
+    if cause == "Ureteral tumour suspected":
+        cautions.append("Aizdomas par urīnvada audzēju: EAU UTUC (stipra rekomendācija) – DT urogrāfija, urīna "
+                        "citoloģija un cistoskopija; diagnostiskā ureteroskopija ar biopsiju, ja attēldiagnostika un "
+                        "citoloģija nav pietiekamas.")
+    if cause == "Retroperitoneal fibrosis":
+        cautions.append("Retroperitoneāla fibroze: izslēdziet sekundārus cēloņus (ļaundabīgi audzēji, medikamenti), "
+                        "nosakiet CRO / EGĀ un IgG4; idiopātiskas formas ārstē ar glikokortikoīdiem kopā ar reimatologu "
+                        "vai nefrologu (Campbell-Walsh-Wein).")
+    if (v.get("Hydronephrosis grade (HN)") == "I" and not symptoms and renal == "Normal" and drained):
+        cautions.append("I pakāpes hidronefroze bez sūdzībām un ar normālu nieru funkciju: drenāža parasti nav "
+                        "nepieciešama – pārbaudiet indikāciju.")
+    if v.get("Definitive plan (HN)") == "Long-term drainage" and drain not in ("JJ stent", "Percutaneous nephrostomy"):
+        cautions.append("Izvēlēta ilgstoša drenāža, bet nav ne stenta, ne nefrostomas: pārbaudiet plānu.")
+    return blockers, cautions
+
+
+FOLLOWUP_TESTS["mru"] = {"group": "Imaging", "title": "MR urography", "lv": "MR urogrāfija"}
+
+
+def hn_tests(v):
+    out = []
+    nmc = v.get("_department") == "NMC"
+    renal = v.get("Renal function (HN)")
+    renal_bad = renal in HN_RENAL_BAD
+    drain = v.get("Drainage (HN)")
+    drained = drain in HN_DRAINED
+    cause = v.get("Hydronephrosis cause (HN)")
+    pregnant = cause == "Pregnancy"
+    done = v.get("Work-up in the ward (HN)") or []
+    egfr = next((x for x in (v.get("eGFR at discharge (HN)"), v.get("eGFR (HN)")) if _hn_number(x)), None)
+    contrast_risk = (egfr is not None and egfr < 30) or renal in HN_AKI
+    if renal_bad:
+        out.append(_s("creat", "rec", "48-72h" if nmc else "1w",
+                      "KDIGO: pēc akūta nieru bojājuma nieru funkciju kontrolēt, līdz tā stabilizējas, un atkārtoti pēc "
+                      "3 mēnešiem, lai izslēgtu jaunu vai progresējošu HNS."))
+    else:
+        out.append(_s("creat", "consider", "visit", "Obstruētas nieres funkcija – bāzes vērtība turpmākai novērošanai."))
+    if v.get("Potassium raised (HN)") or v.get("Post-obstructive diuresis (HN)") or (renal in HN_AKI and drained):
+        out.append(_s("nak", "rec", "48-72h", "Hiperkaliēmija, akūts nieru bojājums vai pēcobstrukcijas poliūrija: "
+                                              "Na un K kontrolēt, līdz tie stabilizējas."))
+    if nmc and v.get("Inflammation (HN)") == "Raised CRP / leukocytosis":
+        out.append(_s("crp", "rec", "48-72h", "Paaugstināts CRO NMC: atkārtoti nosakiet, lai izslēgtu obstruētās nieres "
+                                              "infekciju."))
+        out.append(_s("cbc", "rec", "48-72h", "Kopā ar atkārtotu CRO noteikšanu."))
+    if v.get("Urine culture taken (HN)") and (nmc or blank(v.get("Urine culture result (HN)"))):
+        out.append(_s("uc", "rec", "none", "Pārbaudiet uzsējumu un pielāgojiet antibiotiku (EAU: antibakteriālo terapiju "
+                                           "pārskatīt pēc antibiogrammas).",
+                      text="paņemtā urīna uzsējuma rezultāts (Datamed.lv)"))
+    elif drain == "Percutaneous nephrostomy":
+        out.append(_s("uc", "avoid", "symptoms", "Nefrostomas urīns parasti ir kolonizēts. EAU: asimptomātisku "
+                                                 "bakteriūriju neārstēt; uzsējums tikai infekcijas simptomu gadījumā."))
+    if drained:
+        out.append(_s("us_k", "rec", "2-6w", "Pēc drenāžas: pārliecinieties, ka hidronefroze mazinās un drenāža ir "
+                                             "pareizā stāvoklī."))
+    else:
+        watch = renal_bad or v.get("Solitary kidney") or v.get("Side") == "Both" or pregnant
+        out.append(_s("us_k", "rec" if watch else "consider", "1w" if watch else "2-6w",
+                      "Bez drenāžas: atkārtota USS parāda, vai hidronefroze nepieaug – īpaši vienīgās nieres, abpusējas "
+                      "hidronefrozes, nieru funkcijas traucējumu vai grūtniecības gadījumā."))
+    imaged = any(x in done for x in ("CT urography", "Contrast CT", "MRI"))
+    if pregnant:
+        out.append(_s("mru", "consider", "2w", "Grūtniecība: EAU (stipra rekomendācija) – vispirms USS, otrā izvēle MR; "
+                                               "zemas devas DT tikai kā pēdējā iespēja."))
+    elif cause in ("Not clear yet", "Ureteral tumour suspected", "After pelvic surgery / radiotherapy",
+                   "Retroperitoneal fibrosis", "Other (type it)") and not imaged:
+        why = ("Cēloņa noskaidrošanai: DT urogrāfija parāda obstrukcijas līmeni un cēloni (EAU UTUC: DT urogrāfija "
+               "augšējo urīnceļu audzēja diagnostikai – stipra rekomendācija).")
+        if contrast_risk:
+            out.append(_s("mru", "rec", "2w" if nmc else "visit",
+                          "Nieru funkcija samazināta: MR urogrāfija ļauj noskaidrot cēloni bez jodētas kontrastvielas."))
+            out.append(_s("ctu", "consider", "2w" if nmc else "visit",
+                          why + " Ar eGFR < 30 vai akūtu nieru bojājumu – tikai pēc riska izvērtēšanas un ar "
+                                "profilaktisku hidratāciju."))
+        else:
+            out.append(_s("ctu", "rec", "2w" if nmc else "visit", why + " Pirms kontrastvielas pārbaudiet eGFR."))
+    elif cause == "Tumour compression" and not imaged:
+        out.append(_s("ct_abd", "consider", "visit", "Ja audzēja izplatība vēl nav zināma – stadēšanu plāno onkologs."))
+    if not pregnant and "Diuretic renography (MAG3)" not in done:
+        out.append(_s("renogram", "consider", "6w",
+                      "Diurētiskā renogrāfija (MAG3) parāda, vai paplašinājums ir obstruktīvs un kāda ir dalītā nieru "
+                      "funkcija – palīdz izlemt starp ilgstošu drenāžu, rekonstrukciju vai nefrektomiju "
+                      "(Campbell-Walsh-Wein)."))
+    if cause == "Ureteral tumour suspected":
+        out.append(_s("cyto", "rec", "visit", "EAU UTUC (stipra rekomendācija): urīna citoloģija ir daļa no standarta "
+                                              "izmeklēšanas."))
+        if "Cystoscopy" not in done:
+            out.append(_s("cysto", "rec", "visit", "EAU UTUC (stipra rekomendācija): cistoskopija, lai izslēgtu "
+                                                   "vienlaicīgu urīnpūšļa audzēju."))
+    if cause == "Bladder outlet obstruction / retention":
+        out.append(_s("pvr", "rec", "visit", "Pēc katetra evakuācijas: atlikušais urīns parāda, vai urīnpūslis "
+                                             "iztukšojas."))
+        if v.get("_sex") == "Man":
+            out.append(_s("psa", "consider", "6w", "Retence un katetrs paaugstina PSA – nosakiet to ne ātrāk kā apmēram "
+                                                   "pēc 6 nedēļām, ja vēža diagnoze mainītu taktiku."))
+    return out
+
+
+TEST_ADVISORS["N13.3"] = hn_tests
+BUILDERS.update({"hn_nmc": hn_nmc_parts, "hn_ward": hn_ward_parts})
+CHECKS["N13.3"] = hn_checks
+
+_hn_nsaid = next(b for blocks in BLOCKS.values() for b in blocks if b["id"] == "nsaid")
+BLOCKS["N13.3"] = [
+    _c61_blocks["paracetamol"], _c61_blocks["ultracod"],
+    dict(_hn_nsaid, note="NPL var izraisīt vai pastiprināt akūtu nieru bojājumu, īpaši obstrukcijas, dehidratācijas vai "
+                         "HNS gadījumā (KDIGO: izvairīties no nefrotoksiskiem medikamentiem). Priekšroka paracetamolam."),
+    TAMSULOSIN_STENT_BLOCK,
+    dict(_r33_blocks["cefuroxime-7"], group=G_ABX,
+         note="Tikai infekcijas pazīmju gadījumā (obstruktīvs pielonefrīts), pēc uzsējuma; kopā 7–14 dienas. Drenētas "
+              "nieres urīns bieži ir kolonizēts: EAU – asimptomātisku bakteriūriju neārstēt. Devu pielāgot nieru "
+              "funkcijai."),
+    dict(_r33_blocks["amoxiclav-7"], group=G_ABX,
+         note="Tikai infekcijas pazīmju gadījumā; pēc uzsējuma (EAU: UCI empīriskai ārstēšanai aminopenicilīnus "
+              "nelietot). Devu pielāgot nieru funkcijai."),
+]
+BLOCK_WARNINGS["N13.3"] = BLOCK_WARNINGS["N10"]
+
+
+# ---------------------------------------------------------------
 # 2z. LATVIAN SCREEN TEXTS
 # Inside, the app works with English names (field names, choices, presets). The screen shows them
 # in Latvian through tr(). To change a word on the screen, change it here (the right-hand side).
@@ -14064,6 +14738,71 @@ LV = {
     "in Latvian, e.g. epidermoidāla cista": "piem., epidermoidāla cista",
     "in Latvian, one line, e.g. Simptomātiska LPH": "vienā rindā, piem., Simptomātiska LPH",
     "in Latvian, e.g. hroniska iekaisuma pazīmes, fibroze": "piem., hroniska iekaisuma pazīmes, fibroze",
+    # N13.3 hydronephrosis
+    "1. Admission and findings": "1. Iestāšanās un atrade",
+    "2. Cause": "2. Cēlonis",
+    "3. Laboratory": "3. Laboratoriskie rādītāji",
+    "4. Drainage": "4. Drenāža",
+    "5. NMC decision": "5. NMC lēmums",
+    "5. Stay in 4. Urology": "5. Ārstēšanās 4. uroloģijas nodaļā",
+    "6. Recommendations": "6. Rekomendācijas",
+    "Hydronephrosis grade (HN)": "Hidronefrozes pakāpe",
+    "Ureter dilated (HN)": "Paplašināts arī urīnvads (hidroureteronefroze)",
+    "Symptoms (HN)": "Sūdzības",
+    "Imaging (HN)": "Attēldiagnostika",
+    "Imaging details (HN)": "Attēldiagnostikas atrade (papildus)",
+    "Hydronephrosis cause (HN)": "Hidronefrozes cēlonis",
+    "Cause details (HN)": "Cēloņa detaļas",
+    "Co-diagnoses (HN)": "Blakusdiagnozes",
+    "Inflammation (HN)": "Iekaisuma rādītāji",
+    "Sepsis signs (HN)": "Sepses pazīmes (hipotensija, tahikardija, apjukums)",
+    "Renal function (HN)": "Nieru funkcija",
+    "Creatinine (HN)": "Kreatinīns (µmol/l, neobligāti)",
+    "eGFR (HN)": "eGFR (ml/min/1,73 m², neobligāti)",
+    "Potassium raised (HN)": "Hiperkaliēmija (K⁺ > 5,5 mmol/l)",
+    "Drainage (HN)": "Drenāža",
+    "Drainage date (HN)": "Drenāžas datums",
+    "Nephrostomy size (HN)": "Nefrostoma (Ch)",
+    "Catheter size (HN)": "Katetrs (Fr)",
+    "Drained volume (HN)": "Izvadītais urīns (ml, neobligāti)",
+    "Urine on drainage (HN)": "Urīns drenāžas laikā",
+    "Urine culture taken (HN)": "Paņemts urīna uzsējums",
+    "IV antibiotics (HN)": "I/v antibakteriālā terapija",
+    "Antibiotic in the ward (HN)": "Antibiotika nodaļā",
+    "Urine culture result (HN)": "Urīna uzsējuma rezultāts",
+    "Post-obstructive diuresis (HN)": "Pēcobstrukcijas poliūrija",
+    "Renal function at discharge (HN)": "Nieru funkcija izrakstoties",
+    "Creatinine at discharge (HN)": "Kreatinīns izrakstoties (µmol/l, neobligāti)",
+    "eGFR at discharge (HN)": "eGFR izrakstoties (neobligāti)",
+    "Work-up in the ward (HN)": "Cēloņa izmeklēšana nodaļā",
+    "Work-up result (HN)": "Izmeklēšanas rezultāts",
+    "Ward course (HN)": "Gaita nodaļā",
+    "Definitive plan (HN)": "Turpmākais plāns",
+    "Urology visit (HN)": "Urologa konsultācija",
+    "Next drainage change (HN)": "Nākamā stenta / nefrostomas maiņa",
+    "Nephrology referral (HN)": "Nefrologa konsultācija",
+    "Reduced urine output": "Samazināts urīna daudzums",
+    "Non-contrast CT": "Bezkontrasta DT",
+    "Contrast CT": "DT ar kontrastvielu",
+    "Tumour compression": "Audzēja kompresija",
+    "Ureteral tumour suspected": "Aizdomas par urīnvada audzēju",
+    "Retroperitoneal fibrosis": "Retroperitoneāla fibroze",
+    "After pelvic surgery / radiotherapy": "Pēc iegurņa operācijas / staru terapijas",
+    "Pregnancy": "Grūtniecība",
+    "Bladder outlet obstruction / retention": "Infravezikāla obstrukcija / urīna retence",
+    "Raised creatinine (AKI)": "Paaugstināts kreatinīns (akūts nieru bojājums)",
+    "Known CKD, stable": "Zināma HNS, stabila",
+    "Known CKD, worse than usual": "Zināma HNS, pasliktinājusies",
+    "No drainage": "Bez drenāžas",
+    "Urethral catheter": "Urīnpūšļa katetrs",
+    "Normalised": "Normalizējusies",
+    "Improving": "Uzlabojas",
+    "Not improved": "Nav uzlabojusies",
+    "Ureteroscopy with biopsy": "Ureteroskopija ar biopsiju",
+    "Urologist: find and treat the cause": "Urologs: noskaidrot un ārstēt cēloni",
+    "Long-term drainage": "Ilgstoša drenāža",
+    "Gynaecologist (pregnancy)": "Ginekologs (grūtniecība)",
+    "MR urography": "MR urogrāfija",
 }
 
 
@@ -14102,7 +14841,7 @@ sex = bar[2].segmented_control(
     "Pacients", ["Woman", "Man"], format_func=lambda s: {"Woman": "♀  Sieviete", "Man": "♂  Vīrietis"}[s],
     selection_mode="single", key="sex", label_visibility="collapsed", width="stretch",
 )
-st.caption(f"Versija: 2026-11-02-latvian · Fails: {Path(__file__).resolve()}")
+st.caption(f"Versija: 2026-11-02-hydronephrosis · Fails: {Path(__file__).resolve()}")
 
 # Keep the Word header fields (and the surgeons) when you switch between pages
 for _key in HDR_KEYS + ["pe-surgeons", "pe-nurse"]:
