@@ -172,10 +172,15 @@ MODIFIERS = {
         "type": "single", "options": ["Right", "Left", "Both"],
         "show_if": {"Infection site": "Pyelonephritis"},
     },
-    "Infection context": {
-        "type": "single",
-        "options": ["Catheter present", "Stents present", "Catheter and stents present",
-                    "After urological manipulation", "Other / not determined"],
+    "Infection context": {  # empty = none of these
+        "type": "multi", "optional": True,
+        "options": ["Urinary catheter", "Ureteral stents", "Nephrostomy", "Urostomy", "After urological manipulation"],
+    },
+    # N39: men and older women always have a complicated UTI; only a younger woman gets the choice
+    "Older (postmenopausal) woman": {"type": "toggle", "show_if": {"_sex": "Woman"}},
+    "Infection complexity (N39)": {
+        "type": "single", "options": ["Uncomplicated", "Complicated"],
+        "show_if": {"_sex": "Woman", "Older (postmenopausal) woman": False},
     },
     "Complications": {
         "type": "multi", "custom": True, "optional": True,
@@ -825,7 +830,7 @@ MODIFIERS = {
     "Relevant history": {
         "type": "multi", "optional": True, "custom": True,
         "options": ["Previous UTIs", "Recurrent UTIs", "Nephrolithiasis", "Urinary tract obstruction",
-                    "Urological surgery", "Diabetes", "Immunosuppression"],
+                    "Urological surgery", "Nephrostomy", "Urostomy", "Diabetes", "Immunosuppression"],
         "custom_help": "Type it in Latvian, as it should appear after 'Anamnēzē:'",
     },
     "Catheter route": {
@@ -1268,8 +1273,8 @@ DIAGNOSIS_MODIFIERS = {
          ["Admission", "Admission date", "Discharge date", "Symptoms", "Symptom duration", "Symptom onset",
           "Fever status", "Relevant history"]),
         ("2. Diagnosis",
-         ["Infection complexity", "Infection site", "Pyelonephritis side", "Infection context",
-          "Complications", "Complications status", "Comorbidities", "Diagnosis certainty"]),
+         ["Older (postmenopausal) woman", "Infection complexity (N39)", "Infection context", "Infection site",
+          "Pyelonephritis side", "Comorbidities", "Diagnosis certainty", "Complications", "Complications status"]),
         ("3. Urinary catheter",
          ["Has catheter", "Catheter route", "Catheter action", "Catheter Fr", "Catheter indication",
           "Catheter at discharge", "Urine drainage", "Voiding after removal"]),
@@ -1638,12 +1643,9 @@ COMPLEXITY_TEXT = {
     "Uncomplicated": "Nekomplicēta urīnceļu infekcija",
     "Not classified": "Urīnceļu infekcija",
 }
-CONTEXT_TEXT = {
-    "Catheter present": " urīnpūšļa katetra klātbūtnes apstākļos",
-    "Stents present": " urīnvada stentu klātbūtnes apstākļos",
-    "Catheter and stents present": " urīnvada stentu un urīnpūšļa katetra klātbūtnes apstākļos",
-    "After urological manipulation": " pēc uroloģiskas manipulācijas",
-    "Other / not determined": "",
+CONTEXT_DEVICES = {  # infection context -> the device in the genitive, in the order they are written
+    "Ureteral stents": "urīnvada stentu", "Urinary catheter": "urīnpūšļa katetra",
+    "Nephrostomy": "nefrostomas", "Urostomy": "urostomas",
 }
 SITE_TEXT = {
     "Lower urinary tract": "Apakšējo urīnceļu infekcija",
@@ -1949,6 +1951,7 @@ FEVER_STATUS_TEXT = {"Febrile": "Iestāšanās brīdī febrila ķermeņa tempera
 HISTORY_TEXT = {"Previous UTIs": "iepriekš pārslimotas urīnceļu infekcijas",
                 "Recurrent UTIs": "atkārtotas urīnceļu infekcijas", "Nephrolithiasis": "nefrolitiāze",
                 "Urinary tract obstruction": "urīnceļu obstrukcija", "Urological surgery": "uroloģiskas operācijas",
+                "Nephrostomy": "nefrostoma", "Urostomy": "urostoma",
                 "Diabetes": "cukura diabēts", "Immunosuppression": "imūnsupresija"}
 STENT_INDICATION_TEXT = {"Obstruction": "obstrukcijas dēļ", "Ureteral stone": "urīnvada konkrementa dēļ",
                          "Postoperative drainage": "pēcoperācijas drenāžai"}
@@ -3143,6 +3146,127 @@ def fmt_date(value):
     return value.strftime("%d.%m.%Y")
 
 
+# ----- Draft text: shown while some choices are still empty -----
+# An empty choice gets a stand-in, so the text can be written already: a date, number or typed text shows as
+# "[Procedure date]" in the text, and a single choice uses its first (or default) option until you choose.
+
+class PendingDate(datetime.date):
+    """A date not chosen yet: works like today's date, but is written as '[label]'."""
+    def __new__(cls, label):
+        today = datetime.date.today()
+        obj = super().__new__(cls, today.year, today.month, today.day)
+        obj.label = label
+        return obj
+
+    def strftime(self, fmt):
+        return f"[{self.label}]"
+
+    def __format__(self, spec):
+        return f"[{self.label}]"
+
+    def __str__(self):
+        return f"[{self.label}]"
+
+
+class PendingNumber(float):
+    """A number not typed yet: written as '[label]' (it counts as no number in comparisons)."""
+    def __new__(cls, label):
+        obj = super().__new__(cls, "nan")
+        obj.label = label
+        return obj
+
+    def __format__(self, spec):
+        return f"[{self.label}]"
+
+    def __str__(self):
+        return f"[{self.label}]"
+
+
+class PendingChoice(str):
+    """A single choice not made yet: works like its first option, but is written as '[label]' when it is
+    put into the text as it is."""
+    def __new__(cls, value, label):
+        obj = super().__new__(cls, value)
+        obj.label = label
+        return obj
+
+    def __format__(self, spec):
+        return f"[{self.label}]"
+
+
+def _pending_value(group, multi_label=True):
+    spec = MODIFIERS[group]
+    kind = spec["type"]
+    if kind == "single":
+        return PendingChoice(spec["options"][spec.get("default_index") or 0], group)
+    if kind == "date":
+        return PendingDate(group)
+    if kind == "number":
+        return PendingNumber(group)
+    if kind == "multi":
+        return [f"[{group}]"] if multi_label else []
+    if kind == "text":
+        return f"[{group}]"
+    if kind == "toggle":
+        return spec.get("default", False)
+    return []
+
+
+def draft_values(code, values, multi_label=True, forced=None):
+    """The choices with stand-ins for the empty ones (and for fields a stand-in choice would show).
+    forced: stand-in choices that lead to a text template (from draft_template)."""
+    out = dict(values)
+    for group, value in values.items():
+        if value is None and not group.startswith("_"):
+            out[group] = _pending_value(group, multi_label)
+    out.update(forced or {})
+    layout = DIAGNOSIS_MODIFIERS.get(code, DEFAULT_MODIFIERS)
+    sections = layout if layout and isinstance(layout[0], tuple) else [(None, layout)]
+    for _ in range(3):  # a stand-in can make another field appear, which then needs a stand-in too
+        added = False
+        for section in sections:
+            condition = section[2] if len(section) > 2 else {}
+            if not all(condition_met(out.get(o), w) for o, w in condition.items()):
+                continue
+            for group in section[1]:
+                if group in out:
+                    continue
+                if all(condition_met(out.get(o), w) for o, w in MODIFIERS[group].get("show_if", {}).items()):
+                    out[group] = _pending_value(group, multi_label)
+                    added = True
+        if not added:
+            break
+    return out
+
+
+def draft_template(code, department, values):
+    """While choices are empty: the first text template the empty choices can still lead to,
+    and the stand-in choices that lead there (e.g. 'Stay: Outpatient' for an NMC paper)."""
+    for template in TEMPLATES:
+        if template["diagnosis"] != code or template["department"] != department:
+            continue
+        forced = {}
+        for group, wanted in template["when"].items():
+            if values.get(group) == wanted:
+                continue
+            if values.get(group) is not None:
+                break  # you chose something else: this template is not the one
+            forced[group] = PendingChoice(wanted, group) if isinstance(wanted, str) else wanted
+        else:
+            return template, forced
+    return None, {}
+
+
+def build_parts(template, sex, values, block_texts):
+    """(clinical diagnosis, epicrisis, recommendations) from a template."""
+    if template.get("builder"):
+        parts = BUILDERS[template["builder"]](sex, values, block_texts)
+        return parts["clinical_diagnosis"], parts["epicrisis"], parts["recommendations"]
+    forms = build_forms(sex, values)
+    return (template.get("clinical_diagnosis", "").format(**forms), template["epicrisis"].format(**forms),
+            add_blocks(template["recommendations"], block_texts))
+
+
 def clean_rows(df):
     """Turn the table from st.data_editor into a list of plain dicts (empty rows dropped)."""
     rows = []
@@ -3224,14 +3348,20 @@ def abx_phrase(row, with_details):
     return " ".join(" ".join(parts).split()).replace(" )", ")")
 
 
+def days_word(n):
+    """Latvian accusative: 1 / 21 dienu, 2–20 dienas."""
+    return "dienu" if n % 10 == 1 and n % 100 != 11 else "dienas"
+
+
 def abx_discharge_lines(v):
     lines = []
     for row in abx_rows(v):
         if not row.get("Continue at discharge"):
             continue
         meta = MEDICATION_CATALOG[row["Medication"]]
+        days = int(row["Days at home"])
         text = (f"{meta['form']} {meta['nom']} {(row.get('Dose') or '').strip()} "
-                f"{ROUTE_WORD[row['Route']]} {row['Frequency']} līdz {fmt_date(row['End date'])}.")
+                f"{ROUTE_WORD[row['Route']]} {row['Frequency']} vēl {days} {days_word(days)}.")
         lines.append("    o " + " ".join(text.split()))
     return lines
 
@@ -3241,6 +3371,8 @@ def abx_discharge_lines(v):
 def n39_checks(v):
     """Returns (blockers, cautions). Blockers stop the routine discharge text."""
     blockers, cautions = [], []
+    if v.get("Infection complexity (N39)") == "Uncomplicated" and n39_device_context(v):
+        cautions.append("A urinary device is chosen, so the infection is written as complicated (EAU).")
 
     status = v.get("Clinical status")
     if status in ("Deteriorated", "Incomplete assessment"):
@@ -3278,11 +3410,9 @@ def n39_checks(v):
             if blank(row.get(field)):
                 blockers.append(f"Antibiotics, row {number}: {field} is missing.")
         if row.get("Continue at discharge"):
-            for field in ("Dose", "Frequency", "End date"):
+            for field in ("Dose", "Frequency", "Days at home"):
                 if blank(row.get(field)):
                     blockers.append(f"Antibiotics, row {number} ({name}) continues at discharge: {field} is missing.")
-            if discharge and row.get("End date") and row["End date"] < discharge:
-                cautions.append(f"{name}: the end date is before the discharge date.")
         if admission and row.get("Start date") and row["Start date"] < admission:
             cautions.append(f"{name}: the start date is before the admission date.")
 
@@ -3342,11 +3472,32 @@ def n39_catheter_noun(v):
             "nom": "urīnpūšļa Foley katetrs", "short": "urīnpūšļa katetrs"}
 
 
-def n39_diagnosis(v):
-    context = CONTEXT_TEXT[v["Infection context"]]
+def n39_device_context(v):
+    """The devices chosen in 'Infection context' (catheter, stents, nephrostomy, urostomy)."""
+    return [c for c in CONTEXT_DEVICES if c in (v.get("Infection context") or [])]
+
+
+def n39_complexity(v):
+    """Men and older women: always complicated (EAU), and so is anyone with a urinary device.
+    Only a younger woman without a device gets her own choice."""
+    if v.get("_sex") == "Man" or v.get("Older (postmenopausal) woman") or n39_device_context(v):
+        return "Complicated"
+    return v.get("Infection complexity (N39)") or "Not classified"
+
+
+def n39_context(v):
+    """' urīnvada stentu un urīnpūšļa katetra klātbūtnes apstākļos' (+ ' pēc uroloģiskas manipulācijas')."""
+    devices = [CONTEXT_DEVICES[c] for c in n39_device_context(v)]
     if n39_suprapubic(v):
-        context = context.replace("urīnpūšļa katetra", "epicistostomas katetra")
-    first = COMPLEXITY_TEXT[v["Infection complexity"]] + context
+        devices = [("epicistostomas katetra" if d == "urīnpūšļa katetra" else d) for d in devices]
+    text = f" {lv_list(devices)} klātbūtnes apstākļos" if devices else ""
+    if "After urological manipulation" in (v.get("Infection context") or []):
+        text += " pēc uroloģiskas manipulācijas"
+    return text
+
+
+def n39_diagnosis(v):
+    first = COMPLEXITY_TEXT[n39_complexity(v)] + n39_context(v)
     if v.get("Diagnosis certainty") == "Possible":
         first = "Iespējama " + first[0].lower() + first[1:]
     lines = [first + "."]
@@ -5669,7 +5820,7 @@ def abx_row_checks(v):
             if blank(row.get(field)):
                 blockers.append(f"Antibiotics, row {number}: {field} is missing.")
         if row.get("Continue at discharge"):
-            for field in ("Dose", "Frequency", "End date"):
+            for field in ("Dose", "Frequency", "Days at home"):
                 if blank(row.get(field)):
                     blockers.append(f"Antibiotics, row {number} ({name}) continues at discharge: {field} is missing.")
     return blockers, cautions
@@ -7593,6 +7744,8 @@ UPPER_TRACT_SIGNS = ("Flank pain", "Kidney mass", "Kidney or ureteral stone", "H
 
 def _num(v, key):
     value = v.get(key)
+    if isinstance(value, PendingNumber):
+        return value  # not typed yet: stays '[label]' in the text
     return None if value in (None, "") else float(value)
 
 
@@ -8523,7 +8676,7 @@ def n10_tests(v):
 def n39_tests(v):
     out = []
     upper_or_complicated = (v.get("Infection site") in ("Upper urinary tract", "Pyelonephritis")
-                            or v.get("Infection complexity") == "Complicated")
+                            or n39_complexity(v) == "Complicated")
     if "Acute kidney injury" in (v.get("Complications") or []) or v.get("Renal function trend") == "Deteriorated":
         out.append(_s("creat", "rec", "1w", "Renal function got worse during this episode: recheck creatinine and eGFR."))
     else:
@@ -9255,7 +9408,7 @@ def antibiotics_editor(key):
         "Frequency": pd.Series(dtype="object"),
         "Start date": pd.Series(dtype="datetime64[ns]"),
         "Continue at discharge": pd.Series(dtype="bool"),
-        "End date": pd.Series(dtype="datetime64[ns]"),
+        "Days at home": pd.Series(dtype="float64"),
     })
     edited = st.data_editor(
         empty, key=key, num_rows="dynamic", width="stretch",
@@ -9266,8 +9419,9 @@ def antibiotics_editor(key):
             "Frequency": st.column_config.SelectboxColumn(options=FREQUENCIES),
             "Start date": st.column_config.DateColumn(format="DD.MM.YYYY", required=True),
             "Continue at discharge": st.column_config.CheckboxColumn(
-                help="Tick the antibiotics that go home with the patient (they need dose, frequency and end date)"),
-            "End date": st.column_config.DateColumn(format="DD.MM.YYYY"),
+                help="Tick the antibiotics that go home with the patient (they need dose, frequency and days)"),
+            "Days at home": st.column_config.NumberColumn(min_value=1, max_value=90, step=1, format="%d",
+                                                          help="How many more days after discharge"),
         },
     )
     return clean_rows(edited)
@@ -12236,7 +12390,7 @@ sex = bar[2].segmented_control(
     "Patient", ["Woman", "Man"], format_func=lambda s: {"Woman": "♀  Woman", "Man": "♂  Man"}[s],
     selection_mode="single", key="sex", label_visibility="collapsed", width="stretch",
 )
-st.caption(f"Build: 2026-10-30-new-layout · Running file: {Path(__file__).resolve()}")
+st.caption(f"Build: 2026-10-31-draft · Running file: {Path(__file__).resolve()}")
 
 # Keep the Word header fields (and the surgeons) when you switch between pages
 for _key in HDR_KEYS + ["pe-surgeons", "pe-nurse"]:
@@ -12435,41 +12589,57 @@ if selected:
                     values["_blocks"] = [b["id"] for b in chosen_blocks.get(code, [])]  # for the safety checks
 
                     missing = [g for g, v in values.items() if v is None and not g.startswith("_")]
+                    # While choices are still empty, the text is a draft: empty fields show as [Field name]
+                    # and an empty single choice uses its first option until you choose.
+                    forced = {}
                     if missing:
-                        st.info("Choose all options to see the text. Not chosen yet: " + ", ".join(missing))
-                        continue
-
-                    template = find_template(code, department, values)
+                        template, forced = draft_template(code, department, values)
+                    else:
+                        template = find_template(code, department, values)
                     if template is None:
-                        st.warning("No text template for this combination of choices yet.")
+                        if missing:
+                            st.info("Choose more options to see the text. Not chosen yet: " + ", ".join(missing))
+                        else:
+                            st.warning("No text template for this combination of choices yet.")
                         continue
 
-                    # Safety checks: some situations need a clinician's review instead of a routine text
-                    checker = CHECKS.get(code)
-                    blockers, cautions = checker(values) if checker else ([], [])
-                    if blockers:
-                        st.error("Clinical review is needed before a routine discharge text can be written:\n\n"
-                                 + "\n".join(f"- {b}" for b in blockers))
-                        continue
-                    if cautions:
-                        st.warning(("1 thing to check" if len(cautions) == 1 else f"{len(cautions)} things to check")
-                                   + ":\n\n" + "\n".join(f"- {c}" for c in cautions))
+                    if missing:
+                        st.info(f"**Draft** – the text fills in as you choose. Still to choose ({len(missing)}): "
+                                + ", ".join(missing) + ". Until then they show as [name] in the text, or the "
+                                "text uses their first option.")
+                    else:
+                        # Safety checks: some situations need a clinician's review instead of a routine text
+                        checker = CHECKS.get(code)
+                        blockers, cautions = checker(values) if checker else ([], [])
+                        if blockers:
+                            st.error("Clinical review is needed before a routine discharge text can be written:\n\n"
+                                     + "\n".join(f"- {b}" for b in blockers))
+                            continue
+                        if cautions:
+                            st.warning(("1 thing to check" if len(cautions) == 1 else f"{len(cautions)} things to check")
+                                       + ":\n\n" + "\n".join(f"- {c}" for c in cautions))
 
                     block_texts = [b["text"] for b in chosen_blocks.get(code, [])]
-                    if template.get("builder"):
-                        parts = BUILDERS[template["builder"]](sex, values, block_texts)
-                        dx_text = parts["clinical_diagnosis"]
-                        epi_text = parts["epicrisis"]
-                        recs = parts["recommendations"]
+                    if not missing:
+                        dx_text, epi_text, recs = build_parts(template, sex, values, block_texts)
                     else:
-                        forms = build_forms(sex, values)
-                        dx_text = template.get("clinical_diagnosis", "").format(**forms)
-                        epi_text = template["epicrisis"].format(**forms)
-                        recs = add_blocks(template["recommendations"], block_texts)
+                        drafted = None
+                        for multi_label in (True, False):  # empty lists as [Name], or else as nothing
+                            try:
+                                used = draft_values(code, values, multi_label, forced)
+                                drafted = build_parts(template, sex, used, block_texts)
+                                break
+                            except Exception:
+                                continue
+                        if drafted is None:
+                            st.caption("The draft needs a few more choices before it can be written.")
+                            continue
+                        # an empty list can leave a double space in the middle of a line: close it up
+                        dx_text, epi_text, recs = (re.sub(r"(?<=\S)  +(?=\S)", " ", t) for t in drafted)
                     block_sig = "|".join(b["id"] for b in chosen_blocks.get(code, []))
                     # The text boxes are editable, so you can adjust the wording before
                     # copying it. Changing the choices regenerates the texts.
-                    digest = hashlib.md5(repr(sorted(values.items())).encode("utf-8")).hexdigest()
+                    digest = hashlib.md5(repr((sorted(values.items()), missing)).encode("utf-8")).hexdigest()
                     sig = f"{template['id']}|{sex}|{digest}"
 
                     if not dx_text:
