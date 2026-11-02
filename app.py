@@ -56,6 +56,7 @@ DIAGNOSES = {
     "N41.0": "Acute bacterial prostatitis, prostatic abscess (NMC or 4. Urology)",
     "N43": "Hydrocele and spermatocele",
     "N44": "Testicular torsion (4. Urology) / appendix testis torsion (NMC)",
+    "N50.1": "Testicular infarction (vascular disorder of the testis)",
     "N45": "Orchitis / epididymitis, testicular abscess (NMC or 4. Urology)",
     "N47": "Phimosis (4. Urology) / paraphimosis – reduction or dorsumcision (NMC)",
     "R31": "Hematuria (NMC: sent home / 4. Urology: admitted)",
@@ -437,6 +438,40 @@ MODIFIERS = {
     "Blue dot sign": {"type": "toggle", "show_if": {"_department": "NMC"}},
     "Control visit (TT)": {"type": "single", "default_index": 0,
                            "options": ["Urologist in 1 month", "Urologist in 3 months", "Urologist in 1 week"]},
+    # ----- N50.1 testicular infarction -----
+    "Side (TI)": {"type": "single", "options": ["Right", "Left"]},
+    "Pain duration (TI)": {"type": "single", "default_index": 1,
+                           "options": ["Hours", "1–3 days", "4–7 days", "More than a week"]},
+    "Cause (TI)": {"type": "single", "default_index": 0,
+                   "options": ["Idiopathic", "After epididymo-orchitis", "After torsion", "After trauma",
+                               "After inguinal / scrotal surgery", "Vasculitis / coagulation disorder",
+                               "Not determined"]},
+    "Infarction extent (TI)": {"type": "single", "options": ["Segmental", "Global (whole testis)"]},
+    "Imaging (TI)": {"type": "multi", "default_selected": ["Doppler US"],
+                     "options": ["Doppler US", "Contrast-enhanced US", "MRI"]},
+    "Tumour markers (TI)": {"type": "single", "default_index": 0, "options": ["Normal", "Not done", "Elevated"]},
+    "Treatment (TI)": {"type": "single", "options": ["Conservative"] + ['Scrotal exploration – testis preserved', 'Partial orchiectomy', 'Orchiectomy (scrotal)', 'Inguinal orchiectomy']},
+    "Ward course (TI)": {"type": "single", "default_index": 0, "options": ["Pain decreased", "Pain resolved"],
+                         "show_if": {"Treatment (TI)": "Conservative"}},
+    "Operation date (TI)": {"type": "date", "show_if": {"Treatment (TI)": ['Scrotal exploration – testis preserved', 'Partial orchiectomy', 'Orchiectomy (scrotal)', 'Inguinal orchiectomy']}},
+    "Anesthesia (TI)": {"type": "single", "default_index": 0, "options": ["General", "Spinal"],
+                        "show_if": {"Treatment (TI)": ['Scrotal exploration – testis preserved', 'Partial orchiectomy', 'Orchiectomy (scrotal)', 'Inguinal orchiectomy']}},
+    "Drain (TI)": {"type": "single", "default_index": 0, "options": ["No drain", "Removed in the ward",
+                                                                    "Discharged with drain"],
+                   "show_if": {"Treatment (TI)": ['Scrotal exploration – testis preserved', 'Partial orchiectomy', 'Orchiectomy (scrotal)', 'Inguinal orchiectomy']}},
+    "Postoperative course (TI)": {"type": "single", "default_index": 0, "options": ["Uneventful", "With complications"],
+                                  "show_if": {"Treatment (TI)": ['Scrotal exploration – testis preserved', 'Partial orchiectomy', 'Orchiectomy (scrotal)', 'Inguinal orchiectomy']}},
+    "Postoperative complications (TI)": {"type": "text", "placeholder": "in Latvian",
+                                         "show_if": {"Postoperative course (TI)": "With complications"}},
+    "Histology (TI)": {"type": "single", "default_index": 0, "options": ["Pending", "Known"],
+                       "show_if": {"Treatment (TI)": ['Partial orchiectomy', 'Orchiectomy (scrotal)', 'Inguinal orchiectomy']}},
+    "Histology result (TI)": {"type": "text", "placeholder": "in Latvian, e.g. hemorāģisks sēklinieka infarkts, "
+                                                             "audzēja šūnas nav atrastas",
+                              "show_if": {"Histology (TI)": "Known"}},
+    "Skin sutures (TI)": {"type": "single", "default_index": 0, "options": ["Absorbable", "Non-absorbable"],
+                          "show_if": {"Treatment (TI)": ['Scrotal exploration – testis preserved', 'Partial orchiectomy', 'Orchiectomy (scrotal)', 'Inguinal orchiectomy']}},
+    "Prosthesis advice (TI)": {"type": "toggle", "default": True,
+                               "show_if": {"Treatment (TI)": ["Orchiectomy (scrotal)", "Inguinal orchiectomy"]}},
     # ----- N41.0 acute bacterial prostatitis, prostatic abscess -----
     "Symptoms (AP)": {"type": "multi", "optional": True, "default_selected": ["Fever", "Dysuria / frequency"],
                       "options": ["Fever", "Chills", "Dysuria / frequency", "Perineal / suprapubic pain",
@@ -1297,6 +1332,17 @@ DIAGNOSIS_MODIFIERS = {
          ["Urology follow-up", "Urology follow-up date", "Fluid intake", "Warning signs",
           "Chronic medication changes"]),
     ],
+    "N50.1": [
+        ("1. Admission", ["Side (TI)", "Pain duration (TI)", "Cause (TI)", "Other diagnoses (optional)"]),
+        ("2. Diagnosis", ["Infarction extent (TI)", "Imaging (TI)", "Tumour markers (TI)"]),
+        ("3. Treatment",
+         ["Treatment (TI)", "Ward course (TI)", "Operation date (TI)", "Anesthesia (TI)", "Drain (TI)",
+          "Postoperative course (TI)", "Postoperative complications (TI)", "Histology (TI)", "Histology result (TI)",
+          "Skin sutures (TI)"], {"_department": "4"}),
+        ("4. Recommendations", ["Activity restriction", "Prosthesis advice (TI)", "Control visit (TT)"],
+         {"_department": "4"}),
+        ("3. NMC", ["Other NMC findings (optional)", "Control visit (TT)"], {"_department": "NMC"}),
+    ],
     "N44": [
         ("1. Admission", ["Side (TT)", "Pain duration (TT)", "Pain since (TT)", "Doppler US (TT)",
                           "Manual detorsion at NMC (TT)", "Other diagnoses (optional)"]),
@@ -2065,44 +2111,35 @@ BLOCKS = {
             "group": G_ORAL,
             "title": "Ciprofloxacin 500 mg q12h, 7 days",
             "text": "Tab. Ciprofloxacin 500 mg pa 1 tabletei 2 reizes dienā 7 dienas.",
-            "note": "500 mg PO every 12 hours, typically 7 days if susceptible and clinically "
-                    "appropriate. Useful when local resistance is acceptable and the isolate is "
-                    "susceptible. Consider tendon, CNS, QT, vascular and other fluoroquinolone risks.",
+            "note": "500 mg p/o ik 12 stundas, parasti 7 dienas, ja izolāts ir jutīgs un tas ir klīniski pamatoti. Noderīgs, ja vietējā rezistence ir pieņemama un izolāts ir jutīgs. Ņemiet vērā cīpslu, CNS, QT, asinsvadu un citus fluorhinolonu riskus.",
         },
         {
             "id": "tmp-smx",
             "group": G_ORAL,
             "title": "TMP-SMX 160/800 mg q12h, 14 days",
             "text": "Tab. Trimetoprims/Sulfametoksazols 160/800 mg pa 1 tabletei 2 reizes dienā 14 dienas.",
-            "note": "160/800 mg PO every 12 hours, typically 14 days in traditional regimens. "
-                    "Preferably use when susceptibility is known. Monitor potassium and creatinine, "
-                    "especially in renal impairment or with ACE inhibitors, ARBs, or spironolactone.",
+            "note": "160/800 mg p/o ik 12 stundas, tradicionālajās shēmās parasti 14 dienas. Vēlams lietot, ja jutība ir zināma. Kontrolējiet kāliju un kreatinīnu, īpaši nieru funkcijas traucējumu gadījumā vai lietojot AKE inhibitorus, ARB vai spironolaktonu.",
         },
         {
             "id": "amoxiclav",
             "group": G_ORAL,
             "title": "Amoxicillin/clavulanate 875/125 mg q12h, 5 days",
             "text": "Tab. Amoksiklav 875 mg/125 mg pa 1 tabletei 2 reizes dienā 5 dienas.",
-            "note": "Kept from your original pyelonephritis recommendations.",
+            "note": "Saglabāts no jūsu sākotnējām pielonefrīta rekomendācijām.",
         },
         {
             "id": "ceftriaxone",
             "group": G_IV,
             "title": "Ceftriaxone 1-2 g q24h",
             "text": "Inj. Ceftriaxone 1-2 g i/v 1 reizi dienā.",
-            "note": "Common initial choice, 1-2 g IV every 24 hours. Often appropriate for "
-                    "community-acquired pyelonephritis without strong risk factors for resistant "
-                    "organisms. Usually no renal dose adjustment is needed in isolated renal impairment.",
+            "note": "Bieži sākotnējā izvēle, 1–2 g i/v ik 24 stundas. Bieži piemērots sadzīvē iegūtam pielonefrītam bez izteiktiem rezistentu mikroorganismu riska faktoriem. Izolētu nieru funkcijas traucējumu gadījumā devas pielāgošana parasti nav nepieciešama.",
         },
         {
             "id": "pip-tazo",
             "group": G_IV,
             "title": "Piperacillin/tazobactam 4.5 g q8h",
             "text": "Inj. Piperacillin/Tazobactam 4.5 g i/v ik pēc 8 stundām.",
-            "note": "4.5 g IV every 8 hours, an example of a conventional regimen for complicated "
-                    "infection; severe infection protocols may use every 6 hours or prolonged "
-                    "infusion. Adjust for renal function and follow the hospital protocol. Consider "
-                    "when broader Gram-negative coverage, including Pseudomonas, is needed.",
+            "note": "4,5 g i/v ik 8 stundas – tradicionālas shēmas piemērs komplicētas infekcijas gadījumā; smagas infekcijas protokolos var lietot ik 6 stundas vai pagarinātu infūziju. Pielāgojiet nieru funkcijai un ievērojiet slimnīcas protokolu. Apsveriet, ja nepieciešams plašāks gramnegatīvo mikroorganismu, tostarp Pseudomonas, pārklājums.",
         },
         {
             "id": "paracetamol",
@@ -2110,21 +2147,14 @@ BLOCKS = {
             "title": "Paracetamol 500-1,000 mg q6-8h as needed",
             "text": "Tab. Paracetamol 500 mg pa 1-2 tabletēm ik pēc 6-8 stundām pie sāpēm vai "
                     "paaugstinātas temperatūras pēc nepieciešamības, ne vairāk kā 3000 mg dienā.",
-            "note": "First-line symptomatic option. A practical adult regimen for fever and pain. "
-                    "Keep the total at or below 3,000 mg/day for routine self-management; use a "
-                    "lower maximum or longer intervals in liver disease, low body weight, "
-                    "malnutrition or heavy alcohol use. Check combination products to avoid "
-                    "duplicate paracetamol.",
+            "note": "Pirmās izvēles simptomātisks līdzeklis. Praktiska shēma pieaugušajiem drudža un sāpju gadījumā. Patstāvīgā lietošanā kopējā deva nedrīkst pārsniegt 3000 mg/dienā; aknu slimību, mazas ķermeņa masas, nepietiekama uztura vai liela alkohola patēriņa gadījumā lietojiet mazāku maksimālo devu vai garākus intervālus. Pārbaudiet kombinētos preparātus, lai paracetamols netiktu lietots divreiz.",
         },
         {
             "id": "ultracod",
             "group": G_PAIN,
             "title": "Ultracod 500 mg/30 mg tablets",
             "text": "Tab. Ultracod 500 mg/30 mg pa 1 tabletei līdz 4 r./dienā pēc nepieciešamības pie sāpēm.",
-            "note": "Paracetamol 500 mg + codeine phosphate 30 mg per tablet. Used for moderate to "
-                    "severe pain when simpler analgesics are inadequate. The current Latvian product "
-                    "information specifies a minimum 6-hour interval and treatment for no longer "
-                    "than 3 days without medical reassessment.",
+            "note": "Paracetamols 500 mg + kodeīna fosfāts 30 mg vienā tabletē. Lieto vidēji stipru līdz stipru sāpju gadījumā, ja vienkāršāki analgētiķi nav pietiekami. Pašreizējā Latvijas zāļu aprakstā noteikts vismaz 6 stundu intervāls un ārstēšana ne ilgāk kā 3 dienas bez atkārtotas ārsta izvērtēšanas.",
         },
         {
             "id": "nsaid",
@@ -2133,22 +2163,14 @@ BLOCKS = {
             "title": "NSAIDs (ibuprofen etc.) - avoid",
             "text": "Nelietot nefrotoksiskus medikamentus, nesteroīdos pretiekaisuma līdzekļus "
                     "(Ibuprofēns, Ibumetins, Diklofenaks u.c.).",
-            "note": "Ibuprofen and other NSAIDs: generally avoid in acute pyelonephritis when renal "
-                    "risk is present. NSAIDs can reduce pain and fever, but may precipitate or worsen "
-                    "acute kidney injury, particularly with dehydration, sepsis, chronic kidney "
-                    "disease or obstruction. For a patient with impaired renal function, paracetamol "
-                    "is generally preferred.",
+            "note": "Ibuprofēns un citi NPL: akūta pielonefrīta gadījumā, ja ir nieru bojājuma risks, parasti no tiem jāizvairās. NPL var mazināt sāpes un drudzi, taču var izraisīt vai pastiprināt akūtu nieru bojājumu, īpaši dehidratācijas, sepses, hroniskas nieru slimības vai obstrukcijas gadījumā. Pacientam ar nieru funkcijas traucējumiem parasti priekšroka dodama paracetamolam.",
         },
         {
             "id": "canephron",
             "group": G_PREVENT,
             "title": "Canephron",
             "text": "Tab. Canephron pa 2 tabletēm 3 reizes dienā (ilgstoši).",
-            "note": "Reasonable adjunct. Available in Latvia. Contains centaury herb, lovage root "
-                    "and rosemary leaf. It is traditionally used as supportive treatment for mild "
-                    "lower urinary tract inflammatory conditions and for kidney-stone prevention. "
-                    "Clinical evidence also exists for acute uncomplicated cystitis in selected "
-                    "women, but that is not evidence of efficacy in kidney infection.",
+            "note": "Saprātīgs papildlīdzeklis. Pieejams Latvijā. Satur augstienes drudzeņu laksti, mīlestības sakni un rozmarīna lapas. Tradicionāli lieto kā atbalstošu terapiju vieglu apakšējo urīnceļu iekaisuma stāvokļu gadījumā un nieru akmeņu profilaksei. Ir arī klīniski pierādījumi par akūtu nekomplicētu cistītu atsevišķām sievietēm, taču tas nepierāda efektivitāti nieru infekcijas gadījumā.",
         },
         {
             "id": "herbal",
@@ -2156,9 +2178,7 @@ BLOCKS = {
             "title": "Urological herbal teas / diuretic preparations",
             "text": "Urīnceļu veselībai paredzētas augu tējas un diurētiskie augu preparāti "
                     "(piemēram, ar bērza lapām) pēc nepieciešamības.",
-            "note": "Products containing birch leaf, goldenrod or other traditional urinary herbs "
-                    "are marketed for urinary health. Evidence for treating bacterial infection "
-                    "is insufficient.",
+            "note": "Preparāti ar bērza lapām, zeltgalvīti vai citiem tradicionāliem urīnceļu augiem tiek reklamēti urīnceļu veselībai. Pierādījumi par bakteriālas infekcijas ārstēšanu nav pietiekami.",
         },
     ],
 }
@@ -2168,8 +2188,7 @@ BLOCK_WARNINGS = {
     "N10": [
         {
             "ids": ["paracetamol", "ultracod"],
-            "text": "Paracetamol and Ultracod both contain paracetamol. Check the total daily "
-                    "dose (keep it at or below 3,000 mg/day).",
+            "text": "Paracetamols un Ultracod abi satur paracetamolu. Pārbaudiet kopējo dienas devu (ne vairāk kā 3000 mg/dienā).",
         },
     ],
 }
@@ -2187,16 +2206,14 @@ BLOCKS["N20"] = [
         "group": G_ALPHA,
         "title": "Tamsulosin 0.4 mg once daily, 7 days",
         "text": "Caps. Tamsulosini 0.4mg x 1 p/o, 7 dienas (izrakstīts e-recepšu veidā)",
-        "note": "From your NMC kidney stone text. Alpha-blocker, used for medical expulsive therapy "
-                "of distal ureteral stones and for stent-related symptoms.",
+        "note": "No jūsu NMC nieru akmens teksta. Alfa blokators, ko lieto distālu urīnvada akmeņu medikamentozai ekspulsīvai terapijai un ar stentu saistītiem simptomiem.",
     },
     {
         "id": "dolmen",
         "group": G_PAIN,
         "title": "Dolmen (dexketoprofen) 25 mg, up to 3 a day for pain",
         "text": "Tab. Dolmeni 25mg x 1 p/o (līdz 3 tabl. DN), pie sāpēm",
-        "note": "From your NMC kidney stone text. Dexketoprofen is an NSAID: check renal function "
-                "and contraindications.",
+        "note": "No jūsu NMC nieru akmens teksta. Deksketoprofēns ir NPL: pārbaudiet nieru funkciju un kontrindikācijas.",
     },
 ] + [b for b in BLOCKS["N10"] if b["group"] in (G_PAIN, G_PREVENT)]
 BLOCK_WARNINGS["N20"] = BLOCK_WARNINGS["N10"]
@@ -2210,19 +2227,14 @@ FRAXIPARINE_BLOCK = {
     "group": G_VTE,
     "title": "Fraxiparine 0.3 ml s.c. once daily, 10 days",
     "text": "Inj. Fraxiparine 0,3 ml (2850 SV anti-Xa) s/c 1 reizi dienā 10 dienas no operācijas dienas.",
-    "note": "Department protocol: 10 days. Nadroparin label dose for moderate-risk surgery: 0.3 ml "
-            "(2,850 anti-Xa IU) once daily for at least 7 days or until mobile. Reduce the dose by 25-33% if "
-            "creatinine clearance is below 30 ml/min. Weigh bleeding risk.",
+    "note": "Nodaļas protokols: 10 dienas. Nadroparīna deva pēc zāļu apraksta vidēja riska operācijām: 0,3 ml (2850 anti-Xa SV) 1 reizi dienā vismaz 7 dienas vai līdz mobilizācijai. Ja kreatinīna klīrenss ir zem 30 ml/min, samaziniet devu par 25–33%. Izvērtējiet asiņošanas risku.",
 }
 FRAXIPARINE_4W_BLOCK = {
     "id": "fraxiparine-4w",
     "group": G_VTE,
     "title": "Fraxiparine 0.3 ml s.c. once daily, 4 weeks (extended)",
     "text": "Inj. Fraxiparine 0,3 ml (2850 SV anti-Xa) s/c 1 reizi dienā 4 nedēļas no operācijas dienas.",
-    "note": "Extended prophylaxis after major cancer surgery. EAU thromboprophylaxis guidance is risk-based: "
-            "when drug prophylaxis is indicated it is continued for about 4 weeks; usually not needed after "
-            "robot-assisted RP without lymph node dissection. Reduce the dose by 25-33% if creatinine clearance "
-            "is below 30 ml/min. Weigh bleeding risk.",
+    "note": "Pagarināta profilakse pēc lielas onkoloģiskas operācijas. EAU tromboprofilakses vadlīnijas balstās uz risku: ja medikamentoza profilakse ir indicēta, to turpina apmēram 4 nedēļas; pēc robotasistētas RP bez limfmezglu disekcijas parasti nav nepieciešama. Ja kreatinīna klīrenss ir zem 30 ml/min, samaziniet devu par 25–33%. Izvērtējiet asiņošanas risku.",
 }
 G_SPASM = "Bladder spasm"
 SOLIFENACIN_BLOCK = {
@@ -2230,12 +2242,10 @@ SOLIFENACIN_BLOCK = {
     "group": G_SPASM,
     "title": "Solifenacin 5 mg once daily for bladder spasm",
     "text": "Tab. Solifenacini 5 mg 1 reizi dienā pie urīnpūšļa spazmām pēc nepieciešamības.",
-    "note": "Antimuscarinic for bladder spasm or catheter-related discomfort after transurethral surgery. "
-            "Avoid in urinary retention and narrow-angle glaucoma; caution in the elderly.",
+    "note": "Antimuskarīns urīnpūšļa spazmu vai ar katetru saistīta diskomforta gadījumā pēc transuretrālas operācijas. Izvairīties urīna retences un šaura kakta glaukomas gadījumā; piesardzīgi gados vecākiem pacientiem.",
 }
 BLOCKS["C61"] = [
-    dict(BLOCKS["N20"][0], note="Alpha-blocker. Before a trial without catheter after acute urinary retention, "
-                                "an alpha-blocker improves the chance of voiding (NICE CG97)."),
+    dict(BLOCKS["N20"][0], note="Alfa blokators. Pirms katetra evakuācijas mēģinājuma pēc akūtas urīna retences alfa blokators palielina patstāvīgas urinācijas iespēju (NICE CG97)."),
 ] + [b for b in BLOCKS["N10"] if b["group"] == G_PAIN] + [
     FRAXIPARINE_BLOCK,
     FRAXIPARINE_4W_BLOCK,
@@ -2244,25 +2254,21 @@ BLOCKS["C61"] = [
         "group": G_ED,
         "title": "Tadalafil 5 mg once daily",
         "text": "Tab. Tadalafil 5 mg 1 reizi dienā.",
-        "note": "PDE5 inhibitors are first-line for erectile dysfunction after RP. Evidence that scheduled "
-                "'penile rehabilitation' improves unassisted recovery is weak; on-demand use is an alternative.",
+        "note": 'PDE5 inhibitori ir pirmās izvēles līdzekļi erektilās disfunkcijas ārstēšanai pēc RP. Pierādījumi, ka plānveida "penilā rehabilitācija" uzlabo patstāvīgu atlabšanu, ir vāji; alternatīva ir lietošana pēc vajadzības.',
     },
     {
         "id": "macrogol",
         "group": G_BOWEL,
         "title": "Macrogol (Forlax) 10 g as needed",
         "text": "Pulv. Macrogol (Forlax) 10 g 1–2 reizes dienā pēc nepieciešamības aizcietējumu profilaksei.",
-        "note": "To avoid straining after TURP or radical prostatectomy. First choice: a Cochrane review found "
-                "macrogol (PEG) gave more bowel movements, softer stools and less need for extra laxatives "
-                "than lactulose.",
+        "note": "Lai izvairītos no spiešanās pēc TURP vai radikālas prostatektomijas. Pirmā izvēle: Cochrane pārskatā makrogols (PEG) nodrošināja biežāku vēdera izeju, mīkstākus izkārnījumus un mazāku vajadzību pēc papildu caurejas līdzekļiem nekā laktuloze.",
     },
     {
         "id": "duphalac",
         "group": G_BOWEL,
         "title": "Duphalac (lactulose) 15-30 ml as needed",
         "text": "Sol. Duphalac 15–30 ml 1 reizi dienā pēc nepieciešamības aizcietējumu profilaksei.",
-        "note": "Alternative to macrogol. Lactulose works less well than macrogol in trials and often causes "
-                "bloating and flatulence.",
+        "note": "Alternatīva makrogolam. Pētījumos laktuloze darbojas sliktāk nekā makrogols un bieži izraisa vēdera uzpūšanos un meteorismu.",
     },
     SOLIFENACIN_BLOCK,
 ]
@@ -2273,10 +2279,7 @@ _c61_blocks = {b["id"]: b for b in BLOCKS["C61"]}
 BLOCKS["C64"] = [_c61_blocks["paracetamol"], _c61_blocks["ultracod"],
                  FRAXIPARINE_BLOCK,
                  dict(FRAXIPARINE_4W_BLOCK,
-                      note="Extended prophylaxis after major cancer surgery. EAU thromboprophylaxis guidance is "
-                           "risk-based: for nephrectomy the benefit of extended (about 4 weeks) prophylaxis "
-                           "depends on patient risk and surgical approach. Reduce the dose by 25-33% if creatinine "
-                           "clearance is below 30 ml/min, which matters more after nephrectomy."),
+                      note="Pagarināta profilakse pēc lielas onkoloģiskas operācijas. EAU tromboprofilakses vadlīnijas balstās uz risku: pēc nefrektomijas pagarinātas (apmēram 4 nedēļu) profilakses ieguvums ir atkarīgs no pacienta riska un operācijas pieejas. Ja kreatinīna klīrenss ir zem 30 ml/min, samaziniet devu par 25–33% – pēc nefrektomijas tas ir īpaši svarīgi."),
                  _c61_blocks["macrogol"], _c61_blocks["duphalac"]]
 BLOCK_WARNINGS["C64"] = BLOCK_WARNINGS["N10"]
 
@@ -2294,30 +2297,26 @@ BLOCKS["N47"] = [
         "group": G_ABX,
         "title": "Amoksiklav 875/125 mg twice daily, 14 days",
         "text": "Tab. Amoksiklav 875/125 mg pa 1 tabletei 2 reizes dienā 14 dienas.",
-        "note": "From your original phimosis text. Prophylactic antibiotics are generally not needed after clean "
-                "genital surgery; use it when there is infection, for example balanoposthitis.",
+        "note": "No jūsu sākotnējā fimozes teksta. Pēc tīrām ģenitāliju operācijām profilaktiskas antibiotikas parasti nav nepieciešamas; lietojiet tās infekcijas, piemēram, balanopostīta, gadījumā.",
     },
     {
         "id": "betamethasone",
         "group": G_TOPICAL,
         "title": "Betamethasone 0.05% cream twice daily, 4-6 weeks",
         "text": "Ung. Betametazons 0,05% plānā kārtā uz priekšādiņas 2 reizes dienā 4–6 nedēļas.",
-        "note": "Topical corticosteroid is the usual conservative treatment for phimosis without scarring; "
-                "less effective with scarring (lichen sclerosus). Not during an acute infection.",
+        "note": "Lokāls kortikosteroīds ir parastā konservatīvā ārstēšana fimozei bez rētošanās; rētošanās gadījumā (lichen sclerosus) mazāk efektīvs. Nelietot akūtas infekcijas laikā.",
     },
     FRAXIPARINE_BLOCK,
     {"id": "amoxiclav-7-pf", "group": G_ABX, "title": "Amoksiklav 875/125 mg twice daily, 7 days",
      "text": "Tab. Amoksiklav 875/125 mg pa 1 tabletei 2 reizes dienā 7 dienas.",
-     "note": "From your paraphimosis example. Routine antibiotics are not needed after reduction or a clean dorsal "
-             "slit; use them with balanoposthitis, skin breakdown or necrosis."},
+     "note": "No jūsu parafimozes piemēra. Pēc repozīcijas vai tīras dorsumcīzijas rutīnas antibiotikas nav nepieciešamas; lietojiet tās balanopostīta, ādas bojājumu vai nekrozes gadījumā."},
     {"id": "diclofenac-pf", "group": G_PAIN, "title": "Diclofenac 100 mg prolonged release once daily as needed",
      "text": "Tab. Diclofenaci 100 mg (ilgstošās darbības) 1 reizi dienā pēc ēšanas sāpju gadījumā.",
-     "note": "From your example, where it was 100 mg 1–2 times daily – changed because the EU maximum is 150 mg/day. "
-             "NSAID: avoid in renal impairment, GI bleeding risk, heart failure or anticoagulation; shortest course."},
+     "note": "No jūsu piemēra, kur bija 100 mg 1–2 reizes dienā – mainīts, jo ES maksimālā deva ir 150 mg/dienā. NPL: izvairīties nieru funkcijas traucējumu, KZT asiņošanas riska, sirds mazspējas vai antikoagulantu terapijas gadījumā; pēc iespējas īsāks kurss."},
 ]
 BLOCK_WARNINGS["N47"] = BLOCK_WARNINGS["N10"]
 BLOCK_WARNINGS["N10"].append({"ids": ["amoxiclav-14", "amoxiclav-7-pf"],
-                              "text": "Two Amoksiklav courses are chosen: keep one."})
+                              "text": "Izvēlēti divi Amoksiklav kursi: atstājiet vienu."})
 G_SKIN = "Lichen sclerosus"
 G_MOUTH = "Graft donor site"
 BLOCKS["N35"] = [
@@ -2328,18 +2327,16 @@ BLOCKS["N35"] = [
         "title": "Clobetasol 0.05% ointment, 3-month tapering course",
         "text": "Ung. Clobetasoli propionas 0,05% plānā kārtā uz skartās vietas 1 reizi dienā 1 mēnesi, tad katru "
                 "otro dienu 1 mēnesi, tad 2 reizes nedēļā 1 mēnesi.",
-        "note": "Standard treatment for genital lichen sclerosus (potent topical corticosteroid). Lichen sclerosus "
-                "is a major cause of meatal and penile strictures and needs long-term follow-up.",
+        "note": "Standarta ārstēšana ģenitāliju lichen sclerosus gadījumā (spēcīgs lokāls kortikosteroīds). Lichen sclerosus ir nozīmīgs ārējās atveres un penilās uretras striktūru cēlonis, un tam nepieciešama ilgstoša novērošana.",
     },
     {
         "id": "chlorhexidine",
         "group": G_MOUTH,
         "title": "Chlorhexidine 0.12% mouthwash, 7 days",
         "text": "Sol. Chlorhexidini 0,12% mutes skalošanai 3 reizes dienā pēc ēšanas 7 dienas.",
-        "note": "Oral care of the buccal mucosa donor site after graft urethroplasty.",
+        "note": "Vaiga gļotādas transplantāta ņemšanas vietas mutes dobuma kopšana pēc uretroplastikas ar transplantātu.",
     },
-    dict(FRAXIPARINE_BLOCK, note=FRAXIPARINE_BLOCK["note"] + " Mainly relevant after urethroplasty; usually not "
-                                                            "needed after short endoscopic procedures."),
+    dict(FRAXIPARINE_BLOCK, note=FRAXIPARINE_BLOCK["note"] + " Galvenokārt pēc uretroplastikas; pēc īsām endoskopiskām manipulācijām parasti nav nepieciešams."),
     _c61_blocks["macrogol"],
 ]
 BLOCK_WARNINGS["N35"] = BLOCK_WARNINGS["N10"]
@@ -2354,18 +2351,14 @@ FRAXIPARINE_04_BLOCK = {
     "group": G_VTE,
     "title": "Fraxiparine 0.4 ml s.c. once daily, 10 days",
     "text": "Inj. Fraxiparine 0,4 ml (3800 SV anti-Xa) s/c 1 reizi dienā 10 dienas no operācijas dienas.",
-    "note": "Nadroparin 3,800 anti-Xa IU. Higher dose than the standard 0.3 ml: in the label it corresponds to "
-            "weight-adjusted high-risk prophylaxis (about 38 IU/kg, i.e. patients of about 70 kg or more). Reduce the "
-            "dose by 25-33% if creatinine clearance is below 30 ml/min. Weigh bleeding risk (after TURP: hematuria).",
+    "note": "Nadroparīns 3800 anti-Xa SV. Lielāka deva nekā standarta 0,3 ml: zāļu aprakstā tā atbilst augsta riska profilaksei pēc ķermeņa masas (apmēram 38 SV/kg, t.i., pacientiem ar ķermeņa masu apmēram 70 kg vai vairāk). Ja kreatinīna klīrenss ir zem 30 ml/min, samaziniet devu par 25–33%. Izvērtējiet asiņošanas risku (pēc TURP: hematūrija).",
 }
 UROREC_BLOCK = {
     "id": "urorec",
     "group": G_ALPHA,
     "title": "Urorec (silodosin) 8 mg once daily",
     "text": "Caps. Urorec 8 mg 1 reizi dienā ēdienreizes laikā līdz kontrolei pie urologa.",
-    "note": "Silodosin, a uroselective alpha-1A blocker. Can ease voiding after catheter removal. Common: retrograde "
-            "ejaculation; dizziness and orthostatic hypotension (take with a meal); dose 4 mg if moderate renal "
-            "impairment. Usually not needed long-term after a successful TURP.",
+    "note": "Silodosīns – uroselektīvs alfa-1A blokators. Var atvieglot urināciju pēc katetra evakuācijas. Bieži: retrogrāda ejakulācija; reibonis un ortostatiska hipotensija (lietot ēšanas laikā); vidēji smagu nieru funkcijas traucējumu gadījumā deva 4 mg. Pēc veiksmīgas TURP ilgstoši parasti nav nepieciešams.",
 }
 for _code, _blocks in BLOCKS.items():  # offer 0,4 ml wherever 0,3 ml is offered
     _ids = [b["id"] for b in _blocks]
@@ -2378,8 +2371,7 @@ BLOCK_WARNINGS["N40"] = BLOCK_WARNINGS["N10"]
 IBUPROFEN_BLOCK = {
     "id": "ibuprofen", "group": G_PAIN, "title": "Ibuprofen 400 mg up to 3 times daily, max 5 days",
     "text": "Tab. Ibuprofen 400 mg 1 tablete līdz 3 reizēm dienā pēc ēšanas pēc nepieciešamības, ne ilgāk kā 5 dienas.",
-    "note": "Helps scrotal pain and swelling after scrotal surgery. Avoid with renal impairment, peptic ulcer, "
-            "heart failure or anticoagulants, and in the elderly prefer paracetamol.",
+    "note": "Mazina sāpes un tūsku sēklinieku maisiņā pēc skrotālām operācijām. Izvairīties nieru funkcijas traucējumu, peptiskas čūlas, sirds mazspējas vai antikoagulantu lietošanas gadījumā; gados vecākiem pacientiem priekšroka paracetamolam.",
 }
 BLOCKS["N43"] = [_c61_blocks["paracetamol"], IBUPROFEN_BLOCK, _c61_blocks["ultracod"],
                  FRAXIPARINE_BLOCK, FRAXIPARINE_04_BLOCK]
@@ -2387,75 +2379,63 @@ BLOCK_WARNINGS["N43"] = BLOCK_WARNINGS["N10"]
 AMOXICLAV_10_BLOCK = {
     "id": "amoxiclav-10", "group": G_ABX, "title": "Amoksiklav 875/125 mg twice daily, 10 days",
     "text": "Tab. Amoksiklav 875/125 mg pa 1 tabletei 2 reizes dienā p/o 10 dienas.",
-    "note": "From your prostatectomy example. EAU: antibiotic prophylaxis is perioperative only; a course after "
-            "discharge is not routinely needed – use it for an infection or if it is the department protocol.",
+    "note": "No jūsu prostatektomijas piemēra. EAU: antibakteriālā profilakse ir tikai perioperatīva; kurss pēc izrakstīšanas rutīnā nav nepieciešams – lietojiet to infekcijas gadījumā vai, ja tāds ir nodaļas protokols.",
 }
 TADALAFIL_QUARTER_BLOCK = {
     "id": "tadalafil-quarter", "group": G_ED, "title": "Tadalafil 20 mg, 1/4 tablet at night",
     "text": "Tab. Tadalafil 20 mg pa 1/4 daļai tabletes uz nakti.",
-    "note": "Same dose as Tadalafil 5 mg daily (penile rehabilitation after nerve-sparing RP). EAU: evidence that "
-            "rehabilitation improves spontaneous erections is limited. Not with nitrates.",
+    "note": "Tāda pati deva kā Tadalafils 5 mg dienā (penilā rehabilitācija pēc nervus saudzējošas RP). EAU: pierādījumi, ka rehabilitācija uzlabo spontānas erekcijas, ir ierobežoti. Nelietot kopā ar nitrātiem.",
 }
 BLOCKS["C61"] += [AMOXICLAV_10_BLOCK, TADALAFIL_QUARTER_BLOCK]
 TAMSULOSIN_STENT_BLOCK = {
     "id": "tamsulosin-stent", "group": G_ALPHA, "title": "Tamsulosin 0.4 mg once daily until stent removal",
     "text": "Caps. Tamsulosini 0,4 mg 1 reizi dienā līdz JJ stenta izņemšanai (stenta radīto simptomu mazināšanai).",
-    "note": "Alpha-blockers reduce JJ stent discomfort (urgency, flank pain on voiding); EAU urolithiasis guideline "
-            "supports them for stent-related symptoms. Warn about orthostatic dizziness.",
+    "note": "Alfa blokatori mazina JJ stenta radīto diskomfortu (neatliekama vēlme urinēt, sāpes sānos urinācijas laikā); EAU urolitiāzes vadlīnijas atbalsta to lietošanu ar stentu saistītu simptomu gadījumā. Brīdiniet par ortostatisku reiboni.",
 }
 BLOCKS["N13.0"] = [_c61_blocks["paracetamol"], _c61_blocks["ultracod"], TAMSULOSIN_STENT_BLOCK, SOLIFENACIN_BLOCK,
                    FRAXIPARINE_BLOCK, FRAXIPARINE_04_BLOCK, _c61_blocks["macrogol"]]
 BLOCK_WARNINGS["N13.0"] = BLOCK_WARNINGS["N10"]
 BLOCKS["D29.4"] = [_c61_blocks["paracetamol"], IBUPROFEN_BLOCK, _c61_blocks["ultracod"],
-                   dict(AMOXICLAV_10_BLOCK, note="From your scrotal mass example. Clean scrotal surgery rarely needs "
-                        "antibiotics (EAU / German S3 guideline: low evidence); keep it for an inflamed or infected "
-                        "cyst or wound.")]
+                   dict(AMOXICLAV_10_BLOCK, note="No jūsu sēklinieku maisiņa veidojuma piemēra. Tīrām skrotālām operācijām antibiotikas reti nepieciešamas (EAU / Vācijas S3 vadlīnijas: zems pierādījumu līmenis); paturiet tās iekaisušai vai inficētai cistai vai brūcei.")]
 BLOCK_WARNINGS["D29.4"] = BLOCK_WARNINGS["N10"]
 BLOCKS["N21.0"] = [_c61_blocks["paracetamol"], _c61_blocks["ultracod"], SOLIFENACIN_BLOCK,
-                   dict(AMOXICLAV_10_BLOCK, note="Only for a positive urine culture or clinical infection, ideally "
-                        "chosen by the culture result. Bladder stones are often infected (struvite)."),
+                   dict(AMOXICLAV_10_BLOCK, note="Tikai pozitīva urīna uzsējuma vai klīniskas infekcijas gadījumā, vēlams izvēlēties pēc uzsējuma rezultāta. Urīnpūšļa akmeņi bieži ir inficēti (struvīts)."),
                    _c61_blocks["macrogol"]]
 BLOCK_WARNINGS["N21.0"] = BLOCK_WARNINGS["N10"]
-RETENTION_ALPHA_NOTE = ("Cochrane review: an alpha-blocker started 1–3 days before the trial without catheter raises "
-                        "the success rate (about 60% vs 38%) and lowers re-retention. Warn about dizziness / "
-                        "orthostatic hypotension and tell the eye surgeon before cataract surgery (IFIS).")
+RETENTION_ALPHA_NOTE = ("Cochrane pārskats: alfa blokators, kas uzsākts 1–3 dienas pirms katetra evakuācijas mēģinājuma, palielina veiksmes biežumu (apmēram 60% pret 38%) un samazina atkārtotu retenci. Brīdiniet par reiboni / ortostatisku hipotensiju un pirms kataraktas operācijas informējiet acu ķirurgu (IFIS).")
 BLOCKS["R33"] = [
     {"id": "tamsulosin-twoc", "group": G_ALPHA, "title": "Tamsulosin 0.4 mg once daily (before and after TWOC)",
      "text": "Caps. Tamsulosin 0,4 mg 1 reizi dienā pēc brokastīm – sākt tūlīt, turpināt arī pēc katetra evakuācijas.",
      "note": RETENTION_ALPHA_NOTE},
     {"id": "alfuzosin", "group": G_ALPHA, "title": "Alfuzosin 10 mg once daily (prolonged release)",
      "text": "Tab. Alfuzosin 10 mg (ilgstošās darbības) 1 reizi dienā pēc vakariņām.",
-     "note": RETENTION_ALPHA_NOTE + " Alfuzosin is the best studied drug for TWOC."},
+     "note": RETENTION_ALPHA_NOTE + " Alfuzosīns ir vislabāk pētītais medikaments katetra evakuācijas mēģinājumam."},
     UROREC_BLOCK,
     {"id": "dutasteride-tamsulosin", "group": G_ALPHA, "title": "Dutasteride 0.5 mg / tamsulosin 0.4 mg once daily",
      "text": "Caps. Dutasteridum 0,5 mg / Tamsulosinum 0,4 mg 1 reizi dienā p/o (ilgstoši).",
-     "note": "EAU (strong): combination therapy for men with an enlarged prostate (> ~40 ml) reduces the long-term "
-             "risk of AUR and surgery; the 5-ARI effect needs 6+ months. It halves PSA – double the PSA value when "
-             "interpreting it."},
+     "note": "EAU (stipra rekomendācija): kombinētā terapija vīriešiem ar palielinātu prostatu (> ~40 ml) ilgtermiņā samazina AUR un operācijas risku; 5-ARI efektam nepieciešami 6+ mēneši. Samazina PSA uz pusi – interpretējot PSA vērtību, reiziniet to ar divi."},
     {"id": "finasteride", "group": G_ALPHA, "title": "Finasteride 5 mg once daily (add to an alpha-blocker)",
      "text": "Tab. Finasteride 5 mg 1 reizi dienā p/o (ilgstoši).",
-     "note": "5-ARI for a large prostate: reduces AUR risk and need for surgery long-term (EAU strong); halves PSA."},
+     "note": "5-ARI lielas prostatas gadījumā: ilgtermiņā samazina AUR risku un operācijas nepieciešamību (EAU stipra rekomendācija); samazina PSA uz pusi."},
     _c61_blocks["paracetamol"], _c61_blocks["macrogol"],
     {"id": "amoxiclav-7", "group": G_ABX, "title": "Amoksiklav 875/125 mg twice daily, 7 days (UTI)",
      "text": "Tab. Amoksiklav 875/125 mg pa 1 tabletei 2 reizes dienā 7 dienas; terapiju koriģēt pēc urīna "
              "uzsējuma rezultāta.",
-     "note": "Only with a UTI. EAU: catheter-associated UTI – 7 days when symptoms settle quickly, 10–14 days if slow; "
-             "take the culture from the new catheter before starting."},
+     "note": "Tikai UCI gadījumā. EAU: ar katetru saistīta UCI – 7 dienas, ja simptomi ātri mazinās, 10–14 dienas, ja lēni; pirms uzsākšanas paņemiet uzsējumu no jaunā katetra."},
     {"id": "cefuroxime-7", "group": G_ABX, "title": "Cefuroxime 500 mg twice daily, 7 days (UTI)",
      "text": "Tab. Cefuroxime 500 mg pa 1 tabletei 2 reizes dienā 7 dienas; terapiju koriģēt pēc urīna uzsējuma "
              "rezultāta.",
-     "note": "Alternative oral option for a UTI with retention; adjust to the culture."},
+     "note": "Alternatīvs perorāls līdzeklis UCI ar retenci gadījumā; pielāgojiet uzsējumam."},
     dict({b["id"]: b for b in BLOCKS["N10"]}["cipro"],
-         note="Fluoroquinolones: EMA restricts their use (tendon, nerve, aortic and QT risks) – only if other options "
-              "are unsuitable and local resistance is acceptable; adjust to the culture."),
+         note="Fluorhinoloni: EMA ierobežo to lietošanu (cīpslu, nervu, aortas un QT riski) – tikai, ja citi līdzekļi nav piemēroti un vietējā rezistence ir pieņemama; pielāgojiet uzsējumam."),
 ]
 BLOCK_WARNINGS["R33"] = BLOCK_WARNINGS["N10"]
 BLOCK_WARNINGS["N10"].extend([
-    {"ids": ["tamsulosin-twoc", "alfuzosin"], "text": "Two alpha-blockers are chosen: keep one."},
-    {"ids": ["tamsulosin-twoc", "urorec"], "text": "Two alpha-blockers are chosen: keep one."},
-    {"ids": ["alfuzosin", "urorec"], "text": "Two alpha-blockers are chosen: keep one."},
-    {"ids": ["dutasteride-tamsulosin", "tamsulosin-twoc"], "text": "The combination capsule already contains tamsulosin."},
-    {"ids": ["dutasteride-tamsulosin", "finasteride"], "text": "Two 5-ARIs are chosen: keep one."},
+    {"ids": ["tamsulosin-twoc", "alfuzosin"], "text": "Izvēlēti divi alfa blokatori: atstājiet vienu."},
+    {"ids": ["tamsulosin-twoc", "urorec"], "text": "Izvēlēti divi alfa blokatori: atstājiet vienu."},
+    {"ids": ["alfuzosin", "urorec"], "text": "Izvēlēti divi alfa blokatori: atstājiet vienu."},
+    {"ids": ["dutasteride-tamsulosin", "tamsulosin-twoc"], "text": "Kombinētā kapsula jau satur tamsulosīnu."},
+    {"ids": ["dutasteride-tamsulosin", "finasteride"], "text": "Izvēlēti divi 5-ARI: atstājiet vienu."},
 ])
 
 # R31 hematuria blocks.
@@ -2465,34 +2445,25 @@ _r33_blocks = {b["id"]: b for b in BLOCKS["R33"]}
 BLOCKS["R31"] = [
     {"id": "tranexamic", "group": G_BLEED, "title": "Tranexamic acid 1 g three times daily, 3–5 days",
      "text": "Tab. Acidum tranexamicum 500 mg pa 2 tabletēm (1 g) 3 reizes dienā 3–5 dienas.",
-     "note": "SmPC dose 1–1.5 g 2–4 times daily for a few days. Evidence in hematuria is weak and mixed (no clear "
-             "benefit in trials after TURP/TURBT). Not with active thromboembolism or severe renal failure; reduce "
-             "the dose if creatinine is raised (120–249 µmol/l: 15 mg/kg twice daily; 250–500: 15 mg/kg once "
-             "daily). SmPC warning: with upper urinary tract bleeding clots may obstruct the ureter. Check that a "
-             "tablet form is available in Latvian pharmacies."},
+     "note": "Zāļu aprakstā deva 1–1,5 g 2–4 reizes dienā dažas dienas. Pierādījumi hematūrijas gadījumā ir vāji un pretrunīgi (pētījumos pēc TURP/TURBT nav skaidra ieguvuma). Nelietot aktīvas trombembolijas vai smagas nieru mazspējas gadījumā; ja kreatinīns ir paaugstināts, samaziniet devu (120–249 µmol/l: 15 mg/kg 2 reizes dienā; 250–500: 15 mg/kg 1 reizi dienā). Zāļu apraksta brīdinājums: asiņošanas gadījumā no augšējiem urīnceļiem recekļi var nosprostot urīnvadu. Pārbaudiet, vai tablešu forma ir pieejama Latvijas aptiekās."},
     {"id": "finasteride-hem", "group": G_BLEED, "title": "Finasteride 5 mg once daily (recurrent prostatic bleeding)",
      "text": "Tab. Finasteride 5 mg 1 reizi dienā p/o (ilgstoši).",
-     "note": "Recurrent bleeding from BPH: small studies show fewer recurrences (effect over weeks to months). Not "
-             "an EAU recommendation; exclude a tumour first. Halves PSA – double the PSA value when interpreting it."},
+     "note": "Recidivējoša asiņošana LPH dēļ: nelielos pētījumos recidīvu ir mazāk (efekts pēc nedēļām līdz mēnešiem). Nav EAU rekomendācija; vispirms izslēdziet audzēju. Samazina PSA uz pusi – interpretējot PSA vērtību, reiziniet to ar divi."},
     _c61_blocks["paracetamol"], _c61_blocks["macrogol"], SOLIFENACIN_BLOCK,
     {"id": "fosfomycin-3g", "group": G_ABX, "title": "Fosfomycin 3 g single dose (women, cystitis)",
      "text": "Pulv. Fosfomycin 3 g vienreizēji, izšķīdinot ūdenī, vakarā pēc urīnpūšļa iztukšošanas.",
-     "note": "EAU first-line for uncomplicated cystitis in women (hemorrhagic cystitis). Not for men, fever or upper "
-             "tract signs – then a 7-day course adjusted to the culture."},
+     "note": "EAU pirmā izvēle nekomplicēta cistīta gadījumā sievietēm (hemorāģisks cistīts). Nav paredzēts vīriešiem, drudža vai augšējo urīnceļu pazīmju gadījumā – tad 7 dienu kurss, pielāgots uzsējumam."},
     _r33_blocks["amoxiclav-7"], _r33_blocks["cefuroxime-7"], _r33_blocks["cipro"],
     dict(FRAXIPARINE_BLOCK,
-         note="Only once the urine is clear (e.g. after TURU or cystoscopy with coagulation): LMWH adds to the "
-              "bleeding risk. Department protocol 10 days; reduce the dose if creatinine clearance is below 30 ml/min."),
+         note="Tikai tad, kad urīns ir dzidrs (piem., pēc TURU vai cistoskopijas ar koagulāciju): MMH palielina asiņošanas risku. Nodaļas protokols 10 dienas; ja kreatinīna klīrenss ir zem 30 ml/min, samaziniet devu."),
     {"id": "hbo", "group": G_RADCYST, "title": "Consider hyperbaric oxygen (radiation cystitis)",
      "text": "Atkārtotas hematūrijas gadījumā apsvērt hiperbarisko oksigenācijas terapiju staru cistīta ārstēšanai "
              "(lems ārstējošais urologs).",
-     "note": "Hyperbaric oxygen for hemorrhagic radiation cystitis: usually 20–40 sessions; bleeding stops in most "
-             "patients in cohort series, and an RCT (RICH-ART) showed better symptoms in late radiation cystitis. "
-             "Check where it is available in Latvia."},
+     "note": "Hiperbārā oksigenācija hemorāģiska radiācijas cistīta gadījumā: parasti 20–40 seansi; kohortu pētījumos asiņošana apstājas lielākajai daļai pacientu, un RKP (RICH-ART) parādīja simptomu uzlabošanos vēlīna radiācijas cistīta gadījumā. Noskaidrojiet, kur tā pieejama Latvijā."},
 ]
 BLOCK_WARNINGS["R31"] = BLOCK_WARNINGS["N10"]
 _abx = ["fosfomycin-3g", "amoxiclav-7", "cefuroxime-7", "cipro"]
-BLOCK_WARNINGS["N10"].extend({"ids": [a, b], "text": "Two antibiotics are chosen: keep one."}
+BLOCK_WARNINGS["N10"].extend({"ids": [a, b], "text": "Izvēlētas divas antibiotikas: atstājiet vienu."}
                              for i, a in enumerate(_abx) for b in _abx[i + 1:])
 
 # N30.0 acute cystitis blocks. Pivmecillinam and nitroxoline (EAU first line) are not on the Latvian market as far
@@ -2515,80 +2486,60 @@ def split_advice(blocks):
 
 BLOCKS["N30.0"] = [
     dict({b["id"]: b for b in BLOCKS["R31"]}["fosfomycin-3g"], group=G_CYST_FIRST,
-         note="EAU (strong) first line in women: fosfomycin trometamol 3 g once. Safe in pregnancy. Not for men or "
-              "with systemic signs. Long-term cure rates are a little lower than with nitrofurans."),
+         note="EAU (stipra rekomendācija) pirmā izvēle sievietēm: fosfomicīna trometamols 3 g vienreiz. Drošs grūtniecības laikā. Nav paredzēts vīriešiem vai sistēmisku pazīmju gadījumā. Ilgtermiņa izārstēšanās biežums ir nedaudz zemāks nekā ar nitrofurāniem."),
     {"id": "furamag", "group": G_CYST_FIRST, "title": "Furamag 100 mg three times daily, 7 days",
      "text": "Caps. Furamag 50 mg pa 2 kapsulām 3 reizes dienā pēc ēšanas 7 dienas.",
-     "note": "Furazidine – the nitrofuran on the Latvian market (Olainfarm). Label: 50–100 mg three times daily after "
-             "meals for 7–10 days. EAU names nitrofurantoin (5 days), not furazidine. Contraindicated in pregnancy, "
-             "breastfeeding and severe renal failure; caution with G6PD deficiency. In men only if prostatitis is "
-             "reliably excluded."},
+     "note": "Furazidīns – Latvijas tirgū pieejamais nitrofurāns (Olainfarm). Zāļu aprakstā: 50–100 mg 3 reizes dienā pēc ēšanas 7–10 dienas. EAU min nitrofurantoīnu (5 dienas), nevis furazidīnu. Kontrindicēts grūtniecības, zīdīšanas un smagas nieru mazspējas gadījumā; piesardzīgi G6PD deficīta gadījumā. Vīriešiem tikai tad, ja prostatīts ir droši izslēgts."},
     {"id": "nitrofurantoin", "group": G_CYST_FIRST, "title": "Nitrofurantoin 100 mg twice daily, 5 days",
      "text": "Caps. Nitrofurantoin 100 mg (ilgstošās darbības) 2 reizes dienā 5 dienas.",
-     "note": "EAU (strong) first line. Check that it is available in Latvia (Latvian sources mention Furamag instead). "
-             "Avoid if eGFR is below 45 (short courses possible at 30–44), at term pregnancy and in G6PD deficiency."},
+     "note": "EAU (stipra rekomendācija) pirmā izvēle. Pārbaudiet, vai pieejams Latvijā (Latvijas avotos tā vietā minēts Furamag). Izvairīties, ja eGFR ir zem 45 (pie 30–44 iespējami īsi kursi), grūtniecības beigās un G6PD deficīta gadījumā."},
     {"id": "cefuroxime-5", "group": G_CYST_ALT, "title": "Cefuroxime 250 mg twice daily, 5 days",
      "text": "Tab. Cefuroxime 250 mg pa 1 tabletei 2 reizes dienā 5 dienas.",
-     "note": "Second choice. EAU lists cephalosporins (e.g. cefadroxil 500 mg twice daily for 3 days) as an "
-             "alternative; Latvian outpatient material does not favour oral cephalosporins for empirical use. "
-             "Useful in pregnancy or by culture."},
+     "note": "Otrā izvēle. EAU kā alternatīvu min cefalosporīnus (piem., cefadroksils 500 mg 2 reizes dienā 3 dienas); Latvijas ambulatorie materiāli empīriskai lietošanai perorālus cefalosporīnus neiesaka. Noderīgi grūtniecības laikā vai pēc uzsējuma."},
     {"id": "amoxiclav-5", "group": G_CYST_ALT, "title": "Amoksiklav 875/125 mg twice daily, 5 days (pregnancy / culture)",
      "text": "Tab. Amoksiklav 875/125 mg pa 1 tabletei 2 reizes dienā 5 dienas.",
-     "note": "EAU (strong): no aminopenicillins for empirical treatment of cystitis. Use only by culture, or in "
-             "pregnancy where penicillins are acceptable."},
+     "note": "EAU (stipra rekomendācija): cistīta empīriskai ārstēšanai aminopenicilīnus nelietot. Lietot tikai pēc uzsējuma vai grūtniecības laikā, kad penicilīni ir pieņemami."},
     {"id": "cotrimoxazole-3", "group": G_CYST_ALT, "title": "Trimethoprim/sulfamethoxazole 160/800 mg twice daily, 3 days",
      "text": "Tab. Trimetoprims/Sulfametoksazols 160/800 mg pa 1 tabletei 2 reizes dienā 3 dienas.",
-     "note": "EAU alternative only where local E. coli resistance is below 20% – Latvian outpatient sources report much "
-             "higher resistance, so use it by culture. Not in the first trimester (trimethoprim) or the last "
-             "trimester (sulfamethoxazole)."},
+     "note": "EAU alternatīva tikai tur, kur vietējā E. coli rezistence ir zem 20% – Latvijas ambulatorie avoti ziņo par daudz augstāku rezistenci, tāpēc lietojiet pēc uzsējuma. Nelietot pirmajā trimestrī (trimetoprims) vai pēdējā trimestrī (sulfametoksazols)."},
     {"id": "furamag-men", "group": G_CYST_MEN, "title": "Furamag 100 mg three times daily, 7 days (men)",
      "text": "Caps. Furamag 50 mg pa 2 kapsulām 3 reizes dienā pēc ēšanas 7 dienas.",
-     "note": "EAU: nitrofurans can be used in younger men only if prostatic involvement is reliably excluded; there is "
-             "no evidence on the duration – 7 days is usual. Take a urine culture first."},
+     "note": "EAU: jaunākiem vīriešiem nitrofurānus var lietot tikai tad, ja prostatas iesaiste ir droši izslēgta; pierādījumu par ilgumu nav – parasti 7 dienas. Vispirms paņemiet urīna uzsējumu."},
     {"id": "cotrimoxazole-7", "group": G_CYST_MEN, "title": "Trimethoprim/sulfamethoxazole 160/800 mg twice daily, 7 days",
      "text": "Tab. Trimetoprims/Sulfametoksazols 160/800 mg pa 1 tabletei 2 reizes dienā 7 dienas.",
-     "note": "EAU regimen for men (7 days) – only if the culture shows susceptibility (high resistance in Latvia)."},
+     "note": "EAU shēma vīriešiem (7 dienas) – tikai, ja uzsējumā ir jutība (Latvijā augsta rezistence)."},
     dict(_r33_blocks["cefuroxime-7"], group=G_CYST_MEN),
     dict(_r33_blocks["amoxiclav-7"], group=G_CYST_MEN,
-         note="By culture only (EAU: no aminopenicillins empirically). Men: 7 days."),
+         note="Tikai pēc uzsējuma (EAU: aminopenicilīnus empīriski nelietot). Vīriešiem: 7 dienas."),
     dict(_n10_blocks["cipro"], group=G_AVOID, kind="avoid",
          title="Ciprofloxacin – do not use for cystitis",
-         note="EAU (strong): do not use fluoroquinolones for cystitis (EMA restrictions: tendon, nerve, aortic and "
-              "QT risks). Only if every other option is unsuitable, by culture."),
+         note="EAU (stipra rekomendācija): cistīta gadījumā fluorhinolonus nelietot (EMA ierobežojumi: cīpslu, nervu, aortas un QT riski). Tikai tad, ja neviens cits līdzeklis nav piemērots, pēc uzsējuma."),
     {"id": "ibuprofen", "group": G_PAIN, "title": "Ibuprofen 400 mg three times daily, 3 days",
      "text": "Tab. Ibuprofen 400 mg pa 1 tabletei 3 reizes dienā pēc ēšanas 3 dienas.",
-     "note": "EAU (strong): non-antibiotic treatment is an alternative in non-geriatric patients after shared "
-             "decision-making. In trials ibuprofen alone halved antibiotic use but gave slightly more pyelonephritis "
-             "and longer symptoms. Not for the elderly, renal impairment, pregnancy (3rd trimester) or GI bleeding risk."},
+     "note": "EAU (stipra rekomendācija): ne-antibakteriāla ārstēšana ir alternatīva negeriatriskiem pacientiem pēc kopīga lēmuma. Pētījumos ibuprofēns vien uz pusi samazināja antibiotiku lietošanu, taču nedaudz biežāk attīstījās pielonefrīts un simptomi ilga ilgāk. Nav paredzēts gados vecākiem pacientiem, nieru funkcijas traucējumu, grūtniecības (3. trimestrī) vai KZT asiņošanas riska gadījumā."},
     _n10_blocks["paracetamol"],
     dict(_n10_blocks["canephron"], text="Tab. Canephron pa 2 tabletēm 3 reizes dienā 7 dienas.",
-         note="Herbal product popular in Latvia. In an RCT against fosfomycin it reduced antibiotic use but was not "
-              "non-inferior; not an EAU recommendation."),
+         note="Latvijā populārs augu izcelsmes līdzeklis. RKP salīdzinājumā ar fosfomicīnu tas samazināja antibiotiku lietošanu, taču nebija līdzvērtīgs; nav EAU rekomendācija."),
     {"id": "estriol", "group": G_CYST_PREVENT, "title": "Vaginal estriol (Ovestin) – postmenopausal women",
      "text": "Ovestin vaginālais krēms (estriols 1 mg/g) 0,5 g intravagināli katru vakaru 2 nedēļas, pēc tam 2 reizes "
              "nedēļā (ilgstoši).",
-     "note": "EAU (strong): vaginal oestrogen to prevent recurrent cystitis in postmenopausal women (oral oestrogen "
-             "does not work). Dosing as in the trials (0.5 mg estriol nightly for 2 weeks, then twice weekly)."},
+     "note": "EAU (stipra rekomendācija): vagināls estrogēns recidivējoša cistīta profilaksei sievietēm pēcmenopauzē (perorāls estrogēns nav efektīvs). Dozēšana kā pētījumos (0,5 mg estriola katru vakaru 2 nedēļas, pēc tam 2 reizes nedēļā)."},
     {"id": "cranberry", "group": G_CYST_PREVENT, "title": "Cranberry products daily",
      "text": "Dzērveņu produkti (sula vai kapsulas ar standartizētu proantocianidīnu saturu) ikdienā recidīvu "
              "profilaksei.",
-     "note": "EAU (strong): advise cranberry products, but tell the patient the evidence is low quality and "
-             "contradictory (Cochrane 2023: fewer symptomatic UTIs in women with recurrent UTI)."},
+     "note": "EAU (stipra rekomendācija): iesakiet dzērveņu preparātus, bet pastāstiet pacientam, ka pierādījumi ir zemas kvalitātes un pretrunīgi (Cochrane 2023: mazāk simptomātisku UCI sievietēm ar recidivējošām UCI)."},
     {"id": "methenamine", "group": G_CYST_PREVENT, "title": "Methenamine hippurate 1 g twice daily",
      "text": "Tab. Methenamine hippurate 1 g pa 1 tabletei 2 reizes dienā 6–12 mēnešus recidīvu profilaksei.",
-     "note": "EAU (strong): reduces recurrences in women without urinary tract abnormalities; the ALTAR trial found it "
-             "non-inferior to daily antibiotic prophylaxis. Availability in Latvia not confirmed – check."},
+     "note": "EAU (stipra rekomendācija): samazina recidīvus sievietēm bez urīnceļu anomālijām; ALTAR pētījumā tas nebija sliktāks par ikdienas antibakteriālo profilaksi. Pieejamība Latvijā nav apstiprināta – pārbaudiet."},
     {"id": "d-mannose", "group": G_CYST_PREVENT, "title": "D-mannose 2 g daily",
      "text": "D-manoze 2 g 1 reizi dienā recidīvu profilaksei (uztura bagātinātājs).",
-     "note": "EAU (weak): evidence is weak and contradictory – the large MERIT trial (2024) found no benefit."},
+     "note": "EAU (vāja rekomendācija): pierādījumi ir vāji un pretrunīgi – lielajā MERIT pētījumā (2024) ieguvums netika konstatēts."},
     {"id": "urovaxom", "group": G_CYST_PREVENT, "title": "Uro-Vaxom (OM-89) 6 mg daily, 90 days",
      "text": "Caps. Uro-Vaxom 6 mg 1 reizi dienā no rīta tukšā dūšā 90 dienas.",
-     "note": "EAU 2025 downgraded immunoprophylaxis (weak, 'within a clinical trial'): the pooled analysis showed no "
-             "significant short-term benefit of OM-89. Latvian outpatient material still recommends it."},
+     "note": 'EAU 2025 pazemināja imūnprofilakses rekomendāciju (vāja, "klīniska pētījuma ietvaros"): apkopotajā analīzē OM-89 nozīmīgs īstermiņa ieguvums netika konstatēts. Latvijas ambulatorajos materiālos tas joprojām ieteikts.'},
     {"id": "self-start", "group": G_CYST_PREVENT, "title": "Self-start fosfomycin for future episodes",
      "text": SELF_START_TEXT,
-     "note": "EAU (strong): consider self-administered short-term therapy in reliable patients with recurrent "
-             "cystitis. Written as its own line, not under 'Terapijā lietot'."},
+     "note": "EAU (stipra rekomendācija): uzticamiem pacientiem ar recidivējošu cistītu apsveriet īslaicīgu pašārstēšanos. Rakstīts kā atsevišķa rinda, nevis zem 'Terapijā lietot'."},
 ]
 BLOCK_WARNINGS["N30.0"] = BLOCK_WARNINGS["N10"]
 
@@ -2601,32 +2552,28 @@ G_EO_ENT = "Antibiotics – urinary / enteric source"
 BLOCKS["N45"] = [
     {"id": "doxycycline", "group": G_EO_STI, "title": "Doxycycline 100 mg twice daily, 14 days",
      "text": "Caps. Doxycyclini 100 mg pa 1 kapsulai 2 reizes dienā 14 dienas.",
-     "note": "EAU/IUSTI: anti-chlamydial therapy for sexually active men (with ceftriaxone if gonorrhoea is likely). "
-             "Take upright with a full glass of water; photosensitivity – avoid sun."},
+     "note": "EAU/IUSTI: pretklamīdiju terapija seksuāli aktīviem vīriešiem (kopā ar ceftriaksonu, ja iespējama gonoreja). Lietot stāvus, uzdzerot pilnu glāzi ūdens; fotosensitivitāte – izvairīties no saules."},
     {"id": "moxifloxacin", "group": G_EO_STI, "title": "Moxifloxacin 400 mg once daily, 14 days (M. genitalium)",
      "text": "Tab. Moxifloxacini 400 mg 1 reizi dienā 14 dienas.",
-     "note": "IUSTI 2024: when Mycoplasma genitalium is found. Fluoroquinolone (EMA warnings: tendons, aorta, QT)."},
+     "note": "IUSTI 2024: ja konstatēta Mycoplasma genitalium. Fluorhinolons (EMA brīdinājumi: cīpslas, aorta, QT)."},
     {"id": "levofloxacin", "group": G_EO_ENT, "title": "Levofloxacin 500 mg once daily, 10 days",
      "text": "Tab. Levofloxacini 500 mg 1 reizi dienā 10 dienas.",
-     "note": "EAU / IUSTI: first choice when an enteric (urinary) source is likely and gonorrhoea is unlikely; also "
-             "covers chlamydia. EMA fluoroquinolone warnings (tendon rupture, neuropathy, aortic aneurysm, QT) – "
-             "counsel the patient; avoid with previous fluoroquinolone reactions; adjust to the culture."},
+     "note": "EAU / IUSTI: pirmā izvēle, ja iespējams enterāls (urīnceļu) avots un gonoreja maz ticama; pārklāj arī hlamīdijas. EMA fluorhinolonu brīdinājumi (cīpslu plīsums, neiropātija, aortas aneirisma, QT) – informējiet pacientu; izvairīties, ja iepriekš bijušas reakcijas uz fluorhinoloniem; pielāgojiet uzsējumam."},
     {"id": "cotrimoxazole-eo", "group": G_EO_ENT, "title": "Trimethoprim/sulfamethoxazole 160/800 mg twice daily, 14 days",
      "text": "Tab. Trimetoprims/Sulfametoksazols 160/800 mg pa 1 tabletei 2 reizes dienā 14 dienas.",
-     "note": "EAU option for non-sexually-active men – only by culture (high resistance in Latvia)."},
+     "note": "EAU iespēja seksuāli neaktīviem vīriešiem – tikai pēc uzsējuma (Latvijā augsta rezistence)."},
     {"id": "amoxiclav-eo", "group": G_EO_ENT, "title": "Amoksiklav 875/125 mg twice daily, 10 days (by culture)",
      "text": "Tab. Amoksiklav 875/125 mg pa 1 tabletei 2 reizes dienā 10 dienas.",
-     "note": "Not an EAU empirical choice; use by culture or after IV beta-lactam step-down."},
+     "note": "Nav EAU empīriskā izvēle; lietot pēc uzsējuma vai pārejot no i/v beta-laktāma."},
     {"id": "cefuroxime-eo", "group": G_EO_ENT, "title": "Cefuroxime 500 mg twice daily, 10 days (by culture)",
      "text": "Tab. Cefuroxime 500 mg pa 1 tabletei 2 reizes dienā 10 dienas.",
-     "note": "Step-down after IV ceftriaxone / cefuroxime, by culture."},
+     "note": "Pāreja no i/v ceftriaksona / cefuroksīma, pēc uzsējuma."},
     {"id": "clindamycin-eo", "group": G_EO_ENT, "title": "Clindamycin 300 mg four times daily, 10 days (S. aureus)",
      "text": "Tab. Clindamycin 300 mg 4 reizes dienā 10 dienas.",
-     "note": "From your orchiectomy discharge (Staphylococcus aureus MS) – by culture only."},
+     "note": "No jūsu orhektomijas izraksta (Staphylococcus aureus MS) – tikai pēc uzsējuma."},
     {"id": "ibuprofen-eo", "group": G_PAIN, "title": "Ibuprofen 400 mg three times daily after food",
      "text": "Tab. Ibuprofen 400 mg pa 1 tabletei 3 reizes dienā pēc ēšanas 5–7 dienas.",
-     "note": "NSAIDs reduce pain and swelling (supportive care: rest, scrotal elevation). Avoid with renal impairment, "
-             "GI bleeding risk or anticoagulants."},
+     "note": "NPL mazina sāpes un tūsku (atbalstoša aprūpe: miers, sēklinieku maisiņa elevācija). Izvairīties nieru funkcijas traucējumu, KZT asiņošanas riska vai antikoagulantu lietošanas gadījumā."},
     _n10_blocks["paracetamol"], _c61_blocks["ultracod"],
 ]
 BLOCK_WARNINGS["N45"] = BLOCK_WARNINGS["N10"]
@@ -2638,48 +2585,50 @@ BLOCK_WARNINGS["N45"] = BLOCK_WARNINGS["N10"]
 G_AP_ORAL = "Antibiotics – oral (2–4 weeks in total)"
 _r33 = {b["id"]: b for b in BLOCKS["R33"]}
 _n45 = {b["id"]: b for b in BLOCKS["N45"]}
-AP_FQ_NOTE = ("Fluoroquinolones reach the prostate best. EAU: not empirical after fluoroquinolones in the last "
-              "6 months, after prostate biopsy (ESBL / quinolone resistance) or in urology in-patients; EMA warnings "
-              "(tendons, nerves, aorta, QT). Review at 14 days; continue to 4 weeks if not fully settled.")
+AP_FQ_NOTE = ("Fluorhinoloni vislabāk iekļūst prostatā. EAU: neizvēlēties empīriski, ja fluorhinoloni lietoti pēdējo 6 mēnešu laikā, pēc prostatas biopsijas (ESBL / rezistence pret hinoloniem) vai uroloģijas stacionāra pacientiem; EMA brīdinājumi (cīpslas, nervi, aorta, QT). Izvērtējiet pēc 14 dienām; ja simptomi nav pilnībā mazinājušies, turpiniet līdz 4 nedēļām.")
 BLOCKS["N41.0"] = [
     {"id": "cipro-ap-14", "group": G_AP_ORAL, "title": "Ciprofloxacin 500 mg twice daily, 14 days",
      "text": "Tab. Ciprofloxacin 500 mg pa 1 tabletei 2 reizes dienā 14 dienas.", "note": AP_FQ_NOTE},
     {"id": "cipro-ap-28", "group": G_AP_ORAL, "title": "Ciprofloxacin 500 mg twice daily, 4 weeks",
      "text": "Tab. Ciprofloxacin 500 mg pa 1 tabletei 2 reizes dienā 4 nedēļas.",
-     "note": AP_FQ_NOTE + " Your NMC example used 3 weeks."},
+     "note": AP_FQ_NOTE + " Jūsu NMC piemērā bija 3 nedēļas."},
     {"id": "levofloxacin-ap", "group": G_AP_ORAL, "title": "Levofloxacin 500 mg once daily, 14 days",
      "text": "Tab. Levofloxacini 500 mg 1 reizi dienā 14 dienas.", "note": AP_FQ_NOTE},
     {"id": "cotrimoxazole-ap", "group": G_AP_ORAL, "title": "Trimethoprim/sulfamethoxazole 160/800 mg twice daily, 14 days",
      "text": "Tab. Trimetoprims/Sulfametoksazols 160/800 mg pa 1 tabletei 2 reizes dienā 14 dienas.",
-     "note": "Good prostate penetration; only by culture (high resistance in Latvia)."},
+     "note": "Laba iekļūšana prostatā; tikai pēc uzsējuma (Latvijā augsta rezistence)."},
     {"id": "amoxiclav-ap", "group": G_AP_ORAL, "title": "Amoksiklav 875/125 mg twice daily, 14 days (by culture)",
      "text": "Tab. Amoksiklav 875/125 mg pa 1 tabletei 2 reizes dienā 14 dienas.",
-     "note": "Beta-lactams penetrate the prostate poorly – by culture or as step-down after IV beta-lactam."},
+     "note": "Beta-laktāmi slikti iekļūst prostatā – pēc uzsējuma vai pārejot no i/v beta-laktāma."},
     {"id": "cefuroxime-ap", "group": G_AP_ORAL, "title": "Cefuroxime 500 mg twice daily, 14 days (by culture)",
      "text": "Tab. Cefuroxime 500 mg pa 1 tabletei 2 reizes dienā 14 dienas.",
-     "note": "Step-down after IV ceftriaxone / cefuroxime, by culture; poorer prostate penetration."},
-    dict(_n45["doxycycline"], note="Only with an STI (chlamydia) risk in young sexually active men – with the "
-                                   "anti-enteric antibiotic, or by NAAT."),
+     "note": "Pāreja no i/v ceftriaksona / cefuroksīma, pēc uzsējuma; sliktāka iekļūšana prostatā."},
+    dict(_n45["doxycycline"], note="Tikai STI (hlamīdiju) riska gadījumā jauniem, seksuāli aktīviem vīriešiem – kopā ar antibiotiku pret enterālo floru vai pēc NAAT."),
     dict(_r33["tamsulosin-twoc"], title="Tamsulosin 0.4 mg once daily (voiding symptoms / retention)",
          text="Caps. Tamsulosin 0,4 mg 1 reizi dienā pēc brokastīm.",
-         note="Alpha-blockers ease voiding symptoms in prostatitis and help a trial without catheter after retention."),
+         note="Alfa blokatori mazina urinācijas simptomus prostatīta gadījumā un palīdz katetra evakuācijas mēģinājumam pēc retences."),
     _n45["ibuprofen-eo"], _n10_blocks["paracetamol"], _c61_blocks["macrogol"],
 ]
 BLOCK_WARNINGS["N41.0"] = BLOCK_WARNINGS["N10"]
 BLOCKS["N44"] = [
     _n45["ibuprofen-eo"], _n10_blocks["paracetamol"], _c61_blocks["ultracod"],
     dict(_n45["doxycycline"], id="doxycycline-tt", group=G_ABX,
-         note="From your orchidopexy example. Antibiotics are not needed after clean scrotal surgery for torsion – only "
-              "with an infection (e.g. if epididymitis was found instead)."),
+         note="No jūsu orhidopeksijas piemēra. Pēc tīras skrotālas operācijas torsijas dēļ antibiotikas nav nepieciešamas – tikai infekcijas gadījumā (piem., ja torsijas vietā konstatēts epididimīts)."),
 ]
 BLOCK_WARNINGS["N44"] = BLOCK_WARNINGS["N10"]
+BLOCKS["N50.1"] = [
+    BLOCKS["N44"][0], BLOCKS["N44"][1], BLOCKS["N44"][2],
+    dict(BLOCKS["N44"][3], id="doxycycline-ti",
+         note="Tikai tad, ja infarkts attīstījies pēc epididimoorhīta, kura ārstēšana vēl turpinās – pašam infarktam antibiotikas nav nepieciešamas."),
+]
+BLOCK_WARNINGS["N50.1"] = BLOCK_WARNINGS["N10"]
 _ap_abx = ["cipro-ap-14", "cipro-ap-28", "levofloxacin-ap", "cotrimoxazole-ap", "amoxiclav-ap", "cefuroxime-ap"]
-BLOCK_WARNINGS["N10"].extend({"ids": [a, b], "text": "Two antibiotics for the same organisms are chosen: keep one."}
+BLOCK_WARNINGS["N10"].extend({"ids": [a, b], "text": "Izvēlētas divas antibiotikas pret tiem pašiem mikroorganismiem: atstājiet vienu."}
                              for i, a in enumerate(_ap_abx) for b in _ap_abx[i + 1:])
 _eo_abx = ["levofloxacin", "cotrimoxazole-eo", "amoxiclav-eo", "cefuroxime-eo", "clindamycin-eo", "moxifloxacin"]
-BLOCK_WARNINGS["N10"].extend({"ids": [a, b], "text": "Two antibiotics for the same organisms are chosen: keep one."}
+BLOCK_WARNINGS["N10"].extend({"ids": [a, b], "text": "Izvēlētas divas antibiotikas pret tiem pašiem mikroorganismiem: atstājiet vienu."}
                              for i, a in enumerate(_eo_abx) for b in _eo_abx[i + 1:])
-BLOCK_WARNINGS["N10"].append({"ids": ["levofloxacin", "moxifloxacin"], "text": "Two fluoroquinolones: keep one."})
+BLOCK_WARNINGS["N10"].append({"ids": ["levofloxacin", "moxifloxacin"], "text": "Divi fluorhinoloni: atstājiet vienu."})
 
 # C67 additions (radical cystectomy). From the department's cystectomy discharge plus EAU MIBC.
 G_STOMACH = "Stomach protection"
@@ -2688,60 +2637,70 @@ RC_BOWEL_TEXT = ("Sekot līdzi vēdera izejai; ja 2 dienas nav vēdera izejas, l
 ADVICE_BLOCK_TEXTS.add(RC_BOWEL_TEXT)
 BLOCKS["C67"] = BLOCKS["C67"] + [
     dict(FRAXIPARINE_4W_BLOCK,
-         note="EAU MIBC (strong): pharmacological VTE prophylaxis (LMWH) after radical cystectomy, from the first "
-              "postoperative day, for at least 4 weeks. Reduce the dose if creatinine clearance is below 30 ml/min."),
+         note="EAU MIBC (stipra rekomendācija): medikamentoza VTE profilakse (MMH) pēc radikālas cistektomijas, sākot no pirmās pēcoperācijas dienas, vismaz 4 nedēļas. Ja kreatinīna klīrenss ir zem 30 ml/min, samaziniet devu."),
     dict(_r33_blocks["amoxiclav-7"], id="amoxiclav-7-rc", group=G_ABX,
          text="Tab. Amoksiklav 875/125 mg pa 1 tabletei 2 reizes dienā 7 dienas.",
-         note="From your cystectomy example. EAU: no prolonged antibiotic prophylaxis after RC – conduit urine is always "
-              "colonised; use it for a documented infection (or per department protocol with stents)."),
+         note="No jūsu cistektomijas piemēra. EAU: pēc radikālas cistektomijas ilgstoša antibakteriālā profilakse nav nepieciešama – konduīta urīns vienmēr ir kolonizēts; lietojiet to dokumentētas infekcijas gadījumā (vai pēc nodaļas protokola, ja ir stenti)."),
     {"id": "omeprazole", "group": G_STOMACH, "title": "Omeprazole 20 mg once daily, 1 month",
      "text": "Caps. Omeprazol 20 mg 1 reizi dienā no rīta 30 min pirms ēšanas 1 mēnesi.",
-     "note": "From your cystectomy example (stress ulcer / NSAID / LMWH period)."},
+     "note": "No jūsu cistektomijas piemēra (stresa čūlas / NPL / MMH periods)."},
     {"id": "bowel-rc", "group": G_BOWEL, "title": "If no stool for 2 days: Duphalac or bisacodyl",
      "text": RC_BOWEL_TEXT,
-     "note": "From your cystectomy example – written as its own line, not in the medicine list."},
+     "note": "No jūsu cistektomijas piemēra – rakstīts kā atsevišķa rinda, nevis medikamentu sarakstā."},
     {"id": "bicarbonate", "group": G_PREVENT, "title": "Sodium bicarbonate (metabolic acidosis after bowel diversion)",
      "text": "Tab. Natrii hydrogencarbonas 500 mg 2–3 reizes dienā p/o (koriģēt pēc skābju-sārmu līdzsvara).",
-     "note": "Only with proven hyperchloraemic metabolic acidosis (low bicarbonate), more common with neobladders. "
-             "EAU follow-up: acidosis harms kidneys and bone; check a venous blood gas."},
+     "note": "Tikai pierādītas hiperhlorēmiskas metaboliskas acidozes gadījumā (zems bikarbonāts), biežāk pēc neocistisa. EAU novērošana: acidoze bojā nieres un kaulus; pārbaudiet venozo asiņu gāzes."},
     {b["id"]: b for b in BLOCKS["N30.0"]}["cranberry"],
 ]
 BLOCKS["Z43.6"] = BLOCKS["Z43.6"] + [
     dict(_r33_blocks["cefuroxime-7"], group=G_ABX,
-         note="Only with infection signs (fever, chills, cloudy urine and symptoms). A nephrostomy is usually colonised: "
-              "EAU – do not treat asymptomatic bacteriuria. Adjust to the culture; obstructive pyelonephritis is "
-              "treated 7–14 days."),
+         note="Tikai infekcijas pazīmju gadījumā (drudzis, drebuļi, duļķains urīns un simptomi). Nefrostoma parasti ir kolonizēta: EAU – asimptomātisku bakteriūriju neārstēt. Pielāgojiet uzsējumam; obstruktīvu pielonefrītu ārstē 7–14 dienas."),
     dict(_r33_blocks["amoxiclav-7"], group=G_ABX,
-         note="Only with infection signs; by culture (EAU: no aminopenicillins empirically for UTI)."),
+         note="Tikai infekcijas pazīmju gadījumā; pēc uzsējuma (EAU: UCI empīriskai ārstēšanai aminopenicilīnus nelietot)."),
 ]
 _cyst_abx = ["fosfomycin-3g", "furamag", "nitrofurantoin", "cefuroxime-5", "amoxiclav-5", "cotrimoxazole-3",
              "furamag-men", "cotrimoxazole-7", "cefuroxime-7", "amoxiclav-7", "cipro"]
 _have = {frozenset(w["ids"]) for w in BLOCK_WARNINGS["N10"]}
-BLOCK_WARNINGS["N10"].extend({"ids": [a, b], "text": "Two antibiotics are chosen: keep one."}
+BLOCK_WARNINGS["N10"].extend({"ids": [a, b], "text": "Izvēlētas divas antibiotikas: atstājiet vienu."}
                              for i, a in enumerate(_cyst_abx) for b in _cyst_abx[i + 1:]
                              if frozenset((a, b)) not in _have)
 TAMSULOSIN_LONG_BLOCK = {
     "id": "tamsulosin-long", "group": G_ALPHA, "title": "Tamsulosin 0.4 mg once daily (long-term)",
     "text": "Caps. Tamsulosin 0,4 mg 1 reizi dienā p/o (ilgstoši).",
-    "note": "From your urethrotomy example, for coexisting BPH symptoms. It does not treat the stricture itself.",
+    "note": "No jūsu uretrotomijas piemēra – vienlaicīgiem LPH simptomiem. Pašu striktūru tas neārstē.",
 }
 BLOCKS["N21.0"].insert(2, TAMSULOSIN_LONG_BLOCK)
 BLOCKS["N35"] = BLOCKS["N35"] + [TAMSULOSIN_LONG_BLOCK,
                                  dict({b["id"]: b for b in BLOCKS["N10"]}["canephron"],
                                       text="Tab. Canephron pa 2 tabletēm 3 reizes dienā 1 mēnesi.",
-                                      note="From your urethrotomy example. Herbal supportive product; there is no "
-                                           "evidence that it prevents infection or stricture recurrence.")]
-BLOCK_WARNINGS["N10"].append({"ids": ["tadalafil", "tadalafil-quarter"], "text": "Two tadalafil regimens are chosen: keep one."})
+                                      note="No jūsu uretrotomijas piemēra. Augu izcelsmes atbalstošs līdzeklis; nav pierādījumu, ka tas novērš infekciju vai striktūras recidīvu.")]
+BLOCK_WARNINGS["N10"].append({"ids": ["tadalafil", "tadalafil-quarter"], "text": "Izvēlētas divas tadalafila shēmas: atstājiet vienu."})
 BLOCK_WARNINGS["N10"] += [
-    {"ids": ["fraxiparine", "fraxiparine-04"], "text": "Two Fraxiparine doses are chosen (0,3 ml and 0,4 ml): keep one."},
-    {"ids": ["fraxiparine-4w", "fraxiparine-04"], "text": "Two Fraxiparine regimens are chosen: keep one."},
-    {"ids": ["urorec", "tamsulosin"], "text": "Urorec and tamsulosin are both alpha-blockers: keep one."},
+    {"ids": ["fraxiparine", "fraxiparine-04"], "text": "Izvēlētas divas Fraxiparine devas (0,3 ml un 0,4 ml): atstājiet vienu."},
+    {"ids": ["fraxiparine-4w", "fraxiparine-04"], "text": "Izvēlētas divas Fraxiparine shēmas: atstājiet vienu."},
+    {"ids": ["urorec", "tamsulosin"], "text": "Urorec un tamsulosīns abi ir alfa blokatori: atstājiet vienu."},
 ]
 
 # Text templates. A template is used when the diagnosis and department
 # match AND every modifier listed under "when" has that value.
 # Each template has: clinical_diagnosis (optional), epicrisis, recommendations.
 TEMPLATES = [
+    {
+        # Testicular infarction in 4. Urology: conservative or surgery. Written by n50_parts.
+        "id": "N50.1-4",
+        "diagnosis": "N50.1",
+        "department": "4",
+        "when": {},
+        "builder": "n50",
+    },
+    {
+        # Segmental testicular infarction at NMC, conservative. Written by n50_nmc_parts.
+        "id": "N50.1-NMC",
+        "diagnosis": "N50.1",
+        "department": "NMC",
+        "when": {},
+        "builder": "n50_nmc",
+    },
     {
         # Testicular torsion: CITO exploration in 4. Urology. Written by n44_parts.
         "id": "N44-4",
@@ -3060,7 +3019,7 @@ def find_template(code, department, values):
 
 def block_label(block):
     """Text of a block in the old panel (which has no group headings)."""
-    return f"{block['group']}: {block['title']}"
+    return f"{tr(block['group'])}: {tr(block['title'])}"
 
 
 def add_blocks(recommendations, block_texts):
@@ -3198,15 +3157,15 @@ def _pending_value(group, multi_label=True):
     spec = MODIFIERS[group]
     kind = spec["type"]
     if kind == "single":
-        return PendingChoice(spec["options"][spec.get("default_index") or 0], group)
+        return PendingChoice(spec["options"][spec.get("default_index") or 0], tr(group))
     if kind == "date":
-        return PendingDate(group)
+        return PendingDate(tr(group))
     if kind == "number":
-        return PendingNumber(group)
+        return PendingNumber(tr(group))
     if kind == "multi":
-        return [f"[{group}]"] if multi_label else []
+        return [f"[{tr(group)}]"] if multi_label else []
     if kind == "text":
-        return f"[{group}]"
+        return f"[{tr(group)}]"
     if kind == "toggle":
         return spec.get("default", False)
     return []
@@ -3372,88 +3331,85 @@ def n39_checks(v):
     """Returns (blockers, cautions). Blockers stop the routine discharge text."""
     blockers, cautions = [], []
     if v.get("Infection complexity (N39)") == "Uncomplicated" and n39_device_context(v):
-        cautions.append("A urinary device is chosen, so the infection is written as complicated (EAU).")
+        cautions.append("Izvēlēta urīnceļu ierīce, tāpēc infekcija tiek aprakstīta kā komplicēta (EAU).")
 
     status = v.get("Clinical status")
     if status in ("Deteriorated", "Incomplete assessment"):
-        blockers.append(f"Clinical status at discharge is '{status}'.")
+        blockers.append(f"Klīniskais stāvoklis izrakstīšanas brīdī: '{tr(status)}'.")
     if v.get("Temperature trend") in ("Persistent fever", "Recurrent fever"):
-        blockers.append(f"Temperature: {v['Temperature trend'].lower()}.")
+        blockers.append(f"Temperatūra: {tr(v['Temperature trend']).lower()}.")
     if v.get("Inflammatory markers trend") == "Increasing":
-        blockers.append("Inflammatory markers are increasing.")
+        blockers.append("Iekaisuma rādītāji pieaug.")
     if v.get("Renal function trend") == "Deteriorated":
-        blockers.append("Renal function has deteriorated.")
+        blockers.append("Nieru funkcija ir pasliktinājusies.")
     if v.get("Hemodynamic status") == "Unstable":
-        blockers.append("Hemodynamic status is unstable.")
+        blockers.append("Hemodinamika ir nestabila.")
     if v.get("Oral intake") == "Unable to tolerate":
-        blockers.append("The patient cannot tolerate oral intake.")
+        blockers.append("Pacients nepanes perorālu uzturu.")
     if v.get("Discharge readiness") == "Requires reassessment":
-        blockers.append("Discharge readiness: requires reassessment.")
+        blockers.append("Gatavība izrakstīšanai: nepieciešama atkārtota izvērtēšana.")
     if v.get("Complications status") == "Ongoing":
-        blockers.append("A complication (for example obstruction) is still ongoing.")
+        blockers.append("Komplikācija (piemēram, obstrukcija) joprojām turpinās.")
     if v.get("Urine drainage") == "None":
-        blockers.append("No urine drainage through the catheter: assess for obstruction.")
+        blockers.append("Pa katetru neizdalās urīns: izvērtējiet obstrukciju.")
     if v.get("Voiding after removal") == "Urinary retention":
-        blockers.append("Urinary retention after catheter removal.")
+        blockers.append("Urīna retence pēc katetra evakuācijas.")
     if v.get("Antibiotic renal adjustment") == "Requires review":
-        blockers.append("Antibiotic renal dosing needs review.")
+        blockers.append("Antibiotiku devas pielāgošana nieru funkcijai jāpārskata.")
     if v.get("Antibiotic review") == "Requires prescriber review":
-        blockers.append("The antibiotic plan requires prescriber review.")
+        blockers.append("Antibakteriālās terapijas plāns jāpārskata ordinējošam ārstam.")
 
     admission, discharge = v.get("Admission date"), v.get("Discharge date")
     if admission and discharge and discharge < admission:
-        blockers.append("The discharge date is before the admission date.")
+        blockers.append("Izrakstīšanas datums ir pirms iestāšanās datuma.")
 
     for number, row in enumerate(v.get("Antibiotics") or [], start=1):
-        name = row.get("Medication") or f"row {number}"
+        name = row.get("Medication") or f"{number}. rinda"
         for field in ("Medication", "Route", "Start date"):
             if blank(row.get(field)):
-                blockers.append(f"Antibiotics, row {number}: {field} is missing.")
+                blockers.append(f"Antibiotikas, {number}. rinda: trūkst lauka \"{ABX_COLUMNS_LV.get(field, field)}\".")
         if row.get("Continue at discharge"):
             for field in ("Dose", "Frequency", "Days at home"):
                 if blank(row.get(field)):
-                    blockers.append(f"Antibiotics, row {number} ({name}) continues at discharge: {field} is missing.")
+                    blockers.append(f"Antibiotikas, {number}. rinda ({tr(name)}) turpinās pēc izrakstīšanas: trūkst lauka \"{ABX_COLUMNS_LV.get(field, field)}\".")
         if admission and row.get("Start date") and row["Start date"] < admission:
-            cautions.append(f"{name}: the start date is before the admission date.")
+            cautions.append(f"{tr(name)}: sākuma datums ir pirms iestāšanās datuma.")
 
     labs = v.get("Labs") or []
     directions = [d for d in (lab_direction(lab_series(labs, t)) for t in INFLAMMATORY_TESTS) if d]
     if v.get("Inflammatory markers trend") == "Decreasing":
         if not directions:
-            cautions.append("Inflammatory markers are called 'decreasing', but no CRO or leukocyte "
-                            "values (two or more per test) were entered to support this.")
+            cautions.append('Iekaisuma rādītāji norādīti kā "samazinās", bet nav ievadītas CRO vai leikocītu vērtības (divas vai vairāk katram rādītājam), kas to apstiprinātu.')
         elif any(d != "Decreasing" for d in directions):
-            cautions.append("Inflammatory markers are called 'decreasing', but the entered CRO / "
-                            "leukocyte values do not all decrease.")
+            cautions.append('Iekaisuma rādītāji norādīti kā "samazinās", taču ievadītās CRO / leikocītu vērtības ne visas samazinās.')
 
     if status == "Improved" and (v.get("Pain trend") in ("Unchanged", "Increased")
                                  or v.get("Urinary symptoms trend") == "Persistent"):
-        cautions.append("The status is 'improved', but pain or urinary symptoms have not improved. "
-                        "The text will not say that the complaints subsided.")
+        cautions.append('Statuss ir "uzlabojies", taču sāpes vai urinācijas simptomi nav mazinājušies. Tekstā netiks rakstīts, ka sūdzības mazinājušās.')
     if v.get("Antibiotic allergy status") == "Documented allergy":
-        cautions.append("An allergy is documented: confirm that none of the antibiotics listed is affected.")
+        cautions.append("Dokumentēta alerģija: pārliecinieties, ka neviena no norādītajām antibiotikām netiek ietekmēta.")
     elif v.get("Antibiotic allergy status") == "Unknown":
-        cautions.append("Antibiotic allergy status is unknown.")
+        cautions.append("Alerģija pret antibiotikām nav zināma.")
     if v.get("Treatment tolerance") == "Adverse reaction":
-        cautions.append("An adverse reaction to treatment is recorded.")
+        cautions.append("Reģistrēta blakusparādība uz ārstēšanu.")
     if (v.get("Urine specimen") == "Not taken") != (v.get("Urine culture") == "Not performed"):
-        cautions.append("Urine specimen and urine culture do not match (one says none was taken or done).")
+        cautions.append("Urīna paraugs un urīna uzsējums nesaskan (vienā norādīts, ka nav paņemts vai veikts).")
     if v.get("Urine culture") == "Possibly contaminated sample":
-        cautions.append("The urine culture sample is possibly contaminated: consider a repeat sample.")
+        cautions.append("Urīna uzsējuma paraugs, iespējams, ir kontaminēts: apsveriet atkārtotu paraugu.")
     if v.get("Voiding after removal") in ("Not tested", "Increased residual urine"):
-        cautions.append("Voiding after catheter removal: " + v["Voiding after removal"].lower() + ".")
+        cautions.append("Urinācija pēc katetra evakuācijas: " + tr(v["Voiding after removal"]).lower() + ".")
     if v.get("Urine drainage") == "Not documented":
-        cautions.append("Urine drainage through the catheter is not documented.")
+        cautions.append("Urīna izdalīšanās pa katetru nav dokumentēta.")
     if v.get("Obstruction drained") == "No":
-        blockers.append("Urostasis with infection that has not been drained: drainage is needed before discharge.")
+        blockers.append("Urostāze ar infekciju, kas nav drenēta: pirms izrakstīšanas nepieciešama drenāža.")
     if v.get("Sepsis signs") == "Yes":
-        blockers.append("Signs of sepsis: admission is needed.")
+        blockers.append("Sepses pazīmes: nepieciešama stacionēšana.")
     if v.get("Able to take oral medication") == "No":
-        blockers.append("The patient cannot take oral medication: admission for IV treatment is needed.")
+        blockers.append("Pacients nevar lietot perorālus medikamentus: nepieciešama stacionēšana i/v terapijai.")
     if v.get("Urine appearance") == "With clots":
-        cautions.append("Clots in the urine: check for clot retention and the source of bleeding.")
+        cautions.append("Recekļi urīnā: pārbaudiet, vai nav recekļu tamponādes, un meklējiet asiņošanas avotu.")
     if v.get("_department") == "NMC" and not any(r.get("Continue at discharge") for r in v.get("Antibiotics") or []):
-        cautions.append("No antibiotic is marked 'Continue at discharge' for a patient sent home.")
+        cautions.append('Mājās izrakstītam pacientam neviena antibiotika nav atzīmēta "Turpināt pēc izrakstīšanas".')
     return blockers, cautions
 
 
@@ -3842,36 +3798,33 @@ def n20_checks(v):
     blockers, cautions = [], []
     if v.get("Admission") == "Planned":
         if v.get("JJ stent placed") and v.get("Stent removal") == "At the outpatient urology review":
-            cautions.append("A JJ stent stays in: if possible give a concrete removal date, so the stent is not forgotten.")
+            cautions.append("JJ stents paliek: ja iespējams, norādiet konkrētu evakuācijas datumu, lai stents netiktu aizmirsts.")
         if "With complications" in (v.get("Intraoperative course"), v.get("Postoperative course")):
-            cautions.append("Complications are recorded: check that the recommendations cover them.")
+            cautions.append("Reģistrētas komplikācijas: pārbaudiet, vai rekomendācijas tās aptver.")
     elif v.get("_department") == "NMC":
-        names = {"CRO elevated": "raised CRO", "Leukocytosis": "leukocytosis",
-                 "Urine infection signs": "infection signs in the urine"}
+        names = {"CRO elevated": "paaugstināts CRO", "Leukocytosis": "leikocitoze",
+                 "Urine infection signs": "infekcijas pazīmes urīnā"}
         signs = [names[n] for n in names if v.get(n)]
         if signs:
-            blockers.append("Signs of infection (" + ", ".join(signs) + ") together with a stone: an obstructed, "
-                            "infected kidney needs admission and drainage. Write that discharge from "
-                            "4. Urology department as an acute admission.")
+            blockers.append("Infekcijas pazīmes (" + ", ".join(signs) + ") kopā ar akmeni: obstruētai, inficētai nierei nepieciešama stacionēšana un drenāža. Šo izrakstu no 4. uroloģijas nodaļas rakstiet kā akūtu stacionēšanu.")
         if v.get("Pain controlled") == "No":
-            blockers.append("Pain is not controlled.")
+            blockers.append("Sāpes nav kontrolētas.")
     else:  # acute admission in 4. Urology with drainage
         if v.get("Clinical status") in ("Deteriorated", "Incomplete assessment"):
-            blockers.append(f"Clinical status at discharge is '{v['Clinical status']}'.")
+            blockers.append(f"Klīniskais stāvoklis izrakstīšanas brīdī: '{tr(v['Clinical status'])}'.")
         if v.get("Temperature trend") in ("Persistent fever", "Recurrent fever"):
-            blockers.append(f"Temperature: {v['Temperature trend'].lower()}.")
+            blockers.append(f"Temperatūra: {tr(v['Temperature trend']).lower()}.")
         if v.get("Inflammatory markers trend") == "Increasing":
-            blockers.append("Inflammatory markers are increasing.")
+            blockers.append("Iekaisuma rādītāji pieaug.")
         abx_blockers, abx_cautions = abx_row_checks(v)
         blockers += abx_blockers
         cautions += abx_cautions
         if v.get("Urostasis grade") == "No urostasis":
-            cautions.append("A drainage was done, but no urostasis is recorded.")
+            cautions.append("Veikta drenāža, bet urostāze nav norādīta.")
         if v.get("Drainage") == "JJ stent" and not v.get("Definitive treatment date"):
-            cautions.append("The patient goes home with a JJ stent: give the date of the definitive treatment, "
-                            "so the stent is not forgotten.")
+            cautions.append("Pacients dodas mājās ar JJ stentu: norādiet galīgās ārstēšanas datumu, lai stents netiktu aizmirsts.")
         if v.get("Urine culture") == "Possibly contaminated sample":
-            cautions.append("The urine culture sample is possibly contaminated: consider a repeat sample.")
+            cautions.append("Urīna uzsējuma paraugs, iespējams, ir kontaminēts: apsveriet atkārtotu paraugu.")
     return blockers, cautions
 
 
@@ -4048,40 +4001,37 @@ def c67_checks(v):
                     "intermediate": ("Intravesical chemotherapy course", "BCG induction + maintenance"),
                     "high": ("BCG induction + maintenance", "Discuss radical cystectomy"),
                     "very high": ("Discuss radical cystectomy",)}[risk]
-        advice = {"low": "single immediate instillation only, no further adjuvant treatment (strong)",
-                  "intermediate": "intravesical chemotherapy (up to 1 year) or 1 year of full-dose BCG",
-                  "high": "full-dose BCG for 1–3 years, and discuss immediate radical cystectomy (strong)",
-                  "very high": "discuss immediate radical cystectomy; BCG for 1–3 years if unfit or declining "
-                               "(strong)"}[risk]
+        advice = {"low": "tikai vienreizēja agrīna instilācija, turpmāka adjuvanta terapija nav nepieciešama (stipra rekomendācija)",
+                  "intermediate": "intravezikāla ķīmijterapija (līdz 1 gadam) vai 1 gads pilnas devas BCG",
+                  "high": "pilnas devas BCG 1–3 gadus un apspriest tūlītēju radikālu cistektomiju (stipra rekomendācija)",
+                  "very high": "apspriest tūlītēju radikālu cistektomiju; BCG 1–3 gadus, ja pacients nav piemērots "
+                               "operācijai vai no tās atsakās (stipra rekomendācija)"}[risk]
         if plan not in expected:
-            cautions.append(f"EAU NMIBC risk group (calculated): {risk}. EAU: {advice}.")
+            cautions.append(f"EAU NMIBC riska grupa (aprēķināta): {NMIBC_RISK_LV.get(risk, risk)}. EAU: {advice}.")
     if v.get("Intravesical treatment") == "Not performed" and v.get("TURU type") == "TURU":
-        cautions.append("No single immediate instillation: EAU (strong) offers it to low-risk and to intermediate-risk "
-                        "patients with few recurrences – omit only with perforation, extensive resection or bleeding.")
+        cautions.append("Nav veikta vienreizēja agrīna instilācija: EAU (stipra rekomendācija) to iesaka zema riska un vidēja riska pacientiem ar nedaudziem recidīviem – izlaidiet tikai perforācijas, plašas rezekcijas vai asiņošanas gadījumā.")
     if v.get("Detrusor muscle in specimen") == "Absent" and not (v.get("Tumour stage") == "pTa" and
                                                                 v.get("Tumour grade") == "Low grade (LG)"):
-        cautions.append("No detrusor muscle in the specimen: EAU (strong) – second TURB within 2–6 weeks (except Ta LG "
-                        "and primary CIS).")
+        cautions.append("Preparātā nav detrūzora muskuļa: EAU (stipra rekomendācija) – atkārtota TURU 2–6 nedēļu laikā (izņemot Ta LG un primāru CIS).")
     if v.get("Variant histology / LVI"):
-        cautions.append("Variant histology or LVI: EAU treats these as very high risk – discuss radical cystectomy.")
+        cautions.append("Varianta histoloģija vai LVI: EAU tos uzskata par ļoti augsta riska – apspriediet radikālu cistektomiju.")
     if v.get("Voiding after catheter removal") == "Urinary retention":
-        blockers.append("Urinary retention after catheter removal.")
+        blockers.append("Urīna retence pēc katetra evakuācijas.")
     if v.get("Histology") == "Pending" and v.get("Discharge paper") == "Final":
-        cautions.append("Histology is still pending, but the discharge paper is marked as final.")
+        cautions.append("Histoloģija vēl gaidāma, bet izraksts atzīmēts kā galīgais.")
     if v.get("Histology") == "Known" and v.get("Discharge paper") == "Temporary":
-        cautions.append("Histology is already known, but the discharge paper is marked as temporary.")
+        cautions.append("Histoloģija jau zināma, bet izraksts atzīmēts kā pagaidu.")
     if v.get("Histology") == "Pending" and v.get("Oncology council") == "Not applicable":
-        cautions.append("Histology is still pending and no oncology council plan is set: "
-                        "make sure someone follows up the result.")
+        cautions.append("Histoloģija vēl gaidāma, un onkoloģiskā konsīlija plāns nav norādīts: pārliecinieties, ka kāds izsekos rezultātam.")
     if v.get("Postoperative course") == "With complications":
-        cautions.append("Complications are recorded: check that the recommendations cover them.")
+        cautions.append("Reģistrētas komplikācijas: pārbaudiet, vai rekomendācijas tās aptver.")
     if v.get("Tumour stage") == "Other / not malignant" and blank(v.get("Histology details")):
-        blockers.append("Histology is 'other / not malignant': describe it in 'Histology details'.")
+        blockers.append('Histoloģija ir "cits / nav ļaundabīgs": aprakstiet to laukā "Histoloģijas detaļas".')
     advanced = (v.get("Tumour stage") == "pT2"
                 or v.get("N stage") in ("cN1", "cN2", "cN3")
                 or v.get("M stage") in ("cM1a", "cM1b"))
     if advanced and v.get("Oncology council") == "Not applicable":
-        cautions.append("Muscle-invasive, node-positive or metastatic disease, but no oncology council plan is set.")
+        cautions.append("Muskulī invazīva, limfmezglu pozitīva vai metastātiska slimība, bet onkoloģiskā konsīlija plāns nav norādīts.")
     return blockers, cautions
 
 
@@ -4481,50 +4431,41 @@ def c67_rc_checks(v):
         str(v.get("Indication (RC)")).startswith("Palliative")
     neoadj = any(x in previous for x in ("Neoadjuvant cisplatin chemotherapy", "Perioperative durvalumab (NIAGARA)"))
     if "fraxiparine-4w" not in chosen:
-        cautions.append("EAU MIBC (strong): LMWH for at least 4 weeks after radical cystectomy – choose the 4-week "
-                        "Fraxiparine block (or document why not).")
+        cautions.append("EAU MIBC (stipra rekomendācija): MMH vismaz 4 nedēļas pēc radikālas cistektomijas – izvēlieties 4 nedēļu Fraxiparine bloku (vai dokumentējiet, kāpēc ne).")
     if "fraxiparine" in chosen and "fraxiparine-4w" in chosen:
-        cautions.append("Two Fraxiparine courses are chosen: keep the 4-week one.")
+        cautions.append("Izvēlēti divi Fraxiparine kursi: atstājiet 4 nedēļu kursu.")
     if v.get("Indication (RC)") == "Muscle-invasive bladder cancer" and not neoadj and not palliative:
-        cautions.append("No neoadjuvant treatment recorded: EAU (strong) offers cisplatin-based chemotherapy (or "
-                        "gemcitabine/cisplatin + durvalumab) to eligible MIBC patients – note the reason if not given "
-                        "(cisplatin-ineligible, patient choice).")
+        cautions.append("Neoadjuvanta terapija nav norādīta: EAU (stipra rekomendācija) piemērotiem MIBC pacientiem iesaka cisplatīnu saturošu ķīmijterapiju (vai gemcitabīns/cisplatīns + durvalumabs) – ja nav saņemta, norādiet iemeslu (nav piemērots cisplatīnam, pacienta izvēle).")
     if known and (pt in ("pT3a", "pT3b", "pT4a", "pT4b") or pn in ("pN1", "pN2", "pN3")):
         if neoadj:
-            cautions.append("High-risk pathology after neoadjuvant treatment: EAU (strong) – adjuvant nivolumab "
-                            "(EMA: PD-L1 >= 1%) via the oncology council.")
+            cautions.append("Augsta riska patoloģija pēc neoadjuvantas terapijas: EAU (stipra rekomendācija) – adjuvants nivolumabs (EMA: PD-L1 >= 1%) caur onkoloģisko konsīliju.")
         else:
-            cautions.append("pT3/4 and/or pN+ without neoadjuvant treatment: EAU (strong) – adjuvant cisplatin-based "
-                            "chemotherapy, or nivolumab if cisplatin-ineligible; oncology council.")
+            cautions.append("pT3/4 un/vai pN+ bez neoadjuvantas terapijas: EAU (stipra rekomendācija) – adjuvanta cisplatīnu saturoša ķīmijterapija vai nivolumabs, ja cisplatīns nav piemērots; onkoloģiskais konsīlijs.")
         if v.get("Oncology council") == "Not applicable":
-            cautions.append("Advanced pathology but no oncology council plan is set.")
+            cautions.append("Progresējusi patoloģija, bet onkoloģiskā konsīlija plāns nav norādīts.")
     if known and v.get("Margins (RC)") == "R1":
-        cautions.append("Positive margin (R1): EAU (weak) – adjuvant radiotherapy to the cystectomy bed can be offered; "
-                        "oncology council.")
+        cautions.append("Pozitīva rezekcijas robeža (R1): EAU (vāja rekomendācija) – var piedāvāt adjuvantu staru terapiju cistektomijas gultnē; onkoloģiskais konsīlijs.")
     if v.get("Histology (RC)") == "Pending" and v.get("Discharge paper") == "Final":
-        cautions.append("Histology is still pending, but the discharge paper is marked as final.")
+        cautions.append("Histoloģija vēl gaidāma, bet izraksts atzīmēts kā galīgais.")
     if known and v.get("Discharge paper") == "Temporary":
-        cautions.append("Histology is already known, but the discharge paper is marked as temporary.")
+        cautions.append("Histoloģija jau zināma, bet izraksts atzīmēts kā pagaidu.")
     if v.get("Ureteral stents (RC)") == "Discharged with stents" and not v.get("Stent removal date (RC)") and \
             diversion != "No diversion – nephrostomies":
-        cautions.append("Stents left in: give the date for UK removal in 48.")
+        cautions.append("Atstāti stenti: norādiet datumu urīnvadu katetru evakuācijai 48. nodaļā.")
     if diversion == "Orthotopic neobladder" and v.get("Urethrectomy (RC)"):
-        blockers.append("Neobladder with urethrectomy is not possible – check the diversion.")
+        blockers.append("Neocistis ar uretrektomiju nav iespējams – pārbaudiet derivāciju.")
     if diversion == "Orthotopic neobladder":
-        cautions.append("Neobladder: EAU (strong) – not with tumour in the urethra / positive urethral margin; check the "
-                        "frozen section and the final histology.")
+        cautions.append("Neocistis: EAU (stipra rekomendācija) – ne audzēja uretrā / pozitīvas uretras rezekcijas robežas gadījumā; pārbaudiet steidzamo un galīgo histoloģiju.")
     if v.get("Lymph node dissection (RC)") == "Not performed" and not palliative:
-        cautions.append("No lymph node dissection: EAU (strong) – standard LND is part of radical cystectomy.")
+        cautions.append("Nav veikta limfmezglu disekcija: EAU (stipra rekomendācija) – standarta LND ir daļa no radikālas cistektomijas.")
     if v.get("Lymph node dissection (RC)") == "Extended bilateral":
-        cautions.append("EAU (strong): standard LND is enough – extended LND does not improve survival.")
+        cautions.append("EAU (stipra rekomendācija): pietiek ar standarta LND – paplašināta LND neuzlabo dzīvildzi.")
     if "amoxiclav-7-rc" in chosen:
-        cautions.append("Amoksiklav: conduit urine is always colonised – treat only a symptomatic infection "
-                        "(EAU / Campbell-Walsh-Wein); check the indication.")
+        cautions.append("Amoksiklav: konduīta urīns vienmēr ir kolonizēts – ārstējiet tikai simptomātisku infekciju (EAU / Campbell-Walsh-Wein); pārbaudiet indikāciju.")
     if v.get("_sex") == "Woman" and v.get("Cystectomy type (woman)") == "Organ-sparing (uterus and vagina preserved)":
-        cautions.append("Organ-sparing cystectomy: EAU – only without tumour near the preserved organs (no trigone / "
-                        "bladder neck tumour, no CIS there).")
+        cautions.append("Orgānus saudzējoša cistektomija: EAU – tikai tad, ja audzējs nav saglabājamo orgānu tuvumā (nav trīsstūra / urīnpūšļa kakliņa audzēja, nav CIS šajā zonā).")
     if "With complications" in (v.get("Intraoperative course"), v.get("Postoperative course")):
-        cautions.append("Complications are recorded: check that the recommendations cover them.")
+        cautions.append("Reģistrētas komplikācijas: pārbaudiet, vai rekomendācijas tās aptver.")
     return blockers, cautions
 
 
@@ -4783,58 +4724,48 @@ def n45_checks(v):
     source = v.get("Likely source (EO)")
     abscess = _eo_abscess(v)
     if "Testicular infarction / ischaemia" in us:
-        (blockers if nmc else cautions).append("Testicular ischaemia / infarction on ultrasound: exclude torsion – "
-                                              "urgent scrotal exploration; infarction may need orchiectomy.")
+        (blockers if nmc else cautions).append("Sēklinieka išēmija / infarkts USS: izslēdziet torsiju – "
+                                              "neatliekama skrotāla eksplorācija; infarkta gadījumā var būt nepieciešama orhektomija.")
     if v.get("Onset (EO)") == "Sudden" and "Normal testicular blood flow" not in us:
-        blockers.append("Sudden onset without documented testicular blood flow: torsion must be excluded – urgent "
-                        "scrotal exploration (do not wait for ultrasound; salvage window ~6 hours).")
+        blockers.append("Pēkšņs sākums bez dokumentētas sēklinieka asinsplūsmas: jāizslēdz torsija – neatliekama skrotāla eksplorācija (negaidiet USS; sēklinieka glābšanas laiks ~6 stundas).")
     elif v.get("Onset (EO)") == "Sudden":
-        cautions.append("Sudden onset: Doppler flow does not fully exclude torsion (intermittent / partial) – explore if "
-                        "in doubt, especially under 25 years.")
+        cautions.append("Pēkšņs sākums: doplerogrāfijā konstatēta asinsplūsma pilnībā neizslēdz torsiju (intermitējoša / daļēja) – šaubu gadījumā veiciet eksplorāciju, īpaši pacientiem līdz 25 gadu vecumam.")
     if nmc:
         if abscess:
-            blockers.append("Abscess or pyocele on ultrasound: admit for drainage / orchiectomy (Campbell-Walsh-Wein).")
+            blockers.append("Abscess vai piocēle USS: stacionēt drenāžai / orhektomijai (Campbell-Walsh-Wein).")
         if v.get("Sepsis signs (EO)"):
-            blockers.append("Signs of sepsis: admit for IV antibiotics.")
+            blockers.append("Sepses pazīmes: stacionēt i/v antibiotiku terapijai.")
         if "Fever" in (v.get("Symptoms (EO)") or []) and v.get("Labs (EO)") in ("Raised CRP / leukocytosis",
                                                                                  "Raised CRP and creatinine"):
-            cautions.append("Fever with raised CRP: consider admission (IV antibiotics), especially with diabetes, "
-                            "immunosuppression or a catheter.")
+            cautions.append("Drudzis ar paaugstinātu CRO: apsveriet stacionēšanu (i/v antibiotikas), īpaši cukura diabēta, imūnsupresijas vai katetra gadījumā.")
     else:
         if abscess and v.get("Treatment (EO)") != "Surgery":
-            cautions.append("Abscess / pyocele treated conservatively: usually needs drainage or orchiectomy – if "
-                            "conservative, repeat ultrasound and watch closely.")
+            cautions.append("Abscess / piocēle ārstēta konservatīvi: parasti nepieciešama drenāža vai orhektomija – ja ārstē konservatīvi, atkārtojiet USS un rūpīgi novērojiet.")
         if v.get("Treatment (EO)") == "Surgery" and v.get("Operation (EO)") in ("Orchiectomy (scrotal)",
                                                                               "Inguinal orchifuniculectomy",
                                                                               "Epididymectomy") \
                 and v.get("Histology (EO)") == "Not sent":
-            cautions.append("Send the specimen for histology – a tumour can present as orchitis / abscess.")
+            cautions.append("Nosūtiet materiālu histoloģiskai izmeklēšanai – audzējs var izpausties kā orhīts / abscess.")
     if "Midstream urine culture" not in tests:
-        cautions.append("EAU (strong): take a midstream urine culture.")
+        cautions.append("EAU (stipra rekomendācija): paņemiet vidējās strūklas urīna uzsējumu.")
     if source in ("Sexually transmitted", "Both possible") and not any(x.startswith("First-void") for x in tests):
-        cautions.append("Possible STI: EAU (strong) – first-void urine NAAT for chlamydia and gonorrhoea "
-                        "(IUSTI: also M. genitalium).")
+        cautions.append("Iespējama STI: EAU (stipra rekomendācija) – pirmās porcijas urīna NAAT hlamīdijām un gonorejai (IUSTI: arī M. genitalium).")
     if source in ("Sexually transmitted", "Both possible"):
         if not any(b in chosen for b in ("doxycycline", "levofloxacin", "moxifloxacin")):
-            cautions.append("STI possible: choose an antibiotic active against C. trachomatis (doxycycline 14 days, or "
-                            "levofloxacin if an enteric source is also possible).")
+            cautions.append("Iespējama STI: izvēlieties antibiotiku, kas darbojas pret C. trachomatis (doksiciklīns 14 dienas vai levofloksacīns, ja iespējams arī enterāls avots).")
         if "Urethral discharge" in (v.get("Symptoms (EO)") or []) and not v.get("Ceftriaxone given at NMC") and nmc:
-            cautions.append("Urethral discharge – gonorrhoea likely: EAU (strong) – ceftriaxone 500 mg i/m or i/v once "
-                            "plus an anti-chlamydial drug.")
-        cautions.append("STI: follow national rules on reporting and partner notification (EAU, strong).")
+            cautions.append("Izdalījumi no urīnizvadkanāla – iespējama gonoreja: EAU (stipra rekomendācija) – ceftriaksons 500 mg i/m vai i/v vienreiz kopā ar pretklamīdiju līdzekli.")
+        cautions.append("STI: ievērojiet valsts noteikumus par ziņošanu un partneru informēšanu (EAU, stipra rekomendācija).")
     if source and source.startswith("Enteric") and not any(b in chosen for b in ("levofloxacin", "cotrimoxazole-eo",
                                                                               "amoxiclav-eo", "cefuroxime-eo",
                                                                               "clindamycin-eo")):
-        cautions.append("Enteric source: choose an antibiotic active against Enterobacterales (levofloxacin 10 days "
-                        "first choice, or by culture).")
+        cautions.append("Enterāls avots: izvēlieties antibiotiku, kas darbojas pret Enterobacterales (levofloksacīns 10 dienas – pirmā izvēle – vai pēc uzsējuma).")
     if source == "Mumps (viral)" and any(b in chosen for b in _eo_abx + ["doxycycline"]):
-        cautions.append("Mumps orchitis is viral: antibiotics are not needed. It is a notifiable infection.")
+        cautions.append("Epidēmiskā parotīta orhīts ir vīrusu izcelsmes: antibiotikas nav nepieciešamas. Tā ir infekcija, par kuru jāziņo.")
     if "Indwelling catheter / epicystostomy" in (v.get("Risk factors (EO)") or []):
-        cautions.append("Catheter-associated: change (or remove) the catheter and take the culture from the new one; "
-                        "a suprapubic catheter reduces the risk with long-term drainage.")
+        cautions.append("Saistīts ar katetru: nomainiet (vai evakuējiet) katetru un uzsējumu ņemiet no jaunā katetra; ilgstošas drenāžas gadījumā epicistostoma samazina risku.")
     if "levofloxacin" in chosen or "moxifloxacin" in chosen:
-        cautions.append("Fluoroquinolone: EMA warnings – explain tendon / nerve / aortic risks and stop at the first "
-                        "sign of tendon pain.")
+        cautions.append("Fluorhinolons: EMA brīdinājumi – izskaidrojiet cīpslu / nervu / aortas riskus un pārtrauciet lietošanu pie pirmajām cīpslu sāpju pazīmēm.")
     return blockers, cautions
 
 
@@ -5066,45 +4997,38 @@ def n41_checks(v):
     fq = [b for b in chosen if b in ("cipro-ap-14", "cipro-ap-28", "levofloxacin-ap")]
     if nmc:
         if v.get("Sepsis signs (AP)"):
-            blockers.append("Signs of sepsis: treat as a systemic UTI – admit for IV antibiotics (EAU).")
+            blockers.append("Sepses pazīmes: ārstējiet kā sistēmisku UCI – stacionēt i/v antibiotiku terapijai (EAU).")
         if _ap_retention(v):
-            blockers.append("Urinary retention with acute prostatitis: admit (drainage, IV antibiotics).")
+            blockers.append("Urīna retence ar akūtu prostatītu: stacionēt (drenāža, i/v antibiotikas).")
         if _ap_abscess(v) or v.get("DRE (AP)") == "Tender, fluctuating area (abscess?)":
-            blockers.append("Prostatic abscess (suspected or proven): admit – imaging and drainage as needed.")
+            blockers.append("Prostatas abscess (aizdomas vai pierādīts): stacionēt – attēldiagnostika un drenāža pēc nepieciešamības.")
         if any(x in risks for x in ("Diabetes", "Immunosuppression")) or v.get("Context (AP)") == "After prostate biopsy":
-            cautions.append("Diabetes, immunosuppression or prostatitis after biopsy: higher risk of severe infection and "
-                            "abscess – consider admission.")
+            cautions.append("Cukura diabēts, imūnsupresija vai prostatīts pēc biopsijas: augstāks smagas infekcijas un abscesa risks – apsveriet stacionēšanu.")
     else:
         if _ap_abscess(v) and v.get("Abscess treatment (AP)") == "Antibiotics only":
             size = _num(v, "Abscess size (cm) (AP)")
             if size is None or size >= 2:
-                cautions.append("Prostatic abscess of 2 cm or more (or size unknown) treated with antibiotics only: "
-                                "usually drained (TRUS-guided aspiration or transurethral deroofing); repeat TRUS.")
+                cautions.append("Prostatas abscess 2 cm vai lielāks (vai izmērs nav zināms), ārstēts tikai ar antibiotikām: parasti tiek drenēts (aspirācija TRUS kontrolē vai transuretrāla drenāža); atkārtojiet TRUS.")
     if v.get("DRE (AP)") == "Not performed":
-        cautions.append("No DRE: a gentle rectal examination is part of the assessment (prostate tenderness, abscess); "
-                        "EAU (strong): no prostatic massage.")
+        cautions.append("Nav veikta DRI: saudzīga rektāla izmeklēšana ir daļa no izvērtēšanas (prostatas jutīgums, abscess); EAU (stipra rekomendācija): prostatas masāžu neveikt.")
     if "Midstream urine culture" not in tests:
-        cautions.append("EAU: take a midstream urine culture to guide treatment.")
+        cautions.append("EAU: ārstēšanas vadīšanai paņemiet vidējās strūklas urīna uzsējumu.")
     if "Fever" in (v.get("Symptoms (AP)") or []) and "Blood culture" not in tests:
-        cautions.append("EAU: take a blood culture and a blood count in acute bacterial prostatitis.")
+        cautions.append("EAU: akūta bakteriāla prostatīta gadījumā paņemiet asins uzsējumu un asins analīzi.")
     if fq and (v.get("Context (AP)") in ("After prostate biopsy", "After catheter / instrumentation")
                or "Fluoroquinolone in the last 6 months" in risks):
-        cautions.append("Fluoroquinolone after biopsy / instrumentation / recent fluoroquinolone use: EAU (strong) – "
-                        "not empirical (ESBL and quinolone resistance); use it only by culture.")
+        cautions.append("Fluorhinolons pēc biopsijas / instrumentālas manipulācijas / nesenas fluorhinolonu lietošanas: EAU (stipra rekomendācija) – neizvēlēties empīriski (ESBL un rezistence pret hinoloniem); lietot tikai pēc uzsējuma.")
     if fq:
-        cautions.append("Fluoroquinolone: EMA warnings – explain tendon / nerve / aortic risks.")
+        cautions.append("Fluorhinolons: EMA brīdinājumi – izskaidrojiet cīpslu / nervu / aortas riskus.")
     if not any(b in chosen for b in _ap_abx):
-        cautions.append("Choose an oral antibiotic (total course 2–4 weeks).")
+        cautions.append("Izvēlieties perorālu antibiotiku (kopējais kurss 2–4 nedēļas).")
     if "STI risk (young, sexually active)" in risks:
         if "First-void urine NAAT (STI)" not in tests:
-            cautions.append("STI risk: first-void urine NAAT for chlamydia / gonorrhoea.")
+            cautions.append("STI risks: pirmās porcijas urīna NAAT hlamīdijām / gonorejai.")
     if "Recurrent prostatitis" in risks:
-        cautions.append("Recurrent prostatitis: after the acute episode look for chronic bacterial prostatitis – "
-                        "Meares–Stamey 2- or 4-glass test (EAU, strong); CBP is treated with a fluoroquinolone for "
-                        "4–6 weeks.")
+        cautions.append("Recidivējošs prostatīts: pēc akūtās epizodes meklējiet hronisku bakteriālu prostatītu – Meares–Stamey 2 vai 4 trauku tests (EAU, stipra rekomendācija); HBP ārstē ar fluorhinolonu 4–6 nedēļas.")
     if v.get("Retention drainage (AP)") == "Urethral catheter (small calibre)" and not nmc:
-        cautions.append("Urethral catheter in acute prostatitis: keep it short and small-calibre; a suprapubic catheter "
-                        "is classically preferred if longer drainage is needed (Campbell-Walsh-Wein).")
+        cautions.append("Uretrāls katetrs akūta prostatīta gadījumā: uz īsu laiku un maza diametra; ja nepieciešama ilgāka drenāža, klasiski priekšroka dodama epicistostomai (Campbell-Walsh-Wein).")
     return blockers, cautions
 
 
@@ -5264,36 +5188,223 @@ def n44_checks(v):
     blockers, cautions = [], []
     chosen = v.get("_blocks") or []
     if v.get("_department") == "NMC":
-        cautions.append("Appendix testis torsion only: EAU (strong) – conservative with NSAIDs; explore if the diagnosis "
-                        "is equivocal or pain persists. A testicular torsion is never sent home – use department 4.")
+        cautions.append("Tikai hidatīdas torsija: EAU (stipra rekomendācija) – konservatīvi ar NPL; eksplorācija, ja diagnoze ir neskaidra vai sāpes saglabājas. Pacientu ar sēklinieka torsiju nekad neizraksta mājās – izmantojiet 4. nodaļu.")
         if "ibuprofen-eo" not in chosen:
-            cautions.append("EAU: anti-inflammatory analgesics are the treatment – choose ibuprofen (if no "
-                            "contraindication).")
+            cautions.append("EAU: ārstēšana ir pretiekaisuma analgētiķi – izvēlieties ibuprofēnu (ja nav kontrindikāciju).")
         return blockers, cautions
     necrotic = str(v.get("Testis viability (TT)")).startswith("Necrotic")
     if not v.get("Contralateral fixation (TT)"):
-        cautions.append(("Solitary testis after orchiectomy: " if necrotic else "") +
-                        "EAU / Campbell-Walsh-Wein – fix the contralateral testis immediately (bell-clapper deformity "
-                        "is usually bilateral).")
+        cautions.append(("Vienīgais sēklinieks pēc orhektomijas: " if necrotic else "") +
+                        'EAU / Campbell-Walsh-Wein – nekavējoties fiksējiet kontralaterālo sēklinieku ("bell-clapper" deformācija parasti ir abpusēja).')
     if v.get("Manual detorsion at NMC (TT)") == "Attempted – pain relief":
-        cautions.append("Manual detorsion is not definitive (EAU): exploration and fixation are still needed – the text "
-                        "describes the operation.")
+        cautions.append("Manuāla detorsija nav galīgā ārstēšana (EAU): joprojām nepieciešama eksplorācija un fiksācija – tekstā aprakstīta operācija.")
     if v.get("Pain duration (TT)") in ("12–24 hours", "More than 24 hours") and not necrotic:
-        cautions.append("Late presentation with a preserved testis: high atrophy risk (up to half, EAU) – follow-up "
-                        "ultrasound.")
+        cautions.append("Vēlīna vēršanās ar saglabātu sēklinieku: augsts atrofijas risks (līdz pusei gadījumu, EAU) – kontroles USS.")
     if necrotic and v.get("Pain duration (TT)") == "Under 6 hours":
-        cautions.append("Orchiectomy after less than 6 hours: EAU – preserve the testis unless unequivocally necrotic; "
-                        "check the description.")
+        cautions.append("Orhektomija pirms 6 stundām: EAU – saglabājiet sēklinieku, ja vien tas nav nepārprotami nekrotisks; pārbaudiet aprakstu.")
     if "doxycycline-tt" in chosen:
-        cautions.append("Doxycycline: antibiotics are not needed after torsion surgery unless an infection was found.")
+        cautions.append("Doksiciklīns: pēc torsijas operācijas antibiotikas nav nepieciešamas, ja vien netika atrasta infekcija.")
     if v.get("Postoperative course (TT)") == "With complications":
-        cautions.append("Complications are recorded: check that the recommendations cover them.")
+        cautions.append("Reģistrētas komplikācijas: pārbaudiet, vai rekomendācijas tās aptver.")
     return blockers, cautions
 
 
 BUILDERS["n44"] = n44_parts
 BUILDERS["n44_nmc"] = n44_nmc_parts
 CHECKS["N44"] = n44_checks
+
+
+# ---------------------------------------------------------------
+# 2x. TESTICULAR INFARCTION (N50.1) – conservative (NMC or 4. Urology) or surgery in 4. Urology
+# ---------------------------------------------------------------
+# Campbell-Walsh-Wein / literature (EAU has no separate guideline): segmental infarction is usually idiopathic or
+# follows epididymo-orchitis, (partial) torsion, trauma, inguinal surgery, vasculitis or a coagulation disorder.
+# Doppler US: wedge-shaped (or round) hypoechoic area without flow; contrast-enhanced US or MRI (rim enhancement)
+# separate it from a tumour, with the tumour markers (AFP, β-hCG, LDH). A confident segmental infarct is treated
+# conservatively (NSAIDs, scrotal support) with follow-up ultrasound (the area should shrink); explore if a tumour
+# cannot be excluded – then by the inguinal route – or if pain or the finding gets worse. Global infarction (whole
+# testis): orchiectomy.
+
+TI_DURATION = {"Hours": "dažas stundas", "1–3 days": "1–3 dienas", "4–7 days": "4–7 dienas",
+               "More than a week": "ilgāk par nedēļu"}
+TI_CAUSE = {"After epididymo-orchitis": " pēc epididimoorhīta", "After torsion": " pēc sēklinieka torsijas",
+            "After trauma": " pēc traumas", "After inguinal / scrotal surgery": " pēc cirkšņa / sēklinieku maisiņa operācijas",
+            "Vasculitis / coagulation disorder": " vaskulīta / koagulācijas traucējumu fonā"}
+TI_SURGERY = ["Scrotal exploration – testis preserved", "Partial orchiectomy", "Orchiectomy (scrotal)",
+              "Inguinal orchiectomy"]
+
+
+def _ti_diagnosis(v):
+    side = TT_SIDE[v["Side (TI)"]]
+    kind = "segmentārs infarkts" if v["Infarction extent (TI)"] == "Segmental" else "infarkts"
+    return f"{side[0]} sēklinieka {kind}{TI_CAUSE.get(v.get('Cause (TI)'), '')}."
+
+
+def _ti_imaging(v):
+    """The ultrasound (and contrast US / MRI) sentences."""
+    loc = TT_SIDE[v["Side (TI)"]][2]
+    if v["Infarction extent (TI)"] == "Segmental":
+        us = (f"Sēklinieku maisiņa USS ar doplerogrāfiju: {loc} sēkliniekā ķīļveida hipoehogēna zona bez asinsplūsmas "
+              "– segmentārs infarkts; sēklinieka torsijas un abscesa pazīmju nav.")
+    else:
+        us = f"Sēklinieku maisiņa USS ar doplerogrāfiju: {loc} sēkliniekā asinsplūsmu nevizualizē – sēklinieka infarkts."
+    out = [us] if "Doppler US" in (v.get("Imaging (TI)") or []) else []
+    extra = [n for k, n in (("Contrast-enhanced US", "kontrastvielas USS"), ("MRI", "sēklinieku maisiņa MR"))
+             if k in (v.get("Imaging (TI)") or [])]
+    if extra:
+        out.append(f"Papildus veikta {lv_list(extra)} – atrade atbilst infarktam, audzēja pazīmju nav.")
+    markers = v.get("Tumour markers (TI)")
+    if markers == "Normal":
+        out.append("Audzēja marķieri (AFP, β-hCG, LDH) normas robežās.")
+    elif markers == "Elevated":
+        out.append("Audzēja marķieri paaugstināti.")
+    return out
+
+
+def _ti_operation_names(v):
+    side = TT_SIDE[v["Side (TI)"]]
+    return {"Scrotal exploration – testis preserved": (f"{side[1]} sēklinieka eksplorācija",
+                                                       f"{side[1]} sēklinieka eksplorācijas"),
+            "Partial orchiectomy": (f"{side[1]} sēklinieka rezekcija (daļēja orhektomija)",
+                                    f"{side[1]} sēklinieka rezekcijas (daļējas orhektomijas)"),
+            "Orchiectomy (scrotal)": (f"{side[4].lower()} orhektomija", f"{side[4].lower()} orhektomijas"),
+            "Inguinal orchiectomy": (f"{side[4].lower()} ingvināla orhifunikulektomija",
+                                     f"{side[4].lower()} ingvinālas orhifunikulektomijas")}[v["Treatment (TI)"]]
+
+
+def n50_parts(sex, v, blocks=()):
+    f = SEX_FORMS["Man"]
+    side = TT_SIDE[v["Side (TI)"]]
+    treatment = v["Treatment (TI)"]
+    surgery = treatment in TI_SURGERY
+    tissue = treatment in TI_SURGERY[1:]
+    lines = [_ti_diagnosis(v)]
+    if surgery:
+        nom, gen = _ti_operation_names(v)
+        day = fmt_date(v["Operation date (TI)"])
+        lines.append(f"St. pēc {gen} ({day}).")
+    if not blank(v.get("Other diagnoses (optional)")):
+        lines.append(v["Other diagnoses (optional)"].strip().rstrip(".") + ".")
+
+    s1 = [f"{f['Pacients']} {f['iestajies']} P. Stradiņa KUS NMC akūtā kārtā sakarā ar sāpēm {side[2]} sēkliniekā "
+          f"{TI_DURATION[v['Pain duration (TI)']]}."] + _ti_imaging(v)
+    s1.append(f"{f['stacionets'].capitalize()} 4. uroloģijas nodaļā" +
+              (" operatīvai ārstēšanai." if surgery else " konservatīvai ārstēšanai."))
+    s2 = []
+    if surgery:
+        found = {"Scrotal exploration – testis preserved": "Intraoperatīvi – sēklinieka segmentārs infarkts, pārējie "
+                                                           "sēklinieka audi vitāli, sēklinieks saglabāts.",
+                 "Partial orchiectomy": "Intraoperatīvi – sēklinieka segmentārs infarkts; infarkta zona izgriezta, "
+                                        "sēklinieks saglabāts.",
+                 "Orchiectomy (scrotal)": "Intraoperatīvi sēklinieks nekrotisks.",
+                 "Inguinal orchiectomy": "Audzēju nevar izslēgt – izvēlēta ingvināla pieeja."}[treatment]
+        s2.append(f"{day} {TT_ANESTHESIA[v['Anesthesia (TI)']]} veikta {nom}. {found}")
+        postop = ("bez komplikācijām" if v.get("Postoperative course (TI)") != "With complications" else
+                  "ar komplikācijām: " + (v.get("Postoperative complications (TI)") or "").strip().rstrip("."))
+        s2.append(f"Pēcoperācijas periods {postop}.")
+        if v.get("Drain (TI)") == "Removed in the ward":
+            s2.append("Drena evakuēta.")
+        elif v.get("Drain (TI)") == "Discharged with drain":
+            s2.append(f"{f['Pacients']} {f['izrakstits']} ar drenu.")
+        if tissue and v.get("Histology (TI)") == "Known":
+            s2.append("Histoloģiski: " + v["Histology result (TI)"].strip().rstrip(".") + ".")
+    else:
+        course = "sāpes mazinās" if v.get("Ward course (TI)") != "Pain resolved" else "sāpes izzūd"
+        s2.append("Nozīmēta konservatīva terapija – nesteroīdie pretiekaisuma līdzekļi, sēklinieku maisiņa elevācija un "
+                  f"aukstuma aplikācijas; dinamikā {course}.")
+    s2.append(f"Vispārējā apmierinošā stāvoklī {f['pacients']} {f['izrakstits']} tālākai ārstēšanai ambulatori.")
+    epicrisis = " ".join(s1) + "\n" + " ".join(s2)
+
+    numbered = make_counter()
+    if surgery:
+        recs = [numbered(f"Režīms – saudzējošs {WEEKS_TEXT[v['Activity restriction']]} no operācijas dienas; atturēties "
+                         "no fiziskas slodzes, pirts, baseina un dzimumdzīves līdz brūces sadzīšanai.")]
+    else:
+        recs = [numbered(f"Režīms – saudzējošs {WEEKS_TEXT[v['Activity restriction']]}; ierobežot fizisko slodzi līdz "
+                         "sāpju izzušanai.")]
+    recs.append(numbered("Pilnvērtīga diēta. Lietot daudz šķidruma."))
+    recs.append(numbered("Valkāt cieši pieguļošu apakšveļu vai suspensoriju; sēklinieku maisiņam aukstas kompreses caur "
+                         "drānu 15–20 minūtes vairākas reizes dienā pirmajās dienās."))
+    if surgery:
+        recs.append(numbered("Regulāras operācijas brūces pārsiešanas, brūci apstrādājot ar Braunol." +
+                             (" 10. pēcoperācijas dienā izņemt šuves ambulatori."
+                              if v.get("Skin sutures (TI)") == "Non-absorbable"
+                              else " Šuvju izņemšana nav nepieciešama (uzsūcošās šuves).")))
+        if v.get("Drain (TI)") == "Discharged with drain":
+            recs.append(numbered("Kopt drenu; par drenas evakuāciju lems ārstējošais urologs."))
+    if blocks:
+        recs.append(numbered("Terapijā lietot:"))
+        recs += ["    " + b for b in blocks]
+    if tissue and v.get("Histology (TI)") != "Known":
+        recs.append(numbered("Histoloģiskās izmeklēšanas rezultātu izvērtēs ārstējošais urologs."))
+    if v.get("Prosthesis advice (TI)") and treatment in ("Orchiectomy (scrotal)", "Inguinal orchiectomy"):
+        recs.append(numbered("Nepieciešamības gadījumā vēlāk iespējama sēklinieka protēzes implantācija – konsultācija "
+                             "pie urologa."))
+    recs.append(numbered(TT_VISIT[v["Control visit (TT)"]]))
+    recs += tests_lines(v, "numbered", numbered, after_op=surgery)
+    recs.append(numbered("Ja sāpes pastiprinās, sēklinieku maisiņš kļūst tūskains vai apsārtis, paaugstinās ķermeņa "
+                         "temperatūra" + (" vai no brūces izdalās strutas" if surgery else "") +
+                         ", nekavējoties vērsties NMC."))
+    return {"clinical_diagnosis": "\n".join(lines), "epicrisis": epicrisis, "recommendations": "\n".join(recs)}
+
+
+def n50_nmc_parts(sex, v, blocks=()):
+    f = SEX_FORMS["Man"]
+    side = TT_SIDE[v["Side (TI)"]]
+    lines = [_ti_diagnosis(v)]
+    if not blank(v.get("Other diagnoses (optional)")):
+        lines.append(v["Other diagnoses (optional)"].strip().rstrip(".") + ".")
+    s = [f"{f['Pacients']} {f['iestajies']} PSKUS NMC ar sūdzībām par sāpēm {side[2]} sēkliniekā "
+         f"{TI_DURATION[v['Pain duration (TI)']]}.", f"NMC etapā vispusīgi {f['izmekleta']}."] + _ti_imaging(v)
+    if not blank(v.get("Other NMC findings (optional)")):
+        text = v["Other NMC findings (optional)"].strip()
+        s.append(text if text.endswith(".") else text + ".")
+    s.append("Dotajā brīdī nav indikāciju neatliekamai ķirurģiskai ārstēšanai. Vispārēji apmierinošā stāvoklī un ar "
+             "rekomendācijām izraksta tālākai ambulatorai ārstēšanai.")
+    numbered = make_counter()
+    recs = [numbered("Atrasties ģimenes ārsta uzraudzībā."),
+            numbered("Ierobežot fizisko slodzi līdz sāpju izzušanai; valkāt cieši pieguļošu apakšveļu vai suspensoriju, "
+                     "aukstas kompreses caur drānu 15–20 minūtes vairākas reizes dienā.")]
+    if blocks:
+        recs.append(numbered("Terapijā lietot:"))
+        recs += ["    " + b for b in blocks]
+    recs.append(numbered(TT_VISIT[v["Control visit (TT)"]]))
+    recs += tests_lines(v, "numbered", numbered)
+    recs.append(numbered("Ja sāpes pastiprinās, sēklinieks kļūst tūskains vai apsārtis vai paaugstinās ķermeņa "
+                         "temperatūra, nekavējoties vērsties NMC – var būt nepieciešama ķirurģiska revīzija."))
+    return {"clinical_diagnosis": "\n".join(lines), "epicrisis": " ".join(s), "recommendations": "\n".join(recs)}
+
+
+def n50_checks(v):
+    blockers, cautions = [], []
+    chosen = v.get("_blocks") or []
+    nmc = v.get("_department") == "NMC"
+    imaging = v.get("Imaging (TI)") or []
+    treatment = v.get("Treatment (TI)")
+    conservative = nmc or treatment == "Conservative"
+    if nmc and v.get("Infarction extent (TI)") == "Global (whole testis)":
+        blockers.append("Visa sēklinieka infarkts: stacionēt (parasti orhektomija) – no NMC mājās neizraksta.")
+    if v.get("Tumour markers (TI)") == "Elevated":
+        if nmc:
+            blockers.append("Paaugstināti audzēju marķieri: audzējs nav izslēgts – stacionēt / nosūtīt, neizrakstīt mājās kā infarktu.")
+        elif treatment in ("Scrotal exploration – testis preserved", "Partial orchiectomy", "Orchiectomy (scrotal)"):
+            cautions.append("Paaugstināti audzēju marķieri: audzējs nav izslēgts – EAU (sēklinieku vēzis): eksplorācija ingvināli, nevis caur sēklinieku maisiņu.")
+    if v.get("Tumour markers (TI)") == "Not done":
+        cautions.append("Audzēju marķieri nav noteikti: AFP, β-hCG un LDH palīdz atšķirt infarktu no audzēja.")
+    if conservative and not any(x in imaging for x in ("Contrast-enhanced US", "MRI")):
+        cautions.append("Konservatīva ārstēšana tikai pēc doplerogrāfijas: ja diagnoze nav droša, kontrastvielas USS vai MR atšķir infarktu no audzēja – un kontroles USS jāparāda zonas samazināšanās.")
+    if conservative and "ibuprofen-eo" not in chosen:
+        cautions.append("Konservatīva ārstēšana: parastais analgētiķis ir NPL (ibuprofēns), ja nav kontrindikāciju.")
+    if "doxycycline-ti" in chosen and v.get("Cause (TI)") != "After epididymo-orchitis":
+        cautions.append("Doksiciklīns: infarktam antibiotikas nav nepieciešamas, ja vien netiek ārstēts epididimoorhīts.")
+    if v.get("Postoperative course (TI)") == "With complications":
+        cautions.append("Reģistrētas komplikācijas: pārbaudiet, vai rekomendācijas tās aptver.")
+    return blockers, cautions
+
+
+BUILDERS["n50"] = n50_parts
+BUILDERS["n50_nmc"] = n50_nmc_parts
+CHECKS["N50.1"] = n50_checks
 BUILDERS["n41_ward"] = n41_ward_parts
 CHECKS["N41.0"] = n41_checks
 BUILDERS["n45_ward"] = n45_ward_parts
@@ -5573,15 +5684,15 @@ def nmc_cancer_parts(f, v, blocks, history, dx_first):
 def nmc_cancer_checks(v):
     blockers, cautions = [], []
     if v.get("Fever at NMC"):
-        blockers.append("Fever: assess for urinary tract infection or urosepsis before sending the patient home.")
+        blockers.append("Drudzis: pirms pacienta izrakstīšanas mājās izvērtējiet urīnceļu infekciju vai urosepsi.")
     if v.get("Hemodynamically stable") == "No":
-        blockers.append("The patient is hemodynamically unstable.")
+        blockers.append("Pacients ir hemodinamiski nestabils.")
     if v.get("Urine clearing") == "No":
-        blockers.append("The urine is not clearing (risk of clot retention).")
+        blockers.append("Urīns nekļūst dzidrs (recekļu tamponādes risks).")
     if v.get("Pain controlled") == "No":
-        blockers.append("Pain is not controlled.")
+        blockers.append("Sāpes nav kontrolētas.")
     if v.get("NMC reason") == "Urinary retention" and not v.get("Discharged with catheter"):
-        cautions.append("Urinary retention, but no catheter at discharge: make sure the patient voids.")
+        cautions.append("Urīna retence, bet izrakstīšanas brīdī nav katetra: pārliecinieties, ka pacients urinē.")
     return blockers, cautions
 
 
@@ -5596,25 +5707,25 @@ def c61_checks(v):
     blockers, cautions = [], []
 
     if v.get("Voiding after catheter removal") == "Urinary retention":
-        blockers.append("Urinary retention after catheter removal.")
+        blockers.append("Urīna retence pēc katetra evakuācijas.")
     if v.get("Histology") == "Known" and v.get("Operation") == "TURP" and blank(v.get("Prostate histology details")):
-        blockers.append("Describe the TURP histology in 'Prostate histology details'.")
+        blockers.append('Aprakstiet TURP histoloģiju laukā "Prostatas histoloģijas detaļas".')
     if v.get("Histology") == "Pending" and v.get("Discharge paper") == "Final":
-        cautions.append("Histology is still pending, but the discharge paper is marked as final.")
+        cautions.append("Histoloģija vēl gaidāma, bet izraksts atzīmēts kā galīgais.")
     if v.get("Histology") == "Known" and v.get("Discharge paper") == "Temporary":
-        cautions.append("Histology is already known, but the discharge paper is marked as temporary.")
+        cautions.append("Histoloģija jau zināma, bet izraksts atzīmēts kā pagaidu.")
     if (v.get("Operation") == "Radical prostatectomy" and v.get("Catheter removal") == "Discharged with catheter"
             and not v.get("Planned catheter removal (optional)")):
-        cautions.append("The patient goes home with a catheter after prostatectomy: give the planned removal date.")
+        cautions.append("Pacients pēc prostatektomijas dodas mājās ar katetru: norādiet plānoto evakuācijas datumu.")
     adverse = (v.get("Pathological T stage") in ("pT3b", "pT4")
                or v.get("Pathological N stage") == "pN1"
                or v.get("Surgical margin") == "R1"
                or v.get("Prostate N stage") == "cN1"
                or str(v.get("Prostate M stage", "")).startswith("cM1"))
     if adverse and v.get("Oncology council") == "Not applicable":
-        cautions.append("Adverse pathology or advanced disease, but no oncology council plan is set.")
+        cautions.append("Nelabvēlīga patoloģija vai progresējusi slimība, bet onkoloģiskā konsīlija plāns nav norādīts.")
     if v.get("Postoperative course") == "With complications":
-        cautions.append("Complications are recorded: check that the recommendations cover them.")
+        cautions.append("Reģistrētas komplikācijas: pārbaudiet, vai rekomendācijas tās aptver.")
     return blockers, cautions
 
 
@@ -5776,29 +5887,29 @@ def c64_checks(v):
         return nmc_cancer_checks(v)
     blockers, cautions = [], []
     if v.get("Renal function at discharge") == "Deteriorating":
-        blockers.append("Renal function is deteriorating.")
+        blockers.append("Nieru funkcija pasliktinās.")
     if (v.get("Histology") == "Known" and v.get("RCC subtype") in ("Other RCC", "Benign")
             and blank(v.get("Kidney histology details"))):
-        blockers.append("Describe the histology in 'Kidney histology details'.")
+        blockers.append('Aprakstiet histoloģiju laukā "Nieres histoloģijas detaļas".')
     egfr = v.get("eGFR at discharge")
     if egfr not in (None, "") and egfr < 45:
-        cautions.append("eGFR is below 45: EAU suggests nephrology referral during follow-up.")
+        cautions.append("eGFR ir zem 45: EAU novērošanas laikā iesaka nefrologa konsultāciju.")
     if v.get("Histology") == "Pending" and v.get("Discharge paper") == "Final":
-        cautions.append("Histology is still pending, but the discharge paper is marked as final.")
+        cautions.append("Histoloģija vēl gaidāma, bet izraksts atzīmēts kā galīgais.")
     if v.get("Histology") == "Known" and v.get("Discharge paper") == "Temporary":
-        cautions.append("Histology is already known, but the discharge paper is marked as temporary.")
+        cautions.append("Histoloģija jau zināma, bet izraksts atzīmēts kā pagaidu.")
     high = (v.get("Follow-up risk group") == "High"
             or v.get("RCC pN stage") == "pN1"
             or v.get("RCC margin") == "R1"
             or v.get("RCC pT stage") in ("pT3a", "pT3b", "pT3c", "pT4")
             or v.get("RCC M stage") == "cM1")
     if high and v.get("Oncology council") == "Not applicable":
-        text = "High-risk or advanced disease, but no oncology council plan is set."
+        text = "Augsta riska vai progresējusi slimība, bet onkoloģiskā konsīlija plāns nav norādīts."
         if v.get("RCC subtype") == "Clear cell":
-            text += " Adjuvant pembrolizumab may be considered for high-risk clear cell RCC (EAU, weak recommendation)."
+            text += " Augsta riska gaišo šūnu NŠK gadījumā var apsvērt adjuvantu pembrolizumabu (EAU, vāja rekomendācija)."
         cautions.append(text)
     if v.get("Postoperative course") == "With complications":
-        cautions.append("Complications are recorded: check that the recommendations cover them.")
+        cautions.append("Reģistrētas komplikācijas: pārbaudiet, vai rekomendācijas tās aptver.")
     return blockers, cautions
 
 
@@ -5815,14 +5926,14 @@ def abx_row_checks(v):
     """Checks of the antibiotics table rows (used outside N39)."""
     blockers, cautions = [], []
     for number, row in enumerate(v.get("Antibiotics") or [], start=1):
-        name = row.get("Medication") or f"row {number}"
+        name = row.get("Medication") or f"{number}. rinda"
         for field in ("Medication", "Route", "Start date"):
             if blank(row.get(field)):
-                blockers.append(f"Antibiotics, row {number}: {field} is missing.")
+                blockers.append(f"Antibiotikas, {number}. rinda: trūkst lauka \"{ABX_COLUMNS_LV.get(field, field)}\".")
         if row.get("Continue at discharge"):
             for field in ("Dose", "Frequency", "Days at home"):
                 if blank(row.get(field)):
-                    blockers.append(f"Antibiotics, row {number} ({name}) continues at discharge: {field} is missing.")
+                    blockers.append(f"Antibiotikas, {number}. rinda ({tr(name)}) turpinās pēc izrakstīšanas: trūkst lauka \"{ABX_COLUMNS_LV.get(field, field)}\".")
     return blockers, cautions
 
 
@@ -5904,23 +6015,22 @@ def n10_checks(v):
     if v.get("_department") != "NMC":
         return blockers, cautions
     if v.get("Urostasis on imaging") == "Yes":
-        blockers.append("Urostasis with pyelonephritis: an obstructed infected kidney needs admission and drainage.")
+        blockers.append("Urostāze ar pielonefrītu: obstruētai inficētai nierei nepieciešama stacionēšana un drenāža.")
     if v.get("Sepsis signs") == "Yes":
-        blockers.append("Signs of sepsis: admission is needed.")
+        blockers.append("Sepses pazīmes: nepieciešama stacionēšana.")
     if v.get("Able to take oral medication") == "No":
-        blockers.append("The patient cannot take oral medication: admission for IV treatment is needed.")
+        blockers.append("Pacients nevar lietot perorālus medikamentus: nepieciešama stacionēšana i/v terapijai.")
     if v.get("Pregnant") == "Yes":
-        blockers.append("Pyelonephritis in pregnancy: admission is generally needed.")
+        blockers.append("Pielonefrīts grūtniecības laikā: parasti nepieciešama stacionēšana.")
     if v.get("Infection complexity") == "Complicated":
-        cautions.append("Complicated pyelonephritis is usually treated in hospital: confirm that outpatient "
-                        "treatment is appropriate.")
+        cautions.append("Komplicētu pielonefrītu parasti ārstē stacionārā: pārliecinieties, ka ambulatorā ārstēšana ir piemērota.")
     if v.get("NMC imaging") == "None":
-        cautions.append("No imaging was done: urinary tract obstruction has not been excluded.")
+        cautions.append("Attēldiagnostika nav veikta: urīnceļu obstrukcija nav izslēgta.")
     groups = chosen_groups(v)
     if G_ORAL not in groups:
-        cautions.append("No oral antibiotic is chosen in the recommendation blocks.")
+        cautions.append("Rekomendāciju blokos nav izvēlēta perorāla antibiotika.")
     if G_IV in groups:
-        cautions.append("An IV antibiotic is chosen for a patient sent home.")
+        cautions.append("Mājās izrakstītam pacientam izvēlēta i/v antibiotika.")
     return blockers, cautions
 
 
@@ -6011,10 +6121,9 @@ def n47_checks(v):
     blockers, cautions = [], []
     chosen = v.get("_blocks") or []
     if v.get("Surgery") and "amoxiclav-14" in chosen and not v.get("Balanoposthitis"):
-        cautions.append("Routine antibiotics are generally not needed after clean genital surgery; Amoksiklav is "
-                        "chosen without balanoposthitis.")
+        cautions.append("Pēc tīrām ģenitāliju operācijām rutīnas antibiotikas parasti nav nepieciešamas; Amoksiklav izvēlēts bez balanopostīta.")
     if v.get("Surgery") and v.get("Anesthesia") == "Local" and "fraxiparine" in chosen:
-        cautions.append("Fraxiparine is chosen after a short procedure under local anesthesia: check the indication.")
+        cautions.append("Fraxiparine izvēlēts pēc īsas manipulācijas vietējā anestēzijā: pārbaudiet indikāciju.")
     return blockers, cautions
 
 
@@ -6107,19 +6216,15 @@ def n47_nmc_checks(v):
     blockers, cautions = [], []
     chosen = v.get("_blocks") or []
     if v.get("Glans appearance") == "Necrotic areas":
-        blockers.append("Necrosis of the glans: urgent urology care and admission – do not send home.")
+        blockers.append("Glans nekroze: neatliekama urologa palīdzība un stacionēšana – mājās neizrakstīt.")
     if v.get("Glans appearance") == "Dusky / cyanotic":
-        cautions.append("Dusky glans: arterial compromise is possible – check that the colour returned after the "
-                        "reduction or slit before discharge.")
+        cautions.append("Tumšs glans: iespējami arteriālās asinsapgādes traucējumi – pirms izrakstīšanas pārliecinieties, ka pēc repozīcijas vai dorsumcīzijas krāsa atjaunojusies.")
     if "amoxiclav-7-pf" in chosen and not v.get("Balanoposthitis"):
-        cautions.append("Amoksiklav without balanoposthitis or skin breakdown: routine antibiotics are not needed "
-                        "after reduction or a clean dorsal slit.")
+        cautions.append("Amoksiklav bez balanopostīta vai ādas bojājumiem: pēc repozīcijas vai tīras dorsumcīzijas rutīnas antibiotikas nav nepieciešamas.")
     if "After urinary catheterisation" in (v.get("Paraphimosis cause") or []):
-        cautions.append("Iatrogenic paraphimosis: remind the nurses / carers to return the foreskin after every "
-                        "catheter care.")
+        cautions.append("Jatrogēna parafimoze: atgādiniet māsām / aprūpētājiem pēc katras katetra kopšanas atgriezt priekšādu vietā.")
     if v.get("Paraphimosis duration") == "More than 2 days" and v.get("Paraphimosis treatment") == "Manual reduction":
-        cautions.append("Long-standing paraphimosis: oedema and fibrosis make reduction harder – check the glans and "
-                        "consider a dorsal slit early if the reduction is incomplete.")
+        cautions.append("Ilgstoša parafimoze: tūska un fibroze apgrūtina repozīciju – pārbaudiet glans un, ja repozīcija nepilnīga, savlaicīgi apsveriet dorsumcīziju.")
     return blockers, cautions
 
 
@@ -6163,11 +6268,11 @@ def t83_parts(sex, v, blocks=()):
 def t83_checks(v):
     blockers, cautions = [], []
     if v.get("Fever at NMC"):
-        blockers.append("Fever with a urinary catheter: assess for catheter-associated infection or urosepsis.")
+        blockers.append("Drudzis ar urīnpūšļa katetru: izvērtējiet ar katetru saistītu infekciju vai urosepsi.")
     if v.get("Urine appearance at change") == "With clots":
-        cautions.append("Clots in the urine: check for clot retention and the source of bleeding.")
+        cautions.append("Recekļi urīnā: pārbaudiet, vai nav recekļu tamponādes, un meklējiet asiņošanas avotu.")
     if v.get("Drained volume (ml)") == 0:
-        cautions.append("No urine drained after the change: check the catheter position.")
+        cautions.append("Pēc maiņas urīns neizdalās: pārbaudiet katetra stāvokli.")
     return blockers, cautions
 
 
@@ -6395,38 +6500,33 @@ def n35_checks(v):
     op, location = v.get("Stricture operation"), v.get("Stricture location")
     length = v.get("Stricture length (cm)")
     if v.get("Voiding after removal (N35)") == "Urinary retention":
-        blockers.append("Urinary retention after catheter removal.")
+        blockers.append("Urīna retence pēc katetra evakuācijas.")
     if op in ("Meatotomy", "Meatoplasty") and location != "Meatus":
-        blockers.append("Meatotomy and meatoplasty are operations for a meatal stricture: check the location.")
+        blockers.append("Meatotomija un meatoplastika ir ārējās atveres striktūras operācijas: pārbaudiet lokalizāciju.")
     if v.get("Tissue for histology") == "Known" and blank(v.get("Histology result (N35)")):
-        blockers.append("Type the histology result.")
+        blockers.append("Ierakstiet histoloģijas rezultātu.")
     if op in ENDOSCOPIC:
         removal = v.get("Planned catheter removal (N35)")
         if (v.get("Catheter at discharge (N35)") == "In place" and removal and v.get("Procedure date")
                 and (removal - v["Procedure date"]).days > 3):
-            cautions.append("EAU: remove the catheter within 72 hours after uncomplicated urethrotomy or dilation.")
+            cautions.append("EAU: pēc nekomplicētas uretrotomijas vai dilatācijas katetru evakuējiet 72 stundu laikā.")
         if v.get("Previous stricture treatment"):
-            cautions.append("Recurrent stricture: EAU (strong) – do not repeat DVIU/dilatation more than twice if "
-                            "urethroplasty is a viable option.")
+            cautions.append("Recidivējoša striktūra: EAU (stipra rekomendācija) – neatkārtojiet DVIU/dilatāciju vairāk kā divas reizes, ja iespējama uretroplastika.")
         if location == "Penile urethra" and op == "Internal urethrotomy (DVIU)":
-            cautions.append("EAU (strong): do not use DVIU for penile strictures – augmentation urethroplasty is the "
-                            "standard.")
+            cautions.append("EAU (stipra rekomendācija): penilu striktūru gadījumā DVIU nelietot – standarts ir augmentācijas uretroplastika.")
         if length not in (None, "") and length > 2:
-            cautions.append("EAU (strong): do not use DVIU/dilatation as the only treatment for strictures longer "
-                            "than 2 cm.")
+            cautions.append("EAU (stipra rekomendācija): striktūrām, kas garākas par 2 cm, DVIU/dilatāciju kā vienīgo ārstēšanu nelietot.")
         if location == "Membranous (posterior) urethra":
-            cautions.append("EAU: DVIU/dilatation is meant for short bulbar strictures; membranous strictures carry a "
-                            "risk of incontinence – check the indication.")
+            cautions.append("EAU: DVIU/dilatācija paredzēta īsām bulbārām striktūrām; membranozu striktūru gadījumā ir nesaturēšanas risks – pārbaudiet indikāciju.")
         if location == "Penile urethra" and op == "Urethral dilation":
-            cautions.append("Penile stricture: EAU (strong) recommends augmentation urethroplasty.")
+            cautions.append("Penila striktūra: EAU (stipra rekomendācija) iesaka augmentācijas uretroplastiku.")
     if (op in URETHROPLASTY and v.get("Catheter at discharge (N35)") == "In place"
             and "rug_pericath" not in (v.get("_test_ids") or [])):
-        cautions.append("EAU (strong recommendation): perform a urethrogram before catheter removal after urethroplasty "
-                        "– tick it under Follow-up tests.")
+        cautions.append('EAU (stipra rekomendācija): pēc uretroplastikas pirms katetra evakuācijas veiciet uretrogrammu – atzīmējiet to sadaļā "Kontroles izmeklējumi".')
     if (v.get("Stricture cause") == "Lichen sclerosus" or location == "Meatus") and v.get("Tissue for histology") == "Not sent":
-        cautions.append("Meatal stricture / suspected lichen sclerosus: consider a biopsy for histological confirmation.")
+        cautions.append("Ārējās atveres striktūra / aizdomas par lichen sclerosus: apsveriet biopsiju histoloģiskai apstiprināšanai.")
     if v.get("Postoperative course") == "With complications":
-        cautions.append("Complications are recorded: check that the recommendations cover them.")
+        cautions.append("Reģistrētas komplikācijas: pārbaudiet, vai rekomendācijas tās aptver.")
     return blockers, cautions
 
 
@@ -6488,12 +6588,11 @@ def n35_all_checks(v):
         return n35_checks(v)
     blockers, cautions = [], []
     if v.get("Fever at NMC"):
-        blockers.append("Fever with urinary retention: assess for urosepsis before sending the patient home.")
+        blockers.append("Drudzis ar urīna retenci: pirms pacienta izrakstīšanas mājās izvērtējiet urosepsi.")
     if v.get("Creatinine raised (N35)") or (v.get("Drained volume (ml)") or 0) > 1000:
-        cautions.append("Large retention volume or raised creatinine: risk of post-obstructive diuresis and renal "
-                        "impairment - consider admission for monitoring.")
+        cautions.append("Liels retences apjoms vai paaugstināts kreatinīns: pēcobstrukcijas diurēzes un nieru funkcijas traucējumu risks – apsveriet stacionēšanu novērošanai.")
     if v.get("Urine appearance") == "With clots":
-        cautions.append("Clots in the urine: check for clot retention and the source of bleeding.")
+        cautions.append("Recekļi urīnā: pārbaudiet, vai nav recekļu tamponādes, un meklējiet asiņošanas avotu.")
     return blockers, cautions
 
 
@@ -6568,18 +6667,18 @@ def neph_parts(sex, v, blocks=()):
 def neph_checks(v):
     blockers, cautions = [], []
     if v.get("Fever (48)"):
-        blockers.append("Fever at the nephrostomy change: assess for infection or obstruction before sending the patient home.")
+        blockers.append("Drudzis nefrostomas maiņas laikā: pirms pacienta izrakstīšanas mājās izvērtējiet infekciju vai obstrukciju.")
     if v.get("Nephrostomy function") == "Reduced":
-        cautions.append("Reduced nephrostomy function: check the tube position (e.g. antegrade pyelography) before discharge.")
+        cautions.append("Samazināta nefrostomas funkcija: pirms izrakstīšanas pārbaudiet caurulītes stāvokli (piem., ar antegrādu pielogrāfiju).")
     if v.get("Infection signs at change"):
-        cautions.append("Cloudy urine at the change: colonisation is common; treat only if there are infection symptoms.")
+        cautions.append("Duļķains urīns maiņas laikā: kolonizācija ir bieža; ārstējiet tikai infekcijas simptomu gadījumā.")
     nxt, day = v.get("Next nephrostomy change"), v.get("Procedure date")
     if not nxt:
-        cautions.append("Give a concrete date for the next nephrostomy change.")
+        cautions.append("Norādiet konkrētu nākamās nefrostomas maiņas datumu.")
     elif day and (nxt - day).days > 92:
-        cautions.append("The next change is more than 3 months away: long intervals raise the risk of encrustation and blockage.")
+        cautions.append("Nākamā maiņa ir vēlāk nekā pēc 3 mēnešiem: gari intervāli palielina inkrustācijas un nosprostošanās risku.")
     if not v.get("Nephrostomy co-diagnoses"):
-        cautions.append("No co-diagnosis (cause of the nephrostomy) is chosen.")
+        cautions.append("Nav izvēlēta blakusdiagnoze (nefrostomas cēlonis).")
     return blockers, cautions
 
 
@@ -6767,46 +6866,37 @@ def nf_checks(v):
     signs = v.get("Systemic signs (NF)") or []
     if nmc:
         if _nf_infected(v):
-            blockers.append("Obstructed kidney with fever, chills or unstable circulation: EAU – urgent drainage plus "
-                            "antibiotics; admit to 4. Urology (use department 4).")
+            blockers.append("Obstruēta niere ar drudzi, drebuļiem vai nestabilu cirkulāciju: EAU – neatliekama drenāža un antibiotikas; stacionēt 4. uroloģijas nodaļā (izmantojiet 4. nodaļu).")
         if "Flank pain not controlled" in signs:
-            blockers.append("Pain is not controlled: admit.")
+            blockers.append("Sāpes nav kontrolētas: stacionēt.")
         if result == "Complicated / not successful":
-            blockers.append("Complicated or failed puncture: admit (bleeding, urinoma, no drainage).")
+            blockers.append("Komplicēta vai neveiksmīga punkcija: stacionēt (asiņošana, urinoma, nav drenāžas).")
         if creat and v.get("Solitary kidney"):
-            blockers.append("Raised creatinine in a solitary kidney: admit and follow renal function.")
+            blockers.append("Paaugstināts kreatinīns vienīgajai nierei: stacionēt un kontrolēt nieru funkciju.")
         if crp:
-            cautions.append("Raised CRP / leukocytosis without fever: infection of the obstructed kidney is possible – "
-                            "consider admission; at least take a culture and recheck in 48–72 hours.")
+            cautions.append("Paaugstināts CRO / leikocitoze bez drudža: iespējama obstruētās nieres infekcija – apsveriet stacionēšanu; vismaz paņemiet uzsējumu un atkārtoti izvērtējiet pēc 48–72 stundām.")
         if creat and not v.get("Solitary kidney"):
-            cautions.append("Raised creatinine: recheck in 48–72 hours (tests box); morphine accumulates in renal "
-                            "impairment.")
+            cautions.append("Paaugstināts kreatinīns: atkārtoti nosakiet pēc 48–72 stundām (izmeklējumu lodziņš); nieru funkcijas traucējumu gadījumā morfīns uzkrājas.")
         if result == "Bleeding through the tube":
-            cautions.append("Bleeding through the new tube: observe until it clears; admit if it continues, clots block "
-                            "the tube or Hb falls.")
+            cautions.append("Asiņošana pa jauno caurulīti: novērojiet, līdz urīns kļūst dzidrs; stacionējiet, ja asiņošana turpinās, recekļi nosprosto caurulīti vai samazinās Hb.")
         if v.get("Premedication given"):
-            cautions.append("Morphine + diazepam: risk of respiratory depression and sedation – observe breathing and "
-                            "SpO2 until fully awake before discharge; lower doses in the elderly, COPD or renal "
-                            "impairment.")
+            cautions.append("Morfīns + diazepāms: elpošanas nomākuma un sedācijas risks – pirms izrakstīšanas novērojiet elpošanu un SpO2, līdz pacients pilnībā pamodies; gados vecākiem pacientiem, HOPS vai nieru funkcijas traucējumu gadījumā mazākas devas.")
     else:
         if _nf_infected(v) and "IV antibiotics" not in (v.get("Ward treatment (NF)") or []):
-            cautions.append("Infected obstructed kidney: IV antibiotics are expected (EAU).")
+            cautions.append("Inficēta obstruēta niere: sagaidāmas i/v antibiotikas (EAU).")
         if _nf_infected(v) and not any(b in (v.get("_blocks") or []) for b in ("cefuroxime-7", "amoxiclav-7")):
-            cautions.append("Obstructive pyelonephritis: continue with an oral antibiotic by culture to complete 7–14 "
-                            "days in total (choose a block), unless the full course was given in the ward.")
+            cautions.append("Obstruktīvs pielonefrīts: turpiniet ar perorālu antibiotiku pēc uzsējuma, lai kopā būtu 7–14 dienas (izvēlieties bloku), ja vien viss kurss netika veikts nodaļā.")
     if v.get("Urine from new nephrostomy") == "Cloudy / purulent" and not v.get("Urine culture taken (NF)"):
-        cautions.append("Cloudy / purulent urine from the kidney (possible pyonephrosis): take a culture.")
+        cautions.append("Duļķains / strutains urīns no nieres (iespējama pionefroze): paņemiet uzsējumu.")
     if v.get("Time since it fell out") == "More than 3 days" and v.get("Hydronephrosis on US (NF)") == "Not present":
-        cautions.append("No hydronephrosis after more than 3 days without the tube: check whether a nephrostomy is "
-                        "still needed (the obstruction may have resolved).")
+        cautions.append("Hidronefrozes nav pēc vairāk nekā 3 dienām bez caurulītes: pārbaudiet, vai nefrostoma joprojām nepieciešama (obstrukcija var būt izzudusi).")
     if not v.get("Nephrostomy co-diagnoses"):
-        cautions.append("No co-diagnosis (cause of the nephrostomy) is chosen.")
+        cautions.append("Nav izvēlēta blakusdiagnoze (nefrostomas cēlonis).")
     if not v.get("Next nephrostomy change"):
-        cautions.append("Give a concrete date for the next nephrostomy change.")
+        cautions.append("Norādiet konkrētu nākamās nefrostomas maiņas datumu.")
     if any(b for b in (v.get("_blocks") or []) if b in ("cefuroxime-7", "amoxiclav-7")) and not (
             _nf_infected(v) or crp or v.get("Urine from new nephrostomy") == "Cloudy / purulent"):
-        cautions.append("Antibiotic without infection signs: nephrostomy urine is usually colonised – EAU: do not treat "
-                        "asymptomatic bacteriuria.")
+        cautions.append("Antibiotika bez infekcijas pazīmēm: nefrostomas urīns parasti ir kolonizēts – EAU: asimptomātisku bakteriūriju neārstēt.")
     return blockers, cautions
 
 
@@ -6910,28 +7000,27 @@ def n40_parts(sex, v, blocks=()):
 def n40_checks(v):
     blockers, cautions = [], []
     if v.get("Voiding after catheter removal") == "Urinary retention":
-        blockers.append("Urinary retention after catheter removal (failed trial without catheter).")
+        blockers.append("Urīna retence pēc katetra evakuācijas (neveiksmīgs katetra evakuācijas mēģinājums).")
     if v.get("Histology") == "Known":
         result = (v.get("Histology result (BPH)") or "").lower()
         if blank(result):
-            blockers.append("Type the histology result.")
+            blockers.append("Ierakstiet histoloģijas rezultātu.")
         elif any(w in result for w in ("karcinom", "adenokarcinom", "ca ", "gleason", "isup")):
-            cautions.append("Incidental prostate cancer in the TURP specimen: plan PSA, staging and oncology "
-                            "council (and consider coding as C61).")
+            cautions.append("Nejauši atklāts prostatas vēzis TURP materiālā: plānojiet PSA, stadēšanu un onkoloģisko konsīliju (un apsveriet kodēšanu kā C61).")
     if v.get("Histology") == "Pending" and v.get("Discharge paper") == "Final":
-        cautions.append("Histology is still pending, but the discharge paper is marked as final.")
+        cautions.append("Histoloģija vēl gaidāma, bet izraksts atzīmēts kā galīgais.")
     if v.get("Histology") == "Known" and v.get("Discharge paper") == "Temporary":
-        cautions.append("Histology is already known, but the discharge paper is marked as temporary.")
+        cautions.append("Histoloģija jau zināma, bet izraksts atzīmēts kā pagaidu.")
     chosen = v.get("_blocks") or []
     if "urorec" in chosen and v.get("Previous BPH medication") == "Stop after surgery":
-        cautions.append("Urorec is chosen, while previous prostate medicines are to be stopped: check the plan.")
+        cautions.append("Izvēlēts Urorec, lai gan iepriekšējie prostatas medikamenti jāpārtrauc: pārbaudiet plānu.")
     if "solifenacin" in chosen and v.get("Catheter removal") != "Discharged with catheter":
-        cautions.append("Solifenacin after catheter removal: watch for urinary retention.")
+        cautions.append("Solifenacīns pēc katetra evakuācijas: uzmanieties no urīna retences.")
     if any(b in chosen for b in ("fraxiparine", "fraxiparine-04")) and v.get("Voiding after catheter removal") == \
             "Voids independently, mild hematuria":
-        cautions.append("Fraxiparine with ongoing hematuria after TURP: weigh the bleeding risk.")
+        cautions.append("Fraxiparine ar saglabātu hematūriju pēc TURP: izvērtējiet asiņošanas risku.")
     if v.get("Postoperative course") == "With complications":
-        cautions.append("Complications are recorded: check that the recommendations cover them.")
+        cautions.append("Reģistrētas komplikācijas: pārbaudiet, vai rekomendācijas tās aptver.")
     return blockers, cautions
 
 
@@ -7013,17 +7102,15 @@ def n43_parts(sex, v, blocks=()):
 def n43_checks(v):
     blockers, cautions = [], []
     if not v.get("Scrotal ultrasound before surgery"):
-        cautions.append("No scrotal ultrasound before surgery: in adults a hydrocele can hide a testicular tumour "
-                        "(reactive hydrocele) – check that the testis was assessed.")
+        cautions.append("Pirms operācijas nav veikta sēklinieku maisiņa USS: pieaugušajiem hidrocēle var maskēt sēklinieka audzēju (reaktīva hidrocēle) – pārliecinieties, ka sēklinieks tika izvērtēts.")
     if v.get("Scrotal hematoma"):
-        cautions.append("Scrotal hematoma: make sure it is not growing before discharge; consider a scrotal ultrasound.")
+        cautions.append("Sēklinieku maisiņa hematoma: pirms izrakstīšanas pārliecinieties, ka tā nepalielinās; apsveriet sēklinieku maisiņa USS.")
     if v.get("Hydrocele drain") == "Discharged with drain" and not v.get("Drain removal date"):
-        cautions.append("The patient goes home with a drain: give the planned removal date.")
+        cautions.append("Pacients dodas mājās ar drenu: norādiet plānoto evakuācijas datumu.")
     if "With complications" in (v.get("Intraoperative course"), v.get("Postoperative course")):
-        cautions.append("Complications are recorded: check that the recommendations cover them.")
+        cautions.append("Reģistrētas komplikācijas: pārbaudiet, vai rekomendācijas tās aptver.")
     if v.get("N43 anesthesia") == "Local" and any(b in (v.get("_blocks") or []) for b in ("fraxiparine", "fraxiparine-04")):
-        cautions.append("Fraxiparine after a short procedure under local anesthesia: check the indication "
-                        "(and the bleeding risk in the scrotum).")
+        cautions.append("Fraxiparine pēc īsas manipulācijas vietējā anestēzijā: pārbaudiet indikāciju (un asiņošanas risku sēklinieku maisiņā).")
     return blockers, cautions
 
 
@@ -7141,23 +7228,22 @@ def n13_parts(sex, v, blocks=()):
 def n13_checks(v):
     blockers, cautions = [], []
     if v.get("Voiding after catheter removal") == "Urinary retention":
-        blockers.append("Urinary retention after catheter removal.")
+        blockers.append("Urīna retence pēc katetra evakuācijas.")
     if v.get("Histology") == "Known" and blank(v.get("PUJ histology result")):
-        blockers.append("Type the histology result.")
+        blockers.append("Ierakstiet histoloģijas rezultātu.")
     if v.get("Pyeloplasty stent") == "JJ stent" and v.get("Stent removal plan") != "On a specific date":
-        cautions.append("A JJ stent stays in: if possible give a concrete removal date, so the stent is not forgotten.")
+        cautions.append("JJ stents paliek: ja iespējams, norādiet konkrētu evakuācijas datumu, lai stents netiktu aizmirsts.")
     if v.get("Pyeloplasty drain") == "Discharged with drain":
-        cautions.append("Discharged with a drain: high output can mean an anastomotic urine leak – check before discharge.")
+        cautions.append("Izrakstīts ar drenu: liels izdalījumu apjoms var nozīmēt anastomozes urīna noplūdi – pārbaudiet pirms izrakstīšanas.")
     if v.get("Histology") == "Pending" and v.get("Discharge paper") == "Final":
-        cautions.append("Histology is still pending, but the discharge paper is marked as final.")
+        cautions.append("Histoloģija vēl gaidāma, bet izraksts atzīmēts kā galīgais.")
     if v.get("Histology") == "Known" and v.get("Discharge paper") == "Temporary":
-        cautions.append("Histology is already known, but the discharge paper is marked as temporary.")
+        cautions.append("Histoloģija jau zināma, bet izraksts atzīmēts kā pagaidu.")
     split = v.get("Split renal function (%)")
     if split not in (None, "") and split < 15:
-        cautions.append("Split renal function below 15 %: recovery after pyeloplasty is less likely; make sure "
-                        "nephrectomy was considered and the follow-up renogram is planned.")
+        cautions.append("Dalītā nieres funkcija zem 15 %: atlabšana pēc pieloplastikas ir mazāk ticama; pārliecinieties, ka tika apsvērta nefrektomija un ir ieplānota kontroles renogramma.")
     if "With complications" in (v.get("Intraoperative course"), v.get("Postoperative course")):
-        cautions.append("Complications are recorded: check that the recommendations cover them.")
+        cautions.append("Reģistrētas komplikācijas: pārbaudiet, vai rekomendācijas tās aptver.")
     return blockers, cautions
 
 
@@ -7291,29 +7377,25 @@ def scrotal_parts(sex, v, blocks=()):
 def scrotal_checks(v):
     blockers, cautions = [], []
     if v.get("Histology") == "Known" and blank(v.get("Scrotal histology result")):
-        blockers.append("Type the histology result.")
+        blockers.append("Ierakstiet histoloģijas rezultātu.")
     if not v.get("Scrotal ultrasound before surgery"):
-        cautions.append("No scrotal ultrasound before surgery: EAU – image every scrotal mass. A solid intratesticular "
-                        "mass needs an inguinal orchidectomy, not a scrotal excision.")
+        cautions.append("Pirms operācijas nav veikta sēklinieku maisiņa USS: EAU – izmeklējiet katru sēklinieku maisiņa veidojumu. Solīdam intratestikulāram veidojumam nepieciešama ingvināla orhektomija, nevis skrotāla ekscīzija.")
     if v.get("Scrotal mass location") == "Spermatic cord / paratesticular" and v.get("Scrotal mass type") in (
             "Not specified", "Fibroma", "Other (type below)"):
-        cautions.append("Solid paratesticular / spermatic cord mass: most are benign, but sarcoma (liposarcoma) is "
-                        "possible – MRI and an inguinal approach with wide excision are preferred when malignancy is "
-                        "suspected.")
+        cautions.append("Solīds paratestikulārs / sēklas virvītes veidojums: lielākā daļa ir labdabīgi, taču iespējama sarkoma (liposarkoma) – ja ir aizdomas par ļaundabīgu procesu, priekšroka MR un ingvinālai pieejai ar plašu ekscīziju.")
     result = (v.get("Scrotal histology result") or "").lower()
     if v.get("Histology") == "Known" and any(w in result for w in MALIGNANT_WORDS):
-        cautions.append("Malignant histology: check the margins, plan staging and the oncology council; a re-excision "
-                        "with wider margins may be needed.")
+        cautions.append("Ļaundabīga histoloģija: pārbaudiet rezekcijas robežas, plānojiet stadēšanu un onkoloģisko konsīliju; var būt nepieciešama atkārtota ekscīzija ar plašākām robežām.")
     if "amoxiclav-10" in (v.get("_blocks") or []) and not v.get("Inflamed / infected lesion"):
-        cautions.append("Amoksiklav after clean scrotal surgery: antibiotics are rarely needed without infection.")
+        cautions.append("Amoksiklav pēc tīras skrotālas operācijas: bez infekcijas antibiotikas reti nepieciešamas.")
     if v.get("Histology") == "Pending" and v.get("Discharge paper") == "Final":
-        cautions.append("Histology is still pending, but the discharge paper is marked as final.")
+        cautions.append("Histoloģija vēl gaidāma, bet izraksts atzīmēts kā galīgais.")
     if v.get("Histology") == "Known" and v.get("Discharge paper") == "Temporary":
-        cautions.append("Histology is already known, but the discharge paper is marked as temporary.")
+        cautions.append("Histoloģija jau zināma, bet izraksts atzīmēts kā pagaidu.")
     if v.get("Scrotal hematoma"):
-        cautions.append("Scrotal hematoma: make sure it is not growing before discharge.")
+        cautions.append("Sēklinieku maisiņa hematoma: pirms izrakstīšanas pārliecinieties, ka tā nepalielinās.")
     if "With complications" in (v.get("Intraoperative course"), v.get("Postoperative course")):
-        cautions.append("Complications are recorded: check that the recommendations cover them.")
+        cautions.append("Reģistrētas komplikācijas: pārbaudiet, vai rekomendācijas tās aptver.")
     return blockers, cautions
 
 
@@ -7450,22 +7532,19 @@ def n21_parts(sex, v, blocks=()):
 def n21_checks(v):
     blockers, cautions = [], []
     if v.get("Voiding after catheter removal") == "Urinary retention":
-        blockers.append("Urinary retention after catheter removal.")
+        blockers.append("Urīna retence pēc katetra evakuācijas.")
     causes = v.get("Bladder stone cause") or []
     if not causes:
-        cautions.append("EAU (weak): look for the cause of every bladder stone – flow rate and residual urine, urine "
-                        "dipstick/culture, stone analysis; choose 'Not found' if the work-up was negative.")
+        cautions.append('EAU (vāja rekomendācija): meklējiet katra urīnpūšļa akmens cēloni – urīna plūsmas ātrums un atlikušais urīns, urīna testa strēmele/uzsējums, akmens analīze; ja izmeklēšana bija negatīva, izvēlieties "Nav atrasts".')
     if "BPH / bladder outlet obstruction" in causes and "TURP" not in (v.get("Done at the same time (N21)") or []):
-        cautions.append("Bladder stone with BPO and no TURP: plan treatment of the obstruction (treating both at once "
-                        "is safe; EAU notes slightly more short-term incontinence and UTI).")
+        cautions.append("Urīnpūšļa akmens ar infravezikālu obstrukciju bez TURP: plānojiet obstrukcijas ārstēšanu (abu ārstēšana vienlaikus ir droša; EAU norāda uz nedaudz biežāku īslaicīgu nesaturēšanu un UCI).")
     if v.get("Urine culture (N21)") == "Positive" and not any(b in (v.get("_blocks") or []) for b in
                                                               ("amoxiclav-10",)):
-        cautions.append("Positive urine culture: check whether an antibiotic is needed (by susceptibility).")
+        cautions.append("Pozitīvs urīna uzsējums: pārbaudiet, vai nepieciešama antibiotika (pēc jutības).")
     if v.get("Cystolithotripsy method") == "Open cystolithotomy":
-        cautions.append("EAU: open cystolithotomy is meant for very large stones; transurethral or percutaneous "
-                        "cystolithotripsy is preferred where possible.")
+        cautions.append("EAU: atvērta cistolitotomija paredzēta ļoti lieliem akmeņiem; ja iespējams, priekšroka transuretrālai vai perkutānai cistolitotripsijai.")
     if "With complications" in (v.get("Intraoperative course"), v.get("Postoperative course")):
-        cautions.append("Complications are recorded: check that the recommendations cover them.")
+        cautions.append("Reģistrētas komplikācijas: pārbaudiet, vai rekomendācijas tās aptver.")
     return blockers, cautions
 
 
@@ -7631,38 +7710,31 @@ def r33_checks(v):
     causes = v.get("Retention cause") or []
     chosen = v.get("_blocks") or []
     if v.get("_sex") == "Woman" and any(c in causes for c in ("BPH", "Prostate cancer")):
-        blockers.append("BPH / prostate cancer is chosen as the cause for a woman.")
+        blockers.append("Sievietei kā cēlonis izvēlēta LPH / prostatas vēzis.")
     if v.get("Fever at NMC"):
-        blockers.append("Fever with urinary retention: assess for urosepsis (admission and IV antibiotics) before "
-                        "sending the patient home.")
+        blockers.append("Drudzis ar urīna retenci: pirms pacienta izrakstīšanas mājās izvērtējiet urosepsi (stacionēšana un i/v antibiotikas).")
     volume = v.get("Drained volume (ml)") or 0
     if (volume > 1000 or v.get("Labs at NMC") in ("Raised creatinine", "UTI and raised creatinine")
             or v.get("Upper tract dilatation") == "Present" or v.get("Retention type") != "Acute"):
-        cautions.append("Large volume, raised creatinine, upper tract dilatation or chronic retention: risk of "
-                        "post-obstructive diuresis and renal impairment – consider admission; a trial without catheter "
-                        "is likely to fail (chronic retention).")
+        cautions.append("Liels apjoms, paaugstināts kreatinīns, augšējo urīnceļu dilatācija vai hroniska retence: pēcobstrukcijas diurēzes un nieru funkcijas traucējumu risks – apsveriet stacionēšanu; katetra evakuācijas mēģinājums, visticamāk, neizdosies (hroniska retence).")
     if v.get("Back pain or neurological symptoms"):
-        cautions.append("Retention with back pain or neurological symptoms: exclude cauda equina syndrome (urgent MRI) "
-                        "before discharge.")
+        cautions.append("Retence ar muguras sāpēm vai neiroloģiskiem simptomiem: pirms izrakstīšanas izslēdziet cauda equina sindromu (neatliekama MR).")
     if "Clot retention (hematuria)" in causes:
-        cautions.append("Clot retention: 3-way catheter and bladder irrigation; the hematuria needs a work-up "
-                        "(cystoscopy, CT urography).")
+        cautions.append("Recekļu tamponāde: trīsceļu katetrs un urīnpūšļa skalošana; hematūrijai nepieciešama izmeklēšana (cistoskopija, DT urogrāfija).")
     if "Drug-induced" in causes:
-        cautions.append("Drug-induced retention: name and stop / replace the drug in the text (anticholinergics, "
-                        "opioids, antihistamines, decongestants, tricyclics).")
+        cautions.append("Medikamentu izraisīta retence: tekstā nosauciet medikamentu un tā pārtraukšanu / aizstāšanu (antiholīnerģiskie līdzekļi, opioīdi, antihistamīni, dekongestanti, tricikliskie antidepresanti).")
     alpha = any(b in chosen for b in ("tamsulosin-twoc", "alfuzosin", "urorec", "dutasteride-tamsulosin"))
     if ("BPH" in causes and str(v.get("Catheter plan (R33)", "")).startswith("Trial without catheter")
             and not alpha):
-        cautions.append("BPH with a planned trial without catheter: start an alpha-blocker at least 2–3 days before "
-                        "the trial (improves success).")
+        cautions.append("LPH ar plānotu katetra evakuācijas mēģinājumu: uzsāciet alfa blokatoru vismaz 2–3 dienas pirms mēģinājuma (uzlabo veiksmi).")
     if v.get("Previous retention episodes") and "BPH" in causes:
-        cautions.append("Recurrent retention with BPH: EAU – an absolute indication for surgery (e.g. TURP); refer.")
+        cautions.append("Recidivējoša retence ar LPH: EAU – absolūta indikācija operācijai (piem., TURP); nosūtiet.")
     uti = v.get("Labs at NMC") in ("Urinary tract infection", "UTI and raised creatinine") or \
         "Urinary tract infection / prostatitis" in causes
     if uti and not any(b in chosen for b in ("amoxiclav-7", "cefuroxime-7", "cipro")):
-        cautions.append("UTI with retention: choose an antibiotic (and adjust it to the urine culture).")
+        cautions.append("UCI ar retenci: izvēlieties antibiotiku (un pielāgojiet to urīna uzsējumam).")
     if v.get("Retention drainage") == "In-out catheterisation (no catheter left)" and volume > 800:
-        cautions.append("Large volume with in-out catheterisation: an indwelling catheter is usually safer.")
+        cautions.append("Liels apjoms ar vienreizēju katetrizāciju: pastāvīgs katetrs parasti ir drošāks.")
     return blockers, cautions
 
 
@@ -8074,106 +8146,81 @@ def r31_checks(v):
     hb = _num(v, "Hemoglobin (g/L)")
     names = _hem_procs(v) if ward else None
     if v.get("_sex") == "Woman" and any(c in causes for c in ("BPH (prostatic bleeding)", "Prostate cancer")):
-        blockers.append("BPH / prostate cancer is chosen as the cause for a woman.")
+        blockers.append("Sievietei kā cēlonis izvēlēta LPH / prostatas vēzis.")
     if "Not clear yet" in causes and len(causes) > 1:
-        cautions.append("'Not clear yet' is chosen together with a cause: remove one of them.")
+        cautions.append('Kopā ar cēloni izvēlēts arī "Pagaidām nav skaidrs": noņemiet vienu no tiem.')
     if colour == "Red / with clots":
-        blockers.append("The urine is still red with clots: ongoing bleeding – BAUS: admit (3-way catheter, manual "
-                        "washout, then irrigation); do not discharge.")
+        blockers.append("Urīns joprojām sarkans ar recekļiem: asiņošana turpinās – BAUS: stacionēt (trīsceļu katetrs, manuāla skalošana, pēc tam nepārtraukta skalošana); neizrakstīt.")
     if not ward:
         if v.get("Hemodynamics (R31)") == "Unstable":
-            blockers.append("Hemodynamically unstable: resuscitate and admit.")
+            blockers.append("Hemodinamiski nestabils: reanimācijas pasākumi un stacionēšana.")
         if hb is not None and hb < 80:
-            blockers.append("Hb below 80 g/L: transfusion range – admit.")
+            blockers.append("Hb zem 80 g/L: transfūzijas robeža – stacionēt.")
         elif hb is not None and hb < 100:
-            cautions.append(f"Hb {_comma(hb)} g/L: recheck the blood count within 48–72 hours (tests box) and admit if "
-                            "it falls.")
+            cautions.append(f"Hb {_comma(hb)} g/L: atkārtoti nosakiet asins analīzi 48–72 stundu laikā (izmeklējumu lodziņš) un stacionējiet, ja tas samazinās.")
         if v.get("Clot retention (bladder tamponade)"):
-            cautions.append("Clot retention: BAUS – it usually needs admission (3-way catheter 20–24 Fr, manual washout "
-                            "first, then continuous irrigation). Send home only if after the washout the urine stays "
-                            "clear or light pink without clots, Hb is stable, the catheter drains well and the patient "
-                            "can come back quickly.")
+            cautions.append("Recekļu tamponāde: BAUS – parasti nepieciešama stacionēšana (trīsceļu katetrs 20–24 Fr, vispirms manuāla skalošana, pēc tam nepārtraukta skalošana). Mājās izrakstiet tikai tad, ja pēc skalošanas urīns paliek dzidrs vai gaiši sārts bez recekļiem, Hb ir stabils, katetrs labi drenē un pacients var ātri atgriezties.")
         if colour == "Pink, no clots":
-            cautions.append("The urine is still pink: make sure it keeps clearing and the patient voids (or the catheter "
-                            "drains) before discharge.")
+            cautions.append("Urīns joprojām sārts: pirms izrakstīšanas pārliecinieties, ka tas turpina kļūt dzidrāks un pacients urinē (vai katetrs drenē).")
         if v.get("Fever at NMC"):
-            cautions.append("Fever with hematuria: exclude pyelonephritis / prostatitis and obstruction; admit if septic, "
-                            "obstructed or unable to take oral antibiotics.")
+            cautions.append("Drudzis ar hematūriju: izslēdziet pielonefrītu / prostatītu un obstrukciju; stacionējiet, ja ir sepse, obstrukcija vai pacients nevar lietot perorālas antibiotikas.")
     else:
         if v.get("Histology (R31)") == "Known" and names and blank(v.get("Histology result (R31)")):
-            blockers.append("Type the histology result.")
+            blockers.append("Ierakstiet histoloģijas rezultātu.")
         hb2 = _num(v, "Hemoglobin at discharge (g/L)")
         if hb2 is not None and hb2 < 80:
-            cautions.append("Hb at discharge below 80 g/L: check that a transfusion is not needed before discharge.")
+            cautions.append("Hb izrakstīšanas brīdī zem 80 g/L: pirms izrakstīšanas pārliecinieties, ka transfūzija nav nepieciešama.")
         if "Selective embolisation" in procs:
-            cautions.append("After embolisation: watch for post-embolisation syndrome (pain, fever), buttock pain or "
-                            "ischaemia; check creatinine after the contrast.")
+            cautions.append("Pēc embolizācijas: uzmanieties no postembolizācijas sindroma (sāpes, drudzis), sāpēm sēžas apvidū vai išēmijas; pēc kontrastvielas pārbaudiet kreatinīnu.")
         if v.get("Cystoscopy finding (R31)") == "Bladder tumour" and "TURU (resection / biopsy)" not in procs:
-            cautions.append("Bladder tumour seen at cystoscopy: plan TURU (EAU) and the oncology pathway.")
+            cautions.append("Cistoskopijā redzams urīnpūšļa audzējs: plānojiet TURU (EAU) un onkoloģisko ceļu.")
         if names and v.get("Histology (R31)") == "Pending" and v.get("Discharge paper (R31)") == "Final":
-            cautions.append("Histology is still pending, but the discharge paper is marked as final.")
+            cautions.append("Histoloģija vēl gaidāma, bet izraksts atzīmēts kā galīgais.")
         if names and v.get("Histology (R31)") == "Known" and v.get("Discharge paper (R31)") == "Temporary":
-            cautions.append("Histology is already known, but the discharge paper is marked as temporary.")
+            cautions.append("Histoloģija jau zināma, bet izraksts atzīmēts kā pagaidu.")
         if v.get("Cystoscopy finding (R31)") == "Blood from a ureteric orifice" and "ctu" not in tests:
-            cautions.append("Bleeding from a ureteric orifice: the upper tract needs CT urography (and ureteroscopy if "
-                            "CT is not conclusive).")
+            cautions.append("Asiņošana no urīnvada atveres: augšējiem urīnceļiem nepieciešama DT urogrāfija (un ureteroskopija, ja DT nav pārliecinoša).")
     # work-up (EAU NMIBC, strong): cystoscopy + upper tract imaging for visible haematuria
     if _hem_unknown(v) and not names:
         if v.get("Green corridor (GP referral)") != "Bladder – Z03.167" and "cysto" not in tests:
-            cautions.append("Cause not clear: EAU (strong) – every patient with visible hematuria needs a cystoscopy. "
-                            "Choose the green corridor (Z03.167) or tick cystoscopy in the tests.")
+            cautions.append("Cēlonis nav skaidrs: EAU (stipra rekomendācija) – katram pacientam ar makrohematūriju nepieciešama cistoskopija. Izvēlieties zaļo koridoru (Z03.167) vai atzīmējiet cistoskopiju izmeklējumos.")
     if _hem_unknown(v) and v.get("CT at NMC (R31)") in (None, "Not done") and not any(t in tests for t in
                                                                                      ("ctu", "us_kb", "ct_abd")):
-        cautions.append("Cause not clear: EAU (strong) – upper tract imaging (kidney ultrasound and/or CT urography). "
-                        "Tick it in the tests.")
+        cautions.append("Cēlonis nav skaidrs: EAU (stipra rekomendācija) – augšējo urīnceļu attēldiagnostika (nieru USS un/vai DT urogrāfija). Atzīmējiet to izmeklējumos.")
     if v.get("Hematuria type", "").startswith("Non-visible"):
-        cautions.append("Microhematuria: confirm by microscopy (> 3 RBC/HPF), exclude UTI, then risk-stratify (AUA: "
-                        "low risk – repeat urinalysis within 6 months; intermediate – cystoscopy and kidney ultrasound; "
-                        "high – cystoscopy and CT urography). Green corridor (Z03.167): age >= 60 with dysuria or "
-                        "leukocytosis.")
+        cautions.append("Mikrohematūrija: apstipriniet ar mikroskopiju (> 3 eritrocīti redzes laukā), izslēdziet UCI, pēc tam stratificējiet risku (AUA: zems risks – atkārtota urīna analīze 6 mēnešu laikā; vidējs – cistoskopija un nieru USS; augsts – cistoskopija un DT urogrāfija). Zaļais koridors (Z03.167): vecums >= 60 gadi ar dizūriju vai leikocitozi.")
     if drugs and _hem_unknown(v):
-        cautions.append("Hematuria on anticoagulants / antiplatelets needs the same full work-up (AUA, strong) – the "
-                        "drug does not explain it.")
+        cautions.append("Hematūrijai antikoagulantu / antiagregantu terapijas laikā nepieciešama tāda pati pilna izmeklēšana (AUA, stipra rekomendācija) – medikaments to neizskaidro.")
     if drugs and v.get("Antithrombotic plan") == "Pause until the urine is clear":
-        cautions.append("Before pausing: do not stop dual antiplatelet therapy after a recent coronary stent, or "
-                        "anticoagulation with a mechanical valve or recent thrombosis, without the cardiologist; the "
-                        "text says who restarts it.")
+        cautions.append("Pirms pārtraukšanas: nepārtrauciet duālo antiagregantu terapiju pēc nesena koronārā stenta vai antikoagulāciju mehāniska vārstuļa vai nesenas trombozes gadījumā bez kardiologa; tekstā norādīts, kas to atsāk.")
     if "Warfarin" in drugs:
         inr = _num(v, "INR (optional)")
         if inr is None:
-            cautions.append("Warfarin: record the INR.")
+            cautions.append("Varfarīns: norādiet INR.")
         elif inr > 3:
-            cautions.append(f"INR {_comma(inr)}: above the usual range – correct it with the prescriber.")
+            cautions.append(f"INR {_comma(inr)}: virs ierastā diapazona – koriģējiet to kopā ar ordinējošo ārstu.")
     if "tranexamic" in chosen:
         if _hem_upper_tract(v):
-            cautions.append("Tranexamic acid with a possible upper tract source: SmPC – clots may obstruct the ureter. "
-                            "Avoid it.")
+            cautions.append("Traneksāmskābe, ja iespējams augšējo urīnceļu avots: zāļu apraksts – recekļi var nosprostot urīnvadu. Izvairieties no tās.")
         if drugs:
-            cautions.append("Tranexamic acid together with an antithrombotic drug: thrombosis risk – only under "
-                            "supervision (SmPC).")
+            cautions.append("Traneksāmskābe kopā ar antitrombotisku medikamentu: trombozes risks – tikai uzraudzībā (zāļu apraksts).")
         if v.get("Labs at NMC") in ("Raised creatinine", "UTI and raised creatinine"):
-            cautions.append("Raised creatinine: reduce the tranexamic acid dose (SmPC, by creatinine).")
+            cautions.append("Paaugstināts kreatinīns: samaziniet traneksāmskābes devu (zāļu apraksts, pēc kreatinīna).")
     if "fraxiparine" in chosen and colour != "Clear":
-        cautions.append("Fraxiparine while the urine is not yet clear: weigh the bleeding risk.")
+        cautions.append("Fraxiparine, kamēr urīns vēl nav dzidrs: izvērtējiet asiņošanas risku.")
     if "Radiation cystitis" in causes:
-        cautions.append("Radiation cystitis – stepwise: washout and irrigation → cystoscopy with clot evacuation and "
-                        "coagulation (biopsy to exclude a recurrence or second tumour) → intravesical alum 1% (or "
-                        "formalin 1–2% under anaesthesia after a cystogram) → hyperbaric oxygen → selective "
-                        "embolisation → urinary diversion as the last resort.")
+        cautions.append("Radiācijas cistīts – pakāpeniski: skalošana → cistoskopija ar recekļu evakuāciju un koagulāciju (biopsija recidīva vai otra audzēja izslēgšanai) → intravezikāls alauns 1% (vai formalīns 1–2% anestēzijā pēc cistogrāfijas) → hiperbārā oksigenācija → selektīva embolizācija → urīna derivācija kā pēdējā iespēja.")
     uti = "Urinary tract infection (hemorrhagic cystitis)" in causes or \
         v.get("Labs at NMC") in ("Urinary tract infection", "UTI and raised creatinine")
     if uti and not any(b in chosen for b in ("fosfomycin-3g", "amoxiclav-7", "cefuroxime-7", "cipro")) and \
             "IV antibiotics" not in (v.get("Ward treatment (R31)") or [] if ward else []):
-        cautions.append("UTI: choose an antibiotic (and adjust it to the urine culture).")
+        cautions.append("UCI: izvēlieties antibiotiku (un pielāgojiet to urīna uzsējumam).")
     if "Urinary tract infection (hemorrhagic cystitis)" in causes:
-        cautions.append("Hemorrhagic cystitis: repeat urinalysis after treatment – hematuria that persists after the UTI "
-                        "is treated needs the full work-up (green corridor criterion at >= 45 years).")
+        cautions.append("Hemorāģisks cistīts: atkārtojiet urīna analīzi pēc ārstēšanas – ja hematūrija saglabājas pēc UCI ārstēšanas, nepieciešama pilna izmeklēšana (zaļā koridora kritērijs no 45 gadu vecuma).")
     if "fosfomycin-3g" in chosen and v.get("_sex") == "Man":
-        cautions.append("Fosfomycin single dose is for uncomplicated cystitis in women; a UTI in a man is complicated – "
-                        "7 days, adjusted to the culture.")
+        cautions.append("Fosfomicīna vienreizēja deva paredzēta nekomplicētam cistītam sievietēm; UCI vīrietim ir komplicēta – 7 dienas, pielāgojot uzsējumam.")
     if v.get("Ultrasound at NMC") and "Hydronephrosis" in (v.get("Ultrasound findings (R31)") or []):
-        cautions.append("Hydronephrosis with hematuria: exclude obstruction by clots, stone or tumour; drain if infected "
-                        "or renal function falls.")
+        cautions.append("Hidronefroze ar hematūriju: izslēdziet obstrukciju ar recekļiem, akmeni vai audzēju; drenējiet infekcijas vai nieru funkcijas pasliktināšanās gadījumā.")
     return blockers, cautions
 
 
@@ -8368,90 +8415,72 @@ def n30_checks(v):
     us = v.get("Ultrasound (N30)") or []
     elderly = "Age 65 or older / frail" in risks
     if v.get("Pyelonephritis signs (N30)"):
-        blockers.append("Fever, chills, flank pain or vomiting: this is pyelonephritis / a systemic UTI, not cystitis – "
-                        "use N10.")
+        blockers.append("Drudzis, drebuļi, sāpes sānos vai vemšana: tas ir pielonefrīts / sistēmiska UCI, nevis cistīts – izmantojiet N10.")
     if pregnant and any(b in chosen for b in ("furamag", "furamag-men")):
-        blockers.append("Furamag is contraindicated in pregnancy and breastfeeding (label). Fosfomycin 3 g or a "
-                        "beta-lactam by culture instead.")
+        blockers.append("Furamag ir kontrindicēts grūtniecības un zīdīšanas laikā (zāļu apraksts). Tā vietā fosfomicīns 3 g vai beta-laktāms pēc uzsējuma.")
     if not v.get("Cystitis symptoms"):
-        cautions.append("No symptoms are chosen: cystitis is a clinical diagnosis (dysuria, frequency, urgency). "
-                        "Bacteriuria without symptoms is not treated (EAU, strong), except in pregnancy.")
+        cautions.append("Nav izvēlēti simptomi: cistīts ir klīniska diagnoze (dizūrija, bieža urinācija, neatliekama vēlme urinēt). Bakteriūriju bez simptomiem neārstē (EAU, stipra rekomendācija), izņemot grūtniecības laikā.")
     if not abx and v.get("Treatment approach (N30)") == "Antibiotic":
-        cautions.append("Choose an antibiotic in the blocks (or 'Symptomatic first').")
+        cautions.append('Izvēlieties antibiotiku blokos (vai "Sākumā simptomātiska").')
     if v.get("Treatment approach (N30)") == "Symptomatic first (delayed antibiotic)":
         if not woman or pregnant or elderly or risks or v.get("Recurrent cystitis"):
-            cautions.append("Symptomatic-first treatment: EAU – only for non-geriatric women with mild symptoms after "
-                            "shared decision-making; not for men, pregnancy, the frail elderly or complicating factors "
-                            "(more pyelonephritis in the trials).")
+            cautions.append("Sākumā simptomātiska ārstēšana: EAU – tikai negeriatriskām sievietēm ar viegliem simptomiem pēc kopīga lēmuma; nav paredzēta vīriešiem, grūtniecēm, trausliem gados vecākiem pacientiem vai komplicējošu faktoru gadījumā (pētījumos biežāk attīstījās pielonefrīts).")
         if not abx:
-            cautions.append("Symptomatic first: also choose the antibiotic to start if there is no improvement in 48 h.")
+            cautions.append("Sākumā simptomātiska: izvēlieties arī antibiotiku, ko uzsākt, ja 48 h laikā nav uzlabojuma.")
     if "cipro" in chosen:
-        cautions.append("Ciprofloxacin: EAU (strong) – do not use fluoroquinolones for cystitis.")
+        cautions.append("Ciprofloksacīns: EAU (stipra rekomendācija) – cistīta gadījumā fluorhinolonus nelietot.")
     if "amoxiclav-5" in chosen and not pregnant and not culture:
-        cautions.append("Amoksiklav: EAU (strong) – no aminopenicillins empirically; use it by culture (or in "
-                        "pregnancy).")
+        cautions.append("Amoksiklav: EAU (stipra rekomendācija) – aminopenicilīnus empīriski nelietot; lietojiet pēc uzsējuma (vai grūtniecības laikā).")
     if not woman:
         if "fosfomycin-3g" in chosen:
-            cautions.append("Fosfomycin single dose is for women; cystitis in a man needs 7 days.")
+            cautions.append("Fosfomicīna vienreizēja deva paredzēta sievietēm; vīrieša cistīta gadījumā nepieciešamas 7 dienas.")
         if any(b in chosen for b in ("furamag", "nitrofurantoin", "cefuroxime-5", "amoxiclav-5", "cotrimoxazole-3")):
-            cautions.append("A short women's regimen is chosen for a man: use a 7-day regimen (blocks 'men').")
+            cautions.append('Vīrietim izvēlēta īsa sieviešu shēma: izmantojiet 7 dienu shēmu (bloki "vīrieši").')
         if not culture:
-            cautions.append("Cystitis in a man: take a urine culture and think of prostatitis and incomplete emptying "
-                            "(residual urine).")
+            cautions.append("Cistīts vīrietim: paņemiet urīna uzsējumu un domājiet par prostatītu un nepilnīgu iztukšošanos (atlikušais urīns).")
     if pregnant:
         if not culture:
-            cautions.append("Pregnancy: EAU (strong) – take a urine culture.")
+            cautions.append("Grūtniecība: EAU (stipra rekomendācija) – paņemiet urīna uzsējumu.")
         if "cotrimoxazole-3" in chosen or "cotrimoxazole-7" in chosen:
-            cautions.append("Trimethoprim/sulfamethoxazole in pregnancy: not in the first trimester (trimethoprim) or "
-                            "near term (sulfamethoxazole).")
+            cautions.append("Trimetoprims/sulfametoksazols grūtniecības laikā: nelietot pirmajā trimestrī (trimetoprims) vai grūtniecības beigās (sulfametoksazols).")
         if "cipro" in chosen:
-            blockers.append("Fluoroquinolones are not used in pregnancy.")
+            blockers.append("Grūtniecības laikā fluorhinolonus nelieto.")
         if "nitrofurantoin" in chosen and (_num(v, "Pregnancy week") or 0) >= 36:
-            cautions.append("Nitrofurantoin near term: risk of neonatal haemolysis – choose another drug.")
+            cautions.append("Nitrofurantoīns grūtniecības beigās: jaundzimušā hemolīzes risks – izvēlieties citu medikamentu.")
         if "ibuprofen" in chosen:
-            cautions.append("NSAIDs in pregnancy: avoid (contraindicated from 20 weeks); use paracetamol.")
+            cautions.append("NPL grūtniecības laikā: izvairīties (kontrindicēti no 20. nedēļas); lietojiet paracetamolu.")
     if v.get("Recurrent cystitis") and not culture:
-        cautions.append("Recurrent cystitis: EAU (strong) – diagnose it by urine culture.")
+        cautions.append("Recidivējošs cistīts: EAU (stipra rekomendācija) – diagnosticējiet ar urīna uzsējumu.")
     if v.get("Antibiotic in the last 3 months") and not culture:
-        cautions.append("Antibiotic in the last 3 months: higher risk of resistant bacteria – take a urine culture "
-                        "(EAU, strong).")
+        cautions.append("Antibiotika pēdējo 3 mēnešu laikā: augstāks rezistentu baktēriju risks – paņemiet urīna uzsējumu (EAU, stipra rekomendācija).")
     if risks and not culture and not v.get("Recurrent cystitis"):
-        cautions.append("Complicating factors are present: take a urine culture and treat for 7 days.")
+        cautions.append("Ir komplicējoši faktori: paņemiet urīna uzsējumu un ārstējiet 7 dienas.")
     if "Indwelling catheter or self-catheterisation" in risks:
-        cautions.append("Catheter-associated UTI: not simple cystitis – change the catheter and culture from the new "
-                        "one (see T83 / N39.0).")
+        cautions.append("Ar katetru saistīta UCI: tas nav vienkāršs cistīts – nomainiet katetru un uzsējumu ņemiet no jaunā katetra (skat. T83 / N39.0).")
     if woman and v.get("Vaginal discharge"):
-        cautions.append("Vaginal discharge: EAU – the diagnosis of cystitis relies on its absence; consider vaginitis or "
-                        "an STI (gynaecologist).")
+        cautions.append("Izdalījumi no maksts: EAU – cistīta diagnoze balstās uz to neesamību; apsveriet vaginītu vai STI (ginekologs).")
     if v.get("Blood tests (N30)") == "Raised CRP / leukocytosis":
-        cautions.append("Raised CRP / leukocytosis: look again for pyelonephritis or prostatitis.")
+        cautions.append("Paaugstināts CRO / leikocitoze: vēlreiz izvērtējiet pielonefrītu vai prostatītu.")
     renal = v.get("Blood tests (N30)") == "Raised creatinine" or "Renal impairment" in risks
     if renal and any(b in chosen for b in ("furamag", "furamag-men", "nitrofurantoin")):
-        cautions.append("Renal impairment: nitrofurans work poorly and accumulate – nitrofurantoin not below eGFR 45 "
-                        "(short courses at 30–44); Furamag is contraindicated in severe renal failure.")
+        cautions.append("Nieru funkcijas traucējumi: nitrofurāni darbojas slikti un uzkrājas – nitrofurantoīnu nelietot, ja eGFR ir zem 45 (pie 30–44 īsi kursi); Furamag ir kontrindicēts smagas nieru mazspējas gadījumā.")
     if "ibuprofen" in chosen and (renal or elderly):
-        cautions.append("Ibuprofen with renal impairment or in the elderly: EAU – NSAIDs are potentially "
-                        "inappropriate; use paracetamol.")
+        cautions.append("Ibuprofēns nieru funkcijas traucējumu gadījumā vai gados vecākiem pacientiem: EAU – NPL ir potenciāli nepiemēroti; lietojiet paracetamolu.")
     if v.get("Penicillin allergy") and any(b in chosen for b in ("amoxiclav-5", "amoxiclav-7")):
-        blockers.append("Penicillin allergy: Amoksiklav is chosen.")
+        blockers.append("Alerģija pret penicilīnu: izvēlēts Amoksiklav.")
     if v.get("Penicillin allergy") and any(b in chosen for b in ("cefuroxime-5", "cefuroxime-7")):
-        cautions.append("Penicillin allergy: cefuroxime only if the allergy was not severe (anaphylaxis).")
+        cautions.append("Alerģija pret penicilīnu: cefuroksīms tikai tad, ja alerģija nebija smaga (anafilakse).")
     if woman and v.get("Postmenopausal") and v.get("Recurrent cystitis") and "estriol" not in chosen:
-        cautions.append("Postmenopausal woman with recurrent cystitis: EAU (strong) – vaginal oestrogen (block "
-                        "'Vaginal estriol').")
+        cautions.append('Sieviete pēcmenopauzē ar recidivējošu cistītu: EAU (stipra rekomendācija) – vagināls estrogēns (bloks "Vagināls estriols").')
     if v.get("Recurrent cystitis") and v.get("Same organism soon after treatment"):
-        cautions.append("Same organism again soon after treatment – bacterial persistence (Campbell-Walsh-Wein): look "
-                        "for a focus (stone, obstruction, residual urine, diverticulum, chronic prostatitis) – imaging "
-                        "and urology referral.")
+        cautions.append("Tas pats mikroorganisms drīz pēc ārstēšanas – bakteriāla persistence (Campbell-Walsh-Wein): meklējiet perēkli (akmens, obstrukcija, atlikušais urīns, divertikuls, hronisks prostatīts) – attēldiagnostika un urologa konsultācija.")
     if "Upper tract dilatation" in us:
-        cautions.append("Upper tract dilatation with infection: obstruction plus infection needs drainage if any "
-                        "systemic sign appears – consider admission and imaging.")
+        cautions.append("Augšējo urīnceļu dilatācija ar infekciju: obstrukcijai ar infekciju nepieciešama drenāža, ja parādās jebkura sistēmiska pazīme – apsveriet stacionēšanu un attēldiagnostiku.")
     pvr = _num(v, "Residual urine (ml)")
     if pvr is not None and pvr > 100:
-        cautions.append(f"Residual urine {_comma(pvr)} ml: incomplete emptying is a complicating factor – treat for "
-                        "7 days and refer to a urologist.")
+        cautions.append(f"Atlikušais urīns {_comma(pvr)} ml: nepilnīga iztukšošanās ir komplicējošs faktors – ārstējiet 7 dienas un nosūtiet pie urologa.")
     if "methenamine" in chosen and (risks or not woman):
-        cautions.append("Methenamine hippurate: EAU recommends it for women without urinary tract abnormalities.")
+        cautions.append("Metenamīna hipurāts: EAU to iesaka sievietēm bez urīnceļu anomālijām.")
     return blockers, cautions
 
 
@@ -8553,6 +8582,8 @@ FOLLOWUP_TESTS = {  # id -> group, English name in the app, Latvian text in the 
     "meares": {"group": "Urine", "title": "Meares–Stamey 2- or 4-glass test",
                "lv": "Meares–Stamey 2 vai 4 trauku tests (hroniska bakteriāla prostatīta izslēgšanai)"},
     "semen": {"group": "Functional", "title": "Semen analysis", "lv": "spermogramma"},
+    "thrombophilia": {"group": "Blood", "title": "Thrombophilia / vasculitis screen",
+                      "lv": "trombofilijas un vaskulīta izmeklējumi"},
     "markers": {"group": "Blood", "title": "Testicular tumour markers (AFP, β-hCG, LDH)",
                 "lv": "audzēja marķieri (AFP, β-hCG, LDH)"},
     "bgas": {"group": "Blood", "title": "Venous blood gas (bicarbonate)",
@@ -8638,36 +8669,30 @@ def _s(test, level, timing, why, text=None):
     return {"id": test, "level": level, "timing": timing, "why": why, "text": text}
 
 
-NO_ROUTINE_UA = "EAU: post-treatment urinalysis in patients without symptoms is not indicated."
-NO_ROUTINE_UC = "EAU: post-treatment urine culture in patients without symptoms is not indicated."
-NO_CATHETER_UC = ("EAU (strong): no routine urine culture in catheterised patients without symptoms; "
-                  "culture only with infection symptoms, from a newly placed catheter.")
-PRACTICE_LABS = "Only if inflammatory markers were still raised at discharge (common practice, not an EAU requirement)."
+NO_ROUTINE_UA = "EAU: urīna analīze pēc ārstēšanas pacientiem bez simptomiem nav indicēta."
+NO_ROUTINE_UC = "EAU: urīna uzsējums pēc ārstēšanas pacientiem bez simptomiem nav indicēts."
+NO_CATHETER_UC = ("EAU (stipra rekomendācija): kateterizētiem pacientiem bez simptomiem rutīnas urīna uzsējums nav nepieciešams; uzsējumu ņem tikai infekcijas simptomu gadījumā no tikko ievietota katetra.")
+PRACTICE_LABS = "Tikai tad, ja izrakstīšanas brīdī iekaisuma rādītāji vēl bija paaugstināti (ierasta prakse, nav EAU prasība)."
 
 
 def n10_tests(v):
     out = []
     if v.get("_department") == "NMC":
         if v.get("NMC imaging") == "None":
-            out.append(_s("us_kb", "rec", "asap", "No imaging was done at NMC. EAU (strong): image the urinary tract in "
-                                                  "pyelonephritis to exclude obstruction or stones; ultrasound first."))
-        out.append(_s("ct_abd", "consider", "no_improve", "EAU: contrast CT (or excretory urography) if the patient is still "
-                                                          "febrile after 72 hours of treatment."))
-        out.append(_s("cbc", "consider", "48-72h", "EAU: outpatients with pyelonephritis are reviewed within 48–72 hours; "
-                                                  "blood tests at that review only if not improving."))
-        out.append(_s("crp", "consider", "48-72h", "As above: CRP helps if the patient is not improving."))
+            out.append(_s("us_kb", "rec", "asap", "NMC attēldiagnostika netika veikta. EAU (stipra rekomendācija): pielonefrīta gadījumā veiciet urīnceļu attēldiagnostiku, lai izslēgtu obstrukciju vai akmeņus; vispirms USS."))
+        out.append(_s("ct_abd", "consider", "no_improve", "EAU: DT ar kontrastvielu (vai ekskretorā urogrāfija), ja pēc 72 stundu ārstēšanas pacients joprojām ir febrils."))
+        out.append(_s("cbc", "consider", "48-72h", "EAU: ambulatorus pacientus ar pielonefrītu izvērtē 48–72 stundu laikā; asins analīzes šajā vizītē tikai tad, ja stāvoklis neuzlabojas."))
+        out.append(_s("crp", "consider", "48-72h", "Kā iepriekš: CRO noderīgs, ja stāvoklis neuzlabojas."))
     else:
-        out.append(_s("creat", "consider", "1w", "If renal function was impaired during the stay."))
+        out.append(_s("creat", "consider", "1w", "Ja stacionēšanas laikā bija nieru funkcijas traucējumi."))
         out.append(_s("cbc", "consider", "1w", PRACTICE_LABS))
         out.append(_s("crp", "consider", "1w", PRACTICE_LABS))
-        out.append(_s("us_kb", "consider", "visit", "EAU (strong) asks for imaging during the episode. Repeat ultrasound only "
-                                                   "to recheck a finding (stone, dilatation, residual urine) or if none was done."))
+        out.append(_s("us_kb", "consider", "visit", "EAU (stipra rekomendācija) prasa attēldiagnostiku epizodes laikā. Atkārtota USS tikai, lai pārbaudītu atradni (akmens, dilatācija, atlikušais urīns), vai ja tā netika veikta."))
         if v.get("Infection complexity") == "Complicated":
-            out.append(_s("ctu", "consider", "visit", "Complicated pyelonephritis: look for the cause. EAU (strong): manage any "
-                                                     "urological abnormality or complicating factor."))
+            out.append(_s("ctu", "consider", "visit", "Komplicēts pielonefrīts: meklējiet cēloni. EAU (stipra rekomendācija): ārstējiet jebkuru uroloģisku anomāliju vai komplicējošu faktoru."))
     if v.get("_sex") == "Man":
-        out.append(_s("uroflow", "consider", "at_visit", "Men with febrile UTI: look for bladder outlet obstruction."))
-        out.append(_s("pvr", "consider", "at_visit", "Men with febrile UTI: check that the bladder empties."))
+        out.append(_s("uroflow", "consider", "at_visit", "Vīrieši ar febrilu UCI: meklējiet infravezikālu obstrukciju."))
+        out.append(_s("pvr", "consider", "at_visit", "Vīrieši ar febrilu UCI: pārbaudiet, vai urīnpūslis iztukšojas."))
     out.append(_s("ua", "avoid", "visit", NO_ROUTINE_UA))
     out.append(_s("uc", "avoid", "visit", NO_ROUTINE_UC))
     return out
@@ -8678,29 +8703,25 @@ def n39_tests(v):
     upper_or_complicated = (v.get("Infection site") in ("Upper urinary tract", "Pyelonephritis")
                             or n39_complexity(v) == "Complicated")
     if "Acute kidney injury" in (v.get("Complications") or []) or v.get("Renal function trend") == "Deteriorated":
-        out.append(_s("creat", "rec", "1w", "Renal function got worse during this episode: recheck creatinine and eGFR."))
+        out.append(_s("creat", "rec", "1w", "Šīs epizodes laikā nieru funkcija pasliktinājās: atkārtoti nosakiet kreatinīnu un eGFR."))
     else:
-        out.append(_s("creat", "consider", "1w", "Only if renal function was impaired or the patient takes nephrotoxic drugs."))
+        out.append(_s("creat", "consider", "1w", "Tikai tad, ja bija nieru funkcijas traucējumi vai pacients lieto nefrotoksiskus medikamentus."))
     if v.get("Imaging") == "Not done" and upper_or_complicated:
-        out.append(_s("us_kb", "rec", "asap", "Upper-tract or complicated UTI without imaging. EAU (strong): image the "
-                                              "urinary tract to exclude obstruction or stones."))
+        out.append(_s("us_kb", "rec", "asap", "Augšējo urīnceļu vai komplicēta UCI bez attēldiagnostikas. EAU (stipra rekomendācija): veiciet urīnceļu attēldiagnostiku obstrukcijas vai akmeņu izslēgšanai."))
     elif v.get("Hydronephrosis") in ("Right", "Left", "Both"):
-        out.append(_s("us_k", "consider", "visit", "Hydronephrosis was found: check that it has resolved."))
+        out.append(_s("us_k", "consider", "visit", "Konstatēta hidronefroze: pārliecinieties, ka tā izzudusi."))
     if v.get("Catheter at discharge") == "Removed" and v.get("Voiding after removal") in (
             "Feeling of incomplete emptying", "Increased residual urine"):
-        out.append(_s("pvr", "rec", "1w", "Incomplete emptying after catheter removal: recheck the residual urine."))
+        out.append(_s("pvr", "rec", "1w", "Nepilnīga iztukšošanās pēc katetra evakuācijas: atkārtoti nosakiet atlikušo urīnu."))
     if v.get("_sex") == "Man":
-        out.append(_s("uroflow", "consider", "at_visit", "Men with UTI: look for bladder outlet obstruction "
-                                                        "(EAU: manage complicating factors)."))
-        out.append(_s("pvr", "consider", "at_visit", "Men with UTI: check that the bladder empties."))
+        out.append(_s("uroflow", "consider", "at_visit", "Vīrieši ar UCI: meklējiet infravezikālu obstrukciju (EAU: ārstēt komplicējošos faktorus)."))
+        out.append(_s("pvr", "consider", "at_visit", "Vīrieši ar UCI: pārbaudiet, vai urīnpūslis iztukšojas."))
     if "Hematuria" in (v.get("Symptoms") or []):
-        out.append(_s("ua", "consider", "4-6w", "EAU: with haematuria, repeat urinalysis a few weeks after treatment; "
-                                               "haematuria that persists needs a work-up."))
+        out.append(_s("ua", "consider", "4-6w", "EAU: hematūrijas gadījumā atkārtojiet urīna analīzi dažas nedēļas pēc ārstēšanas; ja hematūrija saglabājas, nepieciešama izmeklēšana."))
     if "Recurrent UTIs" in (v.get("Relevant history") or []):
-        why = "Recurrent UTIs: look for a urological cause."
+        why = "Recidivējošas UCI: meklējiet uroloģisku cēloni."
         if v.get("_sex") == "Woman":
-            why += (" EAU (weak): no extensive routine work-up (cystoscopy, full abdominal ultrasound) in women "
-                    "under 40 without risk factors.")
+            why += (" EAU (vāja rekomendācija): sievietēm līdz 40 gadu vecumam bez riska faktoriem plaša rutīnas izmeklēšana (cistoskopija, pilna vēdera dobuma USS) nav nepieciešama.")
         out.append(_s("us_kb", "consider", "visit", why))
     out.append(_s("cbc", "consider", "1w", PRACTICE_LABS))
     out.append(_s("crp", "consider", "1w", PRACTICE_LABS))
@@ -8709,53 +8730,44 @@ def n39_tests(v):
     return out
 
 
-STONE_ANALYSIS_WHY = ("EAU (strong): analyse the stone in every first-time stone former (infrared spectroscopy or "
-                      "X-ray diffraction), and again after a recurrence.")
-STONE_BASIC_WHY = ("EAU: basic metabolic evaluation for every stone former – blood creatinine, calcium and uric acid; "
-                   "urine dipstick, pH and sediment.")
-STONE_HIGH_RISK_WHY = ("Only for high-risk stone formers (recurrent or early-onset stones, solitary kidney, bilateral "
-                       "or large stones, uric acid, infection or cystine stones, bowel disease). EAU: two 24-hour urines "
-                       "at least 20 days, ideally about 3 months, after the episode, on the usual diet.")
+STONE_ANALYSIS_WHY = ("EAU (stipra rekomendācija): analizējiet akmeni katram pacientam, kuram akmens veidojies pirmo reizi (infrasarkanā spektroskopija vai rentgenstaru difrakcija), un atkārtoti pēc recidīva.")
+STONE_BASIC_WHY = ("EAU: pamata metaboliskā izvērtēšana katram akmeņu veidotājam – kreatinīns, kalcijs un urīnskābe asinīs; urīna testa strēmele, pH un nogulsnes.")
+STONE_HIGH_RISK_WHY = ("Tikai augsta riska akmeņu veidotājiem (recidivējoši vai agrīni akmeņi, vienīgā niere, abpusēji vai lieli akmeņi, urīnskābes, infekcijas vai cistīna akmeņi, zarnu slimības). EAU: divas diennakts urīna savākšanas vismaz 20 dienas, ideāli apmēram 3 mēnešus pēc epizodes, ierastas diētas apstākļos.")
 
 
 def n20_tests(v):
     out = []
     if v.get("_department") == "NMC":
-        out.append(_s("us_k", "rec", "visit", "Check that the stone has passed and the kidney is not dilated. "
-                                              "EAU follow-up imaging: ultrasound and/or KUB."))
-        out.append(_s("kub", "consider", "visit", "For a radiopaque stone, KUB with ultrasound shows where the stone is."))
-        out.append(_s("stone", "rec", "none", STONE_ANALYSIS_WHY + " Ask the patient to strain the urine and keep the stone.",
+        out.append(_s("us_k", "rec", "visit", "Pārliecinieties, ka akmens ir izgājis un niere nav dilatēta. EAU novērošanas attēldiagnostika: USS un/vai urīnceļu pārskata rentgenogramma."))
+        out.append(_s("kub", "consider", "visit", "Rentgenkontrastējama akmens gadījumā urīnceļu pārskata rentgenogramma kopā ar USS parāda akmens atrašanās vietu."))
+        out.append(_s("stone", "rec", "none", STONE_ANALYSIS_WHY + " Lūdziet pacientu filtrēt urīnu un saglabāt akmeni.",
                       text="izdalītā konkrementa ķīmiskā sastāva analīze (urīnu filtrēt, konkrementu saglabāt)"))
         out.append(_s("stone_blood", "rec", "visit", STONE_BASIC_WHY))
         out.append(_s("ua", "rec", "visit", STONE_BASIC_WHY))
-        out.append(_s("ncct", "consider", "symptoms", "EAU: keep CT for persistent symptoms or for planning an intervention."))
-        out.append(_s("cbc", "consider", "visit", "Not needed for an uncomplicated stone (EAU); only if infection is suspected."))
+        out.append(_s("ncct", "consider", "symptoms", "EAU: DT paturiet persistējošu simptomu gadījumam vai intervences plānošanai."))
+        out.append(_s("cbc", "consider", "visit", "Nekomplicēta akmens gadījumā nav nepieciešams (EAU); tikai, ja ir aizdomas par infekciju."))
     elif v.get("Admission") == "Acute":  # drained infected, obstructed kidney
-        out.append(_s("uc", "rec", "definitive", "EAU (strong): delay stone treatment until the infection has resolved and "
-                                                 "repeat the urine culture; culture before any intervention."))
+        out.append(_s("uc", "rec", "definitive", "EAU (stipra rekomendācija): akmens ārstēšanu atlieciet līdz infekcijas izzušanai un atkārtojiet urīna uzsējumu; uzsējums pirms jebkuras intervences."))
         out.append(_s("creat", "rec" if v.get("Urosepsis") else "consider", "1w",
-                      "Obstruction and sepsis can impair renal function: recheck after the drainage."))
+                      "Obstrukcija un sepse var pasliktināt nieru funkciju: atkārtoti nosakiet pēc drenāžas."))
         out.append(_s("cbc", "consider", "1w", PRACTICE_LABS))
         out.append(_s("crp", "consider", "1w", PRACTICE_LABS))
-        out.append(_s("ncct", "consider", "definitive", "Only if new imaging is needed to plan the definitive treatment "
-                                                        "(EAU: CT as preoperative imaging)."))
+        out.append(_s("ncct", "consider", "definitive", "Tikai tad, ja galīgās ārstēšanas plānošanai nepieciešama jauna attēldiagnostika (EAU: DT kā pirmsoperācijas izmeklējums)."))
         out.append(_s("stone", "rec", "after_definitive", STONE_ANALYSIS_WHY))
         out.append(_s("stone_blood", "consider", "after_definitive", STONE_BASIC_WHY))
     else:  # planned endoscopic treatment
-        out.append(_s("stone", "rec", "none", STONE_ANALYSIS_WHY + " Check the result of the fragments sent at surgery."))
+        out.append(_s("stone", "rec", "none", STONE_ANALYSIS_WHY + " Pārbaudiet operācijas laikā nosūtīto fragmentu rezultātu."))
         out.append(_s("stone_blood", "rec", "visit", STONE_BASIC_WHY))
         out.append(_s("ua", "rec", "visit", STONE_BASIC_WHY))
-        out.append(_s("us_k", "rec", "visit", "Look for residual fragments and dilatation. EAU follow-up imaging: ultrasound "
-                                              "and/or KUB; CT only if symptomatic or before a new intervention."))
-        out.append(_s("kub", "consider", "visit", "For radiopaque stones, KUB together with ultrasound."))
+        out.append(_s("us_k", "rec", "visit", "Meklējiet atlikušos fragmentus un dilatāciju. EAU novērošanas attēldiagnostika: USS un/vai urīnceļu pārskata rentgenogramma; DT tikai simptomu gadījumā vai pirms jaunas intervences."))
+        out.append(_s("kub", "consider", "visit", "Rentgenkontrastējamiem akmeņiem – urīnceļu pārskata rentgenogramma kopā ar USS."))
         if v.get("JJ stent placed"):
             if v.get("Urinary tract infection") == "Yes":
-                out.append(_s("uc", "rec", "stent", "Infection in this episode: urine culture before the stent is removed "
-                                                    "(EAU: culture before urological procedures)."))
+                out.append(_s("uc", "rec", "stent", "Infekcija šīs epizodes laikā: urīna uzsējums pirms stenta evakuācijas (EAU: uzsējums pirms uroloģiskām manipulācijām)."))
             else:
-                out.append(_s("uc", "consider", "stent", "Before cystoscopic stent removal, if there are symptoms or a recent infection."))
-        out.append(_s("ncct", "consider", "symptoms", "EAU: CT for symptomatic disease or before a new intervention."))
-        out.append(_s("creat", "consider", "visit", "Both sides treated, solitary kidney or known renal impairment."))
+                out.append(_s("uc", "consider", "stent", "Pirms cistoskopiskas stenta evakuācijas, ja ir simptomi vai nesena infekcija."))
+        out.append(_s("ncct", "consider", "symptoms", "EAU: DT simptomātiskas slimības gadījumā vai pirms jaunas intervences."))
+        out.append(_s("creat", "consider", "visit", "Ārstētas abas puses, vienīgā niere vai zināmi nieru funkcijas traucējumi."))
     out.append(_s("urine24", "consider", "3m", STONE_HIGH_RISK_WHY))
     return out
 
@@ -8769,48 +8781,37 @@ def c67_tests(v):
     high_grade = v.get("Tumour grade") == "High grade (HG)"
     cis = stage == "pTis (CIS)" or bool(v.get("Concomitant CIS"))
     if stage == "pT2":
-        out.append(_s("ct_stage", "rec", "asap", "Muscle-invasive tumour. EAU MIBC (strong): stage with CT of the chest, "
-                                                 "abdomen and pelvis, including CT urography."))
-        out.append(_s("creat", "rec", "asap", "Renal function before contrast CT and for treatment planning "
-                                              "(e.g. cisplatin eligibility)."))
-        out.append(_s("cysto", "avoid", "3m", "MIBC goes to the oncology council for radical treatment, not to the NMIBC "
-                                              "cystoscopy schedule."))
+        out.append(_s("ct_stage", "rec", "asap", "Muskulī invazīvs audzējs. EAU MIBC (stipra rekomendācija): stadēšana ar krūškurvja, vēdera un iegurņa DT, ieskaitot DT urogrāfiju."))
+        out.append(_s("creat", "rec", "asap", "Nieru funkcija pirms DT ar kontrastvielu un ārstēšanas plānošanai (piem., piemērotība cisplatīnam)."))
+        out.append(_s("cysto", "avoid", "3m", "MIBC tiek nodots onkoloģiskajam konsīlijam radikālas ārstēšanas lēmumam, nevis NMIBC cistoskopiju grafikam."))
         return out
     if stage == "Other / not malignant":
-        out.append(_s("cysto", "consider", "3m", "Not a malignant tumour: further cystoscopy as the urologist decides."))
+        out.append(_s("cysto", "consider", "3m", "Nav ļaundabīgs audzējs: turpmākās cistoskopijas pēc urologa lēmuma."))
         return out
     high = known and (high_grade or stage == "pT1" or cis)
-    out.append(_s("cysto", "rec", "3m", "EAU NMIBC (strong): the first cystoscopy 3 months after TURU, in all Ta/T1 "
-                                        "tumours and CIS."))
+    out.append(_s("cysto", "rec", "3m", "EAU NMIBC (stipra rekomendācija): pirmā cistoskopija 3 mēnešus pēc TURU visiem Ta/T1 audzējiem un CIS."))
     risk = nmibc_risk(v)
     if risk == "low":
-        out.append(_s("cysto_low", "rec", "later", "EAU (weak): low risk – cystoscopy at 3 months, then 9 months later, "
-                                                   "then yearly for 5 years."))
+        out.append(_s("cysto_low", "rec", "later", "EAU (vāja rekomendācija): zems risks – cistoskopija pēc 3 mēnešiem, tad pēc 9 mēnešiem, tad katru gadu 5 gadus."))
     elif risk == "intermediate" and v.get("Tumour grade") == "Low grade (LG)":
-        out.append(_s("cysto_int", "rec", "later", "EAU (weak): intermediate-risk Ta LG – every 6 months for 2 years, "
-                                                   "then yearly for 10 years."))
+        out.append(_s("cysto_int", "rec", "later", "EAU (vāja rekomendācija): vidēja riska Ta LG – ik 6 mēnešus 2 gadus, pēc tam katru gadu 10 gadus."))
     if high:
-        out.append(_s("cyto", "rec", "3m", "High grade, T1 or CIS: EAU follows these as high risk – cystoscopy with urine "
-                                           "cytology at 3 months."))
-        out.append(_s("cysto_later", "rec", "later", "EAU high-risk schedule (weak recommendation)."))
-        out.append(_s("ctu_yearly", "rec", "later", "EAU (weak): yearly upper tract imaging (CT urography) in high and "
-                                                    "very high risk."))
+        out.append(_s("cyto", "rec", "3m", "Augstas pakāpes, T1 vai CIS: EAU tos novēro kā augsta riska – cistoskopija ar urīna citoloģiju pēc 3 mēnešiem."))
+        out.append(_s("cysto_later", "rec", "later", "EAU augsta riska grafiks (vāja rekomendācija)."))
+        out.append(_s("ctu_yearly", "rec", "later", "EAU (vāja rekomendācija): ikgadēja augšējo urīnceļu attēldiagnostika (DT urogrāfija) augsta un ļoti augsta riska gadījumā."))
     elif known:
-        out.append(_s("cyto", "avoid", "3m", "EAU: no routine cytology in low- or intermediate-risk (low-grade Ta) follow-up."))
+        out.append(_s("cyto", "avoid", "3m", "EAU: zema vai vidēja riska (zemas pakāpes Ta) novērošanā rutīnas citoloģija nav nepieciešama."))
     else:
-        out.append(_s("cyto", "consider", "3m", "Depends on the histology: EAU adds cytology to cystoscopy for high-grade tumours."))
+        out.append(_s("cyto", "consider", "3m", "Atkarīgs no histoloģijas: augstas pakāpes audzēju gadījumā EAU cistoskopijai pievieno citoloģiju."))
     if v.get("TURU type") == "TURU":
         if stage == "pT1":
-            out.append(_s("returu", "rec", "2-6w", "EAU (strong): second resection for T1 tumours, within 2–6 weeks."))
+            out.append(_s("returu", "rec", "2-6w", "EAU (stipra rekomendācija): T1 audzēju gadījumā atkārtota rezekcija 2–6 nedēļu laikā."))
         elif high_grade or not known:
-            out.append(_s("returu", "consider", "2-6w", "EAU (strong): second resection if the first was incomplete or the "
-                                                        "specimen has no detrusor muscle (not for Ta LG or primary CIS); "
-                                                        "within 2–6 weeks."))
+            out.append(_s("returu", "consider", "2-6w", "EAU (stipra rekomendācija): atkārtota rezekcija, ja pirmā bija nepilnīga vai preparātā nav detrūzora muskuļa (nav paredzēta Ta LG vai primāram CIS); 2–6 nedēļu laikā."))
     if "Trigone" in (v.get("Tumour location") or []) or v.get("Tumour number") not in (None, "Single") or high:
-        out.append(_s("ctu", "consider", "visit", "EAU (strong): baseline CT urography in selected cases – trigone, "
-                                                  "multiple or high-risk tumours – if not done yet."))
-    out.append(_s("creat", "consider", "visit", "Before contrast CT urography, if one is planned."))
-    out.append(_s("us_kb", "avoid", "visit", "Not part of EAU follow-up when cystoscopy can be done."))
+        out.append(_s("ctu", "consider", "visit", "EAU (stipra rekomendācija): sākotnējā DT urogrāfija atsevišķos gadījumos – trīsstūra, multipli vai augsta riska audzēji – ja vēl nav veikta."))
+    out.append(_s("creat", "consider", "visit", "Pirms DT urogrāfijas ar kontrastvielu, ja tā plānota."))
+    out.append(_s("us_kb", "avoid", "visit", "Nav daļa no EAU novērošanas, ja iespējams veikt cistoskopiju."))
     return out
 
 
@@ -8818,10 +8819,10 @@ def nmc_cancer_tests(v):
     """Prostate or kidney cancer seen at NMC and sent home."""
     out = []
     if v.get("NMC reason") == "Urinary retention":
-        out.append(_s("creat", "consider", "1w", "Retention can impair renal function: recheck if it was raised at NMC."))
-        out.append(_s("us_kb", "consider", "visit", "If renal function is impaired: look for upper tract dilatation."))
+        out.append(_s("creat", "consider", "1w", "Retence var pasliktināt nieru funkciju: atkārtoti nosakiet, ja NMC tā bija paaugstināta."))
+        out.append(_s("us_kb", "consider", "visit", "Ja ir nieru funkcijas traucējumi: meklējiet augšējo urīnceļu dilatāciju."))
     elif v.get("NMC reason") == "Hematuria":
-        out.append(_s("cbc", "consider", "1w", "Check haemoglobin after the bleeding."))
+        out.append(_s("cbc", "consider", "1w", "Pēc asiņošanas pārbaudiet hemoglobīnu."))
     if v.get("Discharged with catheter"):
         out.append(_s("uc", "avoid", "symptoms", NO_CATHETER_UC))
     return out
@@ -8834,24 +8835,23 @@ def c61_tests(v):
     if v.get("Operation") == "Radical prostatectomy":
         adverse = (v.get("Pathological T stage") in ("pT3b", "pT4") or v.get("Pathological N stage") == "pN1"
                    or v.get("Surgical margin") == "R1")
-        why = "EAU (strong): follow up with PSA. PSA should be undetectable about 2 months after RP"
-        why += ("; with adverse pathology an early PSA shows persistence (≥0.1 ng/ml)." if adverse else ".")
+        why = "EAU (stipra rekomendācija): novērošana ar PSA. Apmēram 2 mēnešus pēc RP PSA jābūt nenosakāmam"
+        why += ("; nelabvēlīgas patoloģijas gadījumā agrīns PSA parāda persistenci (≥0,1 ng/ml)." if adverse else ".")
         out.append(_s("psa", "rec", "6w" if adverse else "3m", why))
-        out.append(_s("psa_later", "rec", "later", "EAU: PSA every 6 months for 3 years, then yearly."))
-        out.append(_s("continence", "consider", "3m", "EAU: record functional results with validated questionnaires."))
-        out.append(_s("iief", "consider", "3m", "EAU: record erectile function with validated questionnaires."))
-        out.append(_s("bone_pet", "avoid", "3m", "EAU: imaging has no place in routine follow-up while PSA is not rising."))
-        out.append(_s("ct_abd", "avoid", "3m", "EAU: imaging has no place in routine follow-up while PSA is not rising."))
-        out.append(_s("ua", "avoid", "visit", "Not part of EAU follow-up after RP; only with urinary symptoms."))
-        out.append(_s("cbc", "avoid", "visit", "Not part of EAU follow-up after RP."))
-        out.append(_s("panel", "avoid", "visit", "Your department's previous list. EAU follow-up after RP needs PSA "
-                                                 "and a disease-specific history; the rest only if clinically needed."))
+        out.append(_s("psa_later", "rec", "later", "EAU: PSA ik 6 mēnešus 3 gadus, pēc tam katru gadu."))
+        out.append(_s("continence", "consider", "3m", "EAU: funkcionālos rezultātus dokumentējiet ar validētām anketām."))
+        out.append(_s("iief", "consider", "3m", "EAU: erektilo funkciju dokumentējiet ar validētām anketām."))
+        out.append(_s("bone_pet", "avoid", "3m", "EAU: kamēr PSA nepieaug, attēldiagnostikai rutīnas novērošanā nav vietas."))
+        out.append(_s("ct_abd", "avoid", "3m", "EAU: kamēr PSA nepieaug, attēldiagnostikai rutīnas novērošanā nav vietas."))
+        out.append(_s("ua", "avoid", "visit", "Nav daļa no EAU novērošanas pēc RP; tikai urinācijas simptomu gadījumā."))
+        out.append(_s("cbc", "avoid", "visit", "Nav daļa no EAU novērošanas pēc RP."))
+        out.append(_s("panel", "avoid", "visit", "Jūsu nodaļas iepriekšējais saraksts. EAU novērošanai pēc RP nepieciešams PSA un slimībai specifiska anamnēze; pārējais tikai pēc klīniskas nepieciešamības."))
     elif v.get("Operation") == "TURP":
-        why = "Checks the result of the TURP (EAU male LUTS follow-up: IPSS, uroflowmetry, residual urine)."
+        why = "Izvērtē TURP rezultātu (EAU vīriešu AUCS novērošana: IPSS, uroflowmetrija, atlikušais urīns)."
         out.append(_s("ipss", "consider", "at_visit", why))
         out.append(_s("uroflow", "consider", "at_visit", why))
         out.append(_s("pvr", "consider", "at_visit", why))
-        out.append(_s("psa", "consider", "3m", "Prostate cancer follow-up continues with PSA; the TURP itself lowers PSA."))
+        out.append(_s("psa", "consider", "3m", "Prostatas vēža novērošana turpinās ar PSA; TURP pati par sevi samazina PSA."))
     return out
 
 
@@ -8870,42 +8870,38 @@ def c64_tests(v):
         return nmc_cancer_tests(v)
     out = []
     egfr = v.get("eGFR at discharge")
-    why = "EAU: follow renal function after kidney surgery"
+    why = "EAU: pēc nieres operācijas kontrolējiet nieru funkciju"
     if egfr not in (None, "") and egfr < 45:
-        why += "; eGFR is below 45, so EAU suggests a nephrology referral"
+        why += "; eGFR ir zem 45, tāpēc EAU iesaka nefrologa konsultāciju"
     out.append(_s("creat", "rec", "visit", why + "."))
     if v.get("Histology") == "Pending":
-        out.append(_s("ct_ca", "rec", "histology", "The CT schedule depends on the recurrence risk (EAU), which needs "
-                                                   "the histology."))
+        out.append(_s("ct_ca", "rec", "histology", "DT grafiks ir atkarīgs no recidīva riska (EAU), kura noteikšanai nepieciešama histoloģija."))
     elif v.get("RCC subtype") == "Benign":
-        out.append(_s("ct_ca", "avoid", "6m", "Benign histology: no oncological CT follow-up."))
+        out.append(_s("ct_ca", "avoid", "6m", "Labdabīga histoloģija: onkoloģiska DT novērošana nav nepieciešama."))
     elif v.get("Histology") == "Known":
         risk = v.get("Follow-up risk group") or "Intermediate"
-        months = TIMINGS[RCC_FIRST_CT[risk]][0].lower()
-        why = f"EAU {risk.lower()}-risk schedule: first CT of the chest and abdomen {months} (abdominal MRI is an alternative)."
+        months = tr(TIMINGS[RCC_FIRST_CT[risk]][0]).lower()
+        why = f"EAU grafiks ({tr(risk).lower()} risks): pirmā krūškurvja un vēdera dobuma DT {months} (alternatīva – vēdera dobuma MR)."
         if v.get("Kidney operation") == "Partial nephrectomy" and v.get("RCC margin") == "R1":
-            why += " Positive margin after partial nephrectomy: EAU (weak) suggests closer follow-up."
+            why += " Pozitīva rezekcijas robeža pēc nieres rezekcijas: EAU (vāja rekomendācija) iesaka biežāku novērošanu."
         out.append(_s("ct_ca", "rec", RCC_FIRST_CT[risk], why))
-        out.append(_s("ct_later", "rec", "later", f"EAU {risk.lower()}-risk schedule.", text=RCC_LATER_CT[risk]))
-    out.append(_s("cxr", "avoid", "6m", "EAU: chest X-ray and ultrasound are too insensitive for small RCC metastases."))
-    out.append(_s("bone_pet", "avoid", "6m", "EAU: no routine bone scan or PET in follow-up."))
+        out.append(_s("ct_later", "rec", "later", f"EAU grafiks ({tr(risk).lower()} risks).", text=RCC_LATER_CT[risk]))
+    out.append(_s("cxr", "avoid", "6m", "EAU: krūškurvja rentgenogramma un USS ir pārāk nejutīgas nelielu NŠK metastāžu atklāšanai."))
+    out.append(_s("bone_pet", "avoid", "6m", "EAU: novērošanā rutīnas skeleta scintigrāfija vai PET nav nepieciešama."))
     return out
 
 
 def n35_tests(v):
     out = []
     if v.get("_department") == "NMC":
-        out.append(_s("rug_vcug", "rec", "definitive", "EAU: urethrography (retrograde, plus voiding through the "
-                                                       "suprapubic catheter) shows the site and length of the stricture "
-                                                       "before definitive treatment."))
-        out.append(_s("urethrocysto", "consider", "definitive", "EAU: urethroscopy adds to urethrography in assessing the stricture."))
-        out.append(_s("uc", "rec", "definitive", "EAU: screen for and treat bacteriuria before urethral surgery "
-                                                 "(urine culture is better than urinalysis)."))
+        out.append(_s("rug_vcug", "rec", "definitive", "EAU: uretrogrāfija (retrogrāda, kā arī mikcijas caur epicistostomu) parāda striktūras vietu un garumu pirms galīgās ārstēšanas."))
+        out.append(_s("urethrocysto", "consider", "definitive", "EAU: uretroskopija papildina uretrogrāfiju striktūras izvērtēšanā."))
+        out.append(_s("uc", "rec", "definitive", "EAU: pirms uretras operācijas meklējiet un ārstējiet bakteriūriju (urīna uzsējums ir labāks par urīna analīzi)."))
         raised = v.get("Creatinine raised (N35)") or (v.get("Drained volume (ml)") or 0) > 1000
         out.append(_s("creat", "rec" if raised else "consider", "1w",
-                      "Large retention or raised creatinine: recheck renal function." if raised
-                      else "Only if renal function was raised at NMC."))
-        out.append(_s("us_kb", "consider", "visit", "After a large retention or raised creatinine: look for upper tract dilatation."))
+                      "Liela retence vai paaugstināts kreatinīns: atkārtoti nosakiet nieru funkciju." if raised
+                      else "Tikai, ja NMC nieru funkcijas rādītāji bija paaugstināti."))
+        out.append(_s("us_kb", "consider", "visit", "Pēc lielas retences vai paaugstināta kreatinīna: meklējiet augšējo urīnceļu dilatāciju."))
         return out
     op = v.get("Stricture operation")
     if op in URETHROPLASTY:
@@ -8913,55 +8909,45 @@ def n35_tests(v):
                     and v.get("Stricture location") in ("Bulbar urethra", "Membranous (posterior) urethra")
                     and v.get("Stricture cause") != "Lichen sclerosus")
         if v.get("Catheter at discharge (N35)") == "In place":
-            out.append(_s("rug_pericath", "rec", "catheter", "EAU (strong): urethrography before catheter removal to exclude "
-                                                             "extravasation; the first one 7–10 days after an uncomplicated "
-                                                             "urethroplasty (weak)."))
-        out.append(_s("uroflow", "rec", "3m", "EAU: uroflowmetry at 3, 12 and 24 months"
-                                              + ("." if low_risk else ", and at 5 years in standard risk.")))
-        out.append(_s("proms", "rec", "3m", "EAU (strong): patient-reported outcome measures and a validated sexual "
-                                            "function questionnaire."))
-        out.append(_s("urethrocysto", "rec", "3m", "EAU (weak): flexible cystoscopy 3 months after urethroplasty "
-                                                   "(retrograde urethrography is an alternative)."))
+            out.append(_s("rug_pericath", "rec", "catheter", "EAU (stipra rekomendācija): uretrogrāfija pirms katetra evakuācijas ekstravazācijas izslēgšanai; pirmā – 7–10 dienas pēc nekomplicētas uretroplastikas (vāja rekomendācija)."))
+        out.append(_s("uroflow", "rec", "3m", "EAU: uroflowmetrija pēc 3, 12 un 24 mēnešiem"
+                                              + ("." if low_risk else ", standarta riska gadījumā arī pēc 5 gadiem.")))
+        out.append(_s("proms", "rec", "3m", "EAU (stipra rekomendācija): pacientu ziņoto iznākumu anketas un validēta seksuālās funkcijas anketa."))
+        out.append(_s("urethrocysto", "rec", "3m", "EAU (vāja rekomendācija): fleksibla cistoskopija 3 mēnešus pēc uretroplastikas (alternatīva – retrogrāda uretrogrāfija)."))
         if low_risk:
-            out.append(_s("stricture_later", "rec", "later", "EAU low-risk schedule (anastomotic bulbar or membranous repair "
-                                                            "without lichen sclerosus).",
+            out.append(_s("stricture_later", "rec", "later", "EAU zema riska grafiks (bulbāras vai membranozas uretras anastomotiska plastika bez lichen sclerosus).",
                           text="12 un 24 mēnešus pēc operācijas – uroflowmetrija un simptomu anketas, cistoskopija vai "
                                "uretrogrāfija pēc indikācijām"))
         else:
-            out.append(_s("stricture_later", "rec", "later", "EAU standard-risk schedule (penile, graft or other risk factors).",
+            out.append(_s("stricture_later", "rec", "later", "EAU standarta riska grafiks (penila uretra, transplantāts vai citi riska faktori).",
                           text="12 un 24 mēnešus pēc operācijas – uroflowmetrija, simptomu anketas un cistoskopija vai "
                                "uretrogrāfija; uroflowmetrija un anketas arī pēc 5 gadiem"))
-        out.append(_s("pvr", "consider", "3m", "EAU: residual urine helps only together with other tests, not on its own."))
+        out.append(_s("pvr", "consider", "3m", "EAU: atlikušais urīns ir noderīgs tikai kopā ar citiem izmeklējumiem, nevis atsevišķi."))
     else:
-        out.append(_s("uroflow", "rec", "3m", "EAU gives no schedule after dilation, urethrotomy or meatotomy; uroflowmetry "
-                                              "with a symptom score is the usual check for an early recurrence."))
-        out.append(_s("pvr", "consider", "3m", "Helpful together with uroflowmetry."))
-        out.append(_s("proms", "consider", "3m", "A symptom questionnaire to follow the result."))
-        out.append(_s("urethrocysto", "consider", "3m", "No EAU schedule after urethrotomy/dilation; a control "
-                                                        "cystoscopy at 3 months is your department's practice – or only "
-                                                        "if the stream weakens."))
+        out.append(_s("uroflow", "rec", "3m", "EAU nenosaka grafiku pēc dilatācijas, uretrotomijas vai meatotomijas; agrīna recidīva kontrolei parasti izmanto uroflowmetriju ar simptomu skalu."))
+        out.append(_s("pvr", "consider", "3m", "Noderīgi kopā ar uroflowmetriju."))
+        out.append(_s("proms", "consider", "3m", "Simptomu anketa rezultāta novērošanai."))
+        out.append(_s("urethrocysto", "consider", "3m", "Pēc uretrotomijas/dilatācijas EAU grafika nav; kontroles cistoskopija pēc 3 mēnešiem ir jūsu nodaļas prakse – vai tikai tad, ja strūkla kļūst vājāka."))
     return out
 
 
 def n40_tests(v):
     out = []
-    why = "EAU male LUTS: review 4–6 weeks after catheter removal with IPSS, uroflowmetry and residual urine."
+    why = "EAU vīriešu AUCS: izvērtēšana 4–6 nedēļas pēc katetra evakuācijas ar IPSS, uroflowmetriju un atlikušo urīnu."
     out.append(_s("ipss", "rec", "at_visit", why))
     out.append(_s("uroflow", "rec", "at_visit", why))
     out.append(_s("pvr", "rec", "at_visit", why))
-    out.append(_s("iief", "consider", "at_visit", "EAU also lists erectile and ejaculatory function at this review."))
+    out.append(_s("iief", "consider", "at_visit", "EAU šajā vizītē iesaka izvērtēt arī erektilo un ejakulācijas funkciju."))
     if "Upper tract dilatation / renal impairment" in (v.get("BPH indication") or []):
-        out.append(_s("creat", "rec", "visit", "Renal impairment before surgery: check that it improves."))
-        out.append(_s("us_k", "rec", "visit", "Upper tract dilatation before surgery: check that it has resolved."))
+        out.append(_s("creat", "rec", "visit", "Nieru funkcijas traucējumi pirms operācijas: pārliecinieties, ka tie mazinās."))
+        out.append(_s("us_k", "rec", "visit", "Augšējo urīnceļu dilatācija pirms operācijas: pārliecinieties, ka tā izzudusi."))
     result = (v.get("Histology result (BPH)") or "").lower()
     if v.get("Histology") == "Known" and any(w in result for w in ("karcinom", "adenokarcinom", "ca ", "gleason", "isup")):
-        out.append(_s("psa", "rec", "3m", "Incidental prostate cancer: PSA follow-up and further assessment in the "
-                                          "oncology council."))
-        out.append(_s("mri_prostate", "consider", "3m", "Incidental prostate cancer: MRI if curative treatment is being considered."))
+        out.append(_s("psa", "rec", "3m", "Nejauši atklāts prostatas vēzis: PSA novērošana un turpmāka izvērtēšana onkoloģiskajā konsīlijā."))
+        out.append(_s("mri_prostate", "consider", "3m", "Nejauši atklāts prostatas vēzis: MR, ja tiek apsvērta radikāla ārstēšana."))
     else:
-        out.append(_s("psa", "consider", "3m", "Not part of EAU follow-up after surgery. A new PSA baseline after TURP helps "
-                                               "later prostate cancer testing, if that would change management."))
-    out.append(_s("ua", "consider", "symptoms", "Only if burning or urgency do not settle (infection)."))
+        out.append(_s("psa", "consider", "3m", "Nav daļa no EAU novērošanas pēc operācijas. Jauna PSA bāzes vērtība pēc TURP palīdz vēlākai prostatas vēža diagnostikai, ja tas mainītu taktiku."))
+    out.append(_s("ua", "consider", "symptoms", "Tikai tad, ja dedzināšana vai neatliekama vēlme urinēt nemazinās (infekcija)."))
     out.append(_s("uc", "avoid", "at_visit", NO_ROUTINE_UC))
     return out
 
@@ -8969,21 +8955,19 @@ def n40_tests(v):
 def n47_tests(v):
     out = []
     if v.get("Balanoposthitis") or (not v.get("Surgery") and v.get("Conservative reason") == "Balanoposthitis"):
-        out.append(_s("glucose", "consider", "none", "Balanoposthitis, especially candidal or recurrent, can be the first "
-                                                     "sign of diabetes (UK BASHH guidance)."))
+        out.append(_s("glucose", "consider", "none", "Balanopostīts, īpaši kandidozs vai recidivējošs, var būt pirmā cukura diabēta pazīme (Lielbritānijas BASHH vadlīnijas)."))
     return out
 
 
 def t83_tests(v):
     out = []
     if v.get("Urinary retention (diagnosis)") or (v.get("Drained volume (ml)") or 0) > 1000:
-        out.append(_s("creat", "consider", "1w", "Retention or a large drained volume: check renal function."))
+        out.append(_s("creat", "consider", "1w", "Retence vai liels drenētā urīna apjoms: pārbaudiet nieru funkciju."))
     if v.get("Urine appearance at change") in ("Blood-tinged", "With clots"):
-        out.append(_s("us_kb", "consider", "visit", "Blood in the urine: look for clots, stones or a bladder lesion."))
+        out.append(_s("us_kb", "consider", "visit", "Asinis urīnā: meklējiet recekļus, akmeņus vai urīnpūšļa bojājumu."))
     else:
-        out.append(_s("us_kb", "consider", "visit", "If the catheter blocks again and again: look for bladder stones."))
-    out.append(_s("cysto", "consider", "visit", "Repeated blockage (encrustation, bladder stones) or haematuria: cystoscopy "
-                                                "at the urology review."))
+        out.append(_s("us_kb", "consider", "visit", "Ja katetrs atkārtoti nosprostojas: meklējiet urīnpūšļa akmeņus."))
+    out.append(_s("cysto", "consider", "visit", "Atkārtota nosprostošanās (inkrustācija, urīnpūšļa akmeņi) vai hematūrija: cistoskopija urologa vizītes laikā."))
     out.append(_s("uc", "avoid", "symptoms", NO_CATHETER_UC))
     return out
 
@@ -8991,14 +8975,12 @@ def t83_tests(v):
 def neph_tests(v):
     if v.get("_department") in ("NMC", "4"):
         return nf_tests(v)
-    out = [_s("creat", "consider", "next_change", "Renal function in an obstructed kidney – useful before the next change, "
-                                                  "especially with malignant obstruction.")]
+    out = [_s("creat", "consider", "next_change", "Obstruētas nieres funkcija – noderīgi pirms nākamās maiņas, īpaši ļaundabīgas obstrukcijas gadījumā.")]
     if v.get("Nephrostomy function") == "Reduced":
-        out.append(_s("us_k", "rec", "1w", "Reduced drainage: check the tube position and the dilatation."))
+        out.append(_s("us_k", "rec", "1w", "Samazināta drenāža: pārbaudiet caurulītes stāvokli un dilatāciju."))
     else:
-        out.append(_s("us_k", "consider", "next_change", "Only if drainage worsens or the tube position is in doubt."))
-    out.append(_s("uc", "avoid", "symptoms", "Nephrostomy urine is usually colonised. EAU: do not treat asymptomatic "
-                                             "bacteriuria; culture only with infection symptoms."))
+        out.append(_s("us_k", "consider", "next_change", "Tikai, ja drenāža pasliktinās vai ir šaubas par caurulītes stāvokli."))
+    out.append(_s("uc", "avoid", "symptoms", "Nefrostomas urīns parasti ir kolonizēts. EAU: asimptomātisku bakteriūriju neārstēt; uzsējums tikai infekcijas simptomu gadījumā."))
     return out
 
 
@@ -9013,32 +8995,29 @@ def nf_tests(v):
     creat = blood in ("Raised creatinine", "Raised CRP and creatinine")
     crp = blood in ("Raised CRP / leukocytosis", "Raised CRP and creatinine")
     out.append(_s("creat", "rec" if (creat or v.get("Solitary kidney")) else "consider",
-                  "48-72h" if creat else "1w", "Renal function after the obstruction is relieved (sooner if raised)."))
+                  "48-72h" if creat else "1w", "Nieru funkcija pēc obstrukcijas novēršanas (ātrāk, ja paaugstināti rādītāji)."))
     if crp and v.get("_department") == "NMC":
-        out.append(_s("crp", "rec", "48-72h", "Raised CRP at NMC: recheck to exclude a developing infection."))
-        out.append(_s("cbc", "rec", "48-72h", "With the CRP recheck."))
+        out.append(_s("crp", "rec", "48-72h", "Paaugstināts CRO NMC: atkārtoti nosakiet, lai izslēgtu infekcijas attīstību."))
+        out.append(_s("cbc", "rec", "48-72h", "Kopā ar atkārtotu CRO noteikšanu."))
     elif v.get("_department") == "4":
         out.append(_s("crp", "consider", "1w", PRACTICE_LABS))
     if v.get("Urine culture taken (NF)"):
-        out.append(_s("uc", "rec", "none", "Check the culture and adjust the antibiotic if there are infection signs.",
+        out.append(_s("uc", "rec", "none", "Pārbaudiet uzsējumu un, ja ir infekcijas pazīmes, pielāgojiet antibiotiku.",
                       text="paņemtā urīna uzsējuma rezultāts (Datamed.lv)"))
     else:
-        out.append(_s("uc", "avoid", "symptoms", "Nephrostomy urine is usually colonised. EAU: do not treat "
-                                                 "asymptomatic bacteriuria; culture only with infection symptoms."))
-    out.append(_s("us_k", "consider", "1w", "If drainage falls or the tube position is in doubt."))
+        out.append(_s("uc", "avoid", "symptoms", "Nefrostomas urīns parasti ir kolonizēts. EAU: asimptomātisku bakteriūriju neārstēt; uzsējums tikai infekcijas simptomu gadījumā."))
+    out.append(_s("us_k", "consider", "1w", "Ja drenāža samazinās vai ir šaubas par caurulītes stāvokli."))
     return out
 
 
 def n43_tests(v):
     out = []
     if not v.get("Scrotal ultrasound before surgery"):
-        out.append(_s("us_scrotum", "rec", "visit", "No ultrasound before surgery: in adults a hydrocele can be reactive "
-                                                    "to a testicular tumour, so the testis should be imaged."))
+        out.append(_s("us_scrotum", "rec", "visit", "Pirms operācijas nav veikta USS: pieaugušajiem hidrocēle var būt reaktīva sēklinieka audzēja dēļ, tāpēc sēklinieks jāizmeklē."))
     elif v.get("Scrotal hematoma"):
-        out.append(_s("us_scrotum", "consider", "1w", "Scrotal hematoma: recheck if it grows or does not settle."))
+        out.append(_s("us_scrotum", "consider", "1w", "Sēklinieku maisiņa hematoma: atkārtota izvērtēšana, ja tā palielinās vai nemazinās."))
     else:
-        out.append(_s("us_scrotum", "consider", "symptoms", "Only if the swelling does not settle or a recurrence is "
-                                                            "suspected; routine imaging is not needed."))
+        out.append(_s("us_scrotum", "consider", "symptoms", "Tikai tad, ja tūska nemazinās vai ir aizdomas par recidīvu; rutīnas attēldiagnostika nav nepieciešama."))
     return out
 
 
@@ -9049,18 +9028,14 @@ def n13_tests(v):
     out = []
     stent = v.get("Pyeloplasty stent") == "JJ stent"
     out.append(_s("us_k", "rec", "after_stent" if stent else "4-6w",
-                  "Common practice after pyeloplasty: ultrasound a few weeks after the stent is out, to check the "
-                  "hydronephrosis is not getting worse (no adult EAU guideline on PUJ obstruction)."))
-    out.append(_s("renogram", "rec", "6m", "Diuretic renography 3–6 months after surgery is the usual test of success "
-                                           "(better drainage, stable or better split function)."))
+                  "Ierasta prakse pēc pieloplastikas: USS dažas nedēļas pēc stenta evakuācijas, lai pārliecinātos, ka hidronefroze nepastiprinās (pieaugušajiem nav EAU vadlīniju par PUS obstrukciju)."))
+    out.append(_s("renogram", "rec", "6m", "Diurētiskā renogrāfija 3–6 mēnešus pēc operācijas ir ierastais veiksmes novērtējums (labāka drenāža, stabila vai uzlabojusies dalītā funkcija)."))
     split = v.get("Split renal function (%)")
     out.append(_s("creat", "rec" if (split not in (None, "") and split < 40) else "consider", "visit",
-                  "Renal function after surgery on an obstructed kidney; especially with reduced split function."))
+                  "Nieru funkcija pēc operācijas uz obstruētas nieres; īpaši, ja dalītā funkcija ir samazināta."))
     if stent:
-        out.append(_s("uc", "consider", "stent", "Before cystoscopic stent removal if there are urinary symptoms or a "
-                                                 "recent infection (EAU: treat bacteriuria before procedures that "
-                                                 "breach the mucosa)."))
-    out.append(_s("us_k", "consider", "later", "Later yearly ultrasound for 1–2 years: late failures do happen.",
+        out.append(_s("uc", "consider", "stent", "Pirms cistoskopiskas stenta evakuācijas, ja ir urinācijas simptomi vai nesena infekcija (EAU: pirms manipulācijām, kas bojā gļotādu, ārstējiet bakteriūriju)."))
+    out.append(_s("us_k", "consider", "later", "Vēlāk ikgadēja USS 1–2 gadus: vēlīnas neveiksmes ir iespējamas.",
                   text="nieru USS reizi gadā 1–2 gadus"))
     out.append(_s("ua", "avoid", "visit", NO_ROUTINE_UA))
     return out
@@ -9072,16 +9047,14 @@ TEST_ADVISORS["N13.0"] = n13_tests
 def scrotal_tests(v):
     out = []
     if not v.get("Scrotal ultrasound before surgery"):
-        out.append(_s("us_scrotum", "rec", "visit", "No ultrasound before surgery: image the testes and the operated "
-                                                    "area (EAU: ultrasound for every scrotal mass)."))
+        out.append(_s("us_scrotum", "rec", "visit", "Pirms operācijas nav veikta USS: izmeklējiet sēkliniekus un operēto apvidu (EAU: USS katram sēklinieku maisiņa veidojumam)."))
     else:
-        out.append(_s("us_scrotum", "consider", "symptoms", "Only if swelling or a lump returns; routine imaging is "
-                                                            "not needed after excision of a benign lesion."))
+        out.append(_s("us_scrotum", "consider", "symptoms", "Tikai, ja atkal parādās tūska vai veidojums; pēc labdabīga veidojuma ekscīzijas rutīnas attēldiagnostika nav nepieciešama."))
     result = (v.get("Scrotal histology result") or "").lower()
     if v.get("Histology") == "Known" and any(w in result for w in MALIGNANT_WORDS):
-        out.append(_s("ct_ca", "rec", "asap", "Malignant histology: staging as decided by the oncology council."))
-    out.append(_s("panel", "avoid", "visit", "Blood tests are not needed after excision of a benign scrotal lesion."))
-    out.append(_s("ua", "avoid", "visit", "Not needed after scrotal wall surgery."))
+        out.append(_s("ct_ca", "rec", "asap", "Ļaundabīga histoloģija: stadēšana pēc onkoloģiskā konsīlija lēmuma."))
+    out.append(_s("panel", "avoid", "visit", "Pēc labdabīga sēklinieku maisiņa veidojuma ekscīzijas asins analīzes nav nepieciešamas."))
+    out.append(_s("ua", "avoid", "visit", "Pēc sēklinieku maisiņa sienas operācijas nav nepieciešams."))
     return out
 
 
@@ -9090,26 +9063,22 @@ TEST_ADVISORS["D29.4"] = scrotal_tests
 
 def n21_tests(v):
     out = []
-    why = "EAU (weak): look for the cause of bladder stones – flow rate and residual urine."
+    why = "EAU (vāja rekomendācija): meklējiet urīnpūšļa akmeņu cēloni – urīna plūsmas ātrums un atlikušais urīns."
     out.append(_s("uroflow", "rec", "at_visit", why))
     out.append(_s("pvr", "rec", "at_visit", why))
     if not v.get("Stone sent for analysis"):
-        out.append(_s("stone", "consider", "none", "EAU: stone analysis for all first-time stone formers – if no "
-                                                   "fragments were sent, analyse any that pass.",
+        out.append(_s("stone", "consider", "none", "EAU: akmens analīze visiem pacientiem, kuriem akmens veidojies pirmo reizi – ja fragmenti netika nosūtīti, analizējiet tos, kas iziet.",
                       text="izdalīto konkrementa fragmentu ķīmiskā sastāva analīze"))
-    out.append(_s("ua", "rec", "visit", "EAU: urine dipstick and pH as part of the cause work-up."))
-    out.append(_s("uc", "consider", "visit", "EAU: urine culture is optional in the work-up; take it if there were "
-                                            "infection signs or the stone may be an infection stone."))
+    out.append(_s("ua", "rec", "visit", "EAU: urīna testa strēmele un pH kā daļa no cēloņa izmeklēšanas."))
+    out.append(_s("uc", "consider", "visit", "EAU: urīna uzsējums izmeklēšanā nav obligāts; paņemiet to, ja bija infekcijas pazīmes vai akmens var būt infekcijas akmens."))
     persisting = set(v.get("Bladder stone cause") or []) & {"Neurogenic bladder", "Long-term catheter",
                                                             "Augmented bladder / reservoir"}
     out.append(_s("us_kb", "rec" if persisting else "consider", "6m",
-                  "EAU (weak): individualise imaging follow-up; check for recurrence when the cause persists."))
-    out.append(_s("stone_blood", "consider", "visit", "EAU: metabolic assessment is part of the work-up, mainly when "
-                                                      "there is no clear obstructive cause."))
+                  "EAU (vāja rekomendācija): attēldiagnostikas novērošanu individualizēt; ja cēlonis saglabājas, pārbaudīt recidīvu."))
+    out.append(_s("stone_blood", "consider", "visit", "EAU: metaboliskā izvērtēšana ir daļa no izmeklēšanas, galvenokārt, ja nav skaidra obstruktīva cēloņa."))
     if "Urethral stricture" not in (v.get("Bladder stone cause") or []):
-        out.append(_s("urethrocysto", "consider", "visit", "EAU (weak): cystourethroscopy or urethrogram in selected "
-                                                           "patients (suspected stricture or bladder neck problem)."))
-    out.append(_s("us_k", "consider", "visit", "EAU (weak): upper tract imaging in selected patients."))
+        out.append(_s("urethrocysto", "consider", "visit", "EAU (vāja rekomendācija): uretrocistoskopija vai uretrogramma atsevišķiem pacientiem (aizdomas par striktūru vai urīnpūšļa kakliņa problēmu)."))
+    out.append(_s("us_k", "consider", "visit", "EAU (vāja rekomendācija): augšējo urīnceļu attēldiagnostika atsevišķiem pacientiem."))
     return out
 
 
@@ -9121,30 +9090,27 @@ def r33_tests(v):
     causes = v.get("Retention cause") or []
     raised = v.get("Labs at NMC") in ("Raised creatinine", "UTI and raised creatinine")
     out.append(_s("creat", "rec", "1w" if not raised else "48-72h",
-                  "Retention can impair renal function; recheck creatinine and eGFR (sooner if raised at NMC)."))
+                  "Retence var pasliktināt nieru funkciju; atkārtoti nosakiet kreatinīnu un eGFR (ātrāk, ja NMC tie bija paaugstināti)."))
     if v.get("Back pain or neurological symptoms"):
-        out.append(_s("mri_spine", "rec", "asap", "Retention with back pain or neurological signs: urgent MRI to exclude "
-                                                 "cauda equina syndrome."))
+        out.append(_s("mri_spine", "rec", "asap", "Retence ar muguras sāpēm vai neiroloģiskām pazīmēm: neatliekama MR, lai izslēgtu cauda equina sindromu."))
     if not v.get("Ultrasound at NMC"):
-        out.append(_s("us_kb", "rec", "visit", "Upper tracts, bladder and prostate volume were not imaged at NMC."))
+        out.append(_s("us_kb", "rec", "visit", "NMC netika izmeklēti augšējie urīnceļi, urīnpūslis un prostatas tilpums."))
     if v.get("Labs at NMC") in ("Urinary tract infection", "UTI and raised creatinine"):
-        out.append(_s("uc", "rec", "none", "Check the culture taken at NMC and adjust the antibiotic.",
+        out.append(_s("uc", "rec", "none", "Pārbaudiet NMC paņemto uzsējumu un pielāgojiet antibiotiku.",
                       text="NMC paņemtā urīna uzsējuma rezultāts (Datamed.lv)"))
     else:
         out.append(_s("uc", "avoid", "visit", NO_CATHETER_UC))
     if v.get("_sex") != "Woman" and any(c in causes for c in ("BPH", "Prostate cancer", "Not clear yet")):
-        out.append(_s("psa", "consider", "6w", "Retention and the catheter raise PSA – measure it no earlier than about "
-                                               "6 weeks, if a cancer diagnosis would change management."))
-        out.append(_s("ipss", "consider", "at_visit", "EAU male LUTS assessment of the cause."))
+        out.append(_s("psa", "consider", "6w", "Retence un katetrs paaugstina PSA – nosakiet to ne ātrāk kā apmēram pēc 6 nedēļām, ja vēža diagnoze mainītu taktiku."))
+        out.append(_s("ipss", "consider", "at_visit", "EAU vīriešu AUCS cēloņa izvērtēšana."))
     if v.get("Catheter plan (R33)") != "Long-term catheter":
-        out.append(_s("uroflow", "rec", "at_visit", "After a successful trial without catheter: flow rate and residual "
-                                                    "urine show whether the bladder empties."))
-        out.append(_s("pvr", "rec", "at_visit", "After a successful trial without catheter: residual urine."))
+        out.append(_s("uroflow", "rec", "at_visit", "Pēc veiksmīga katetra evakuācijas mēģinājuma: urīna plūsmas ātrums un atlikušais urīns parāda, vai urīnpūslis iztukšojas."))
+        out.append(_s("pvr", "rec", "at_visit", "Pēc veiksmīga katetra evakuācijas mēģinājuma: atlikušais urīns."))
     if "Urethral stricture" in causes:
-        out.append(_s("urethrocysto", "rec", "visit", "Stricture as the cause: assess it before definitive treatment."))
+        out.append(_s("urethrocysto", "rec", "visit", "Striktūra kā cēlonis: izvērtējiet to pirms galīgās ārstēšanas."))
     if "Clot retention (hematuria)" in causes:
-        out.append(_s("ctu", "rec", "visit", "Hematuria work-up: CT urography and cystoscopy."))
-        out.append(_s("cysto", "rec", "visit", "Hematuria work-up: cystoscopy."))
+        out.append(_s("ctu", "rec", "visit", "Hematūrijas izmeklēšana: DT urogrāfija un cistoskopija."))
+        out.append(_s("cysto", "rec", "visit", "Hematūrijas izmeklēšana: cistoskopija."))
     if v.get("Labs at NMC") in ("Urinary tract infection", "UTI and raised creatinine"):
         out.append(_s("cbc", "consider", "1w", PRACTICE_LABS))
         out.append(_s("crp", "consider", "1w", PRACTICE_LABS))
@@ -9171,48 +9137,36 @@ def r31_tests(v):
         v.get("Labs at NMC") in ("Urinary tract infection", "UTI and raised creatinine")
     if _hem_unknown(v) and not done:
         if v.get("Green corridor (GP referral)") == "Bladder – Z03.167":
-            add(_s("cysto", "consider", "visit", "Already in the green corridor referral (Z03.167) – tick it only if you "
-                                                 "want it written separately."))
+            add(_s("cysto", "consider", "visit", "Jau iekļauts zaļā koridora nosūtījumā (Z03.167) – atzīmējiet tikai tad, ja vēlaties to ierakstīt atsevišķi."))
         else:
-            add(_s("cysto", "rec", "visit", "EAU (strong): cystoscopy for every patient with symptoms suggesting bladder "
-                                            "cancer (visible hematuria) – flexible, outpatient; it cannot be replaced by "
-                                            "cytology or other tests."))
+            add(_s("cysto", "rec", "visit", "EAU (stipra rekomendācija): cistoskopija katram pacientam ar urīnpūšļa vēzi liecinošiem simptomiem (makrohematūrija) – fleksibla, ambulatori; to nevar aizstāt ar citoloģiju vai citiem izmeklējumiem."))
     if "Radiation cystitis" in causes and not done:
-        add(_s("cysto", "consider", "visit", "Radiation cystitis: cystoscopy (with biopsy if needed) excludes a recurrence "
-                                             "or a second tumour."))
+        add(_s("cysto", "consider", "visit", "Radiācijas cistīts: cistoskopija (ja nepieciešams, ar biopsiju) izslēdz recidīvu vai otru audzēju."))
     if _hem_unknown(v) and v.get("CT at NMC (R31)") in (None, "Not done"):
         if raised:
-            add(_s("us_kb", "rec", "visit", "Raised creatinine: ultrasound first; CT urography only after renal function "
-                                            "is checked."))
-            add(_s("ctu", "consider", "visit", "EAU (strong): ultrasound and/or CT urography for the upper tract; check "
-                                               "eGFR before contrast."))
+            add(_s("us_kb", "rec", "visit", "Paaugstināts kreatinīns: vispirms USS; DT urogrāfija tikai pēc nieru funkcijas pārbaudes."))
+            add(_s("ctu", "consider", "visit", "EAU (stipra rekomendācija): augšējo urīnceļu izmeklēšanai USS un/vai DT urogrāfija; pirms kontrastvielas pārbaudiet eGFR."))
         else:
-            add(_s("ctu", "rec", "visit", "EAU (strong): kidney and bladder ultrasound and/or CT urography in the initial "
-                                          "work-up; CT urography is the most sensitive test of the upper tract."))
-            add(_s("us_kb", "consider", "visit", "Alternative if CT urography is not possible (contrast allergy, "
-                                                 "pregnancy, low eGFR)."))
+            add(_s("ctu", "rec", "visit", "EAU (stipra rekomendācija): sākotnējā izmeklēšanā nieru un urīnpūšļa USS un/vai DT urogrāfija; DT urogrāfija ir visjutīgākais augšējo urīnceļu izmeklējums."))
+            add(_s("us_kb", "consider", "visit", "Alternatīva, ja DT urogrāfija nav iespējama (alerģija pret kontrastvielu, grūtniecība, zems eGFR)."))
     if _hem_unknown(v):
-        add(_s("cyto", "consider", "visit", "EAU (strong): voided cytology as an adjunct to cystoscopy to find high-grade "
-                                            "tumour / CIS (at least 25 ml fresh urine); most useful in smokers and "
-                                            "high-risk patients."))
+        add(_s("cyto", "consider", "visit", "EAU (stipra rekomendācija): urīna citoloģija kā papildinājums cistoskopijai augstas pakāpes audzēja / CIS atklāšanai (vismaz 25 ml svaiga urīna); visnoderīgākā smēķētājiem un augsta riska pacientiem."))
     if v.get("Hematuria type", "").startswith("Non-visible"):
-        add(_s("ua", "rec", "visit", "Confirm microhematuria by microscopy (> 3 RBC/HPF); a dipstick alone is not enough "
-                                     "(AUA, strong).", text="urīna analīze ar mikroskopiju (eritrocīti redzes laukā)"))
+        add(_s("ua", "rec", "visit", "Apstipriniet mikrohematūriju ar mikroskopiju (> 3 eritrocīti redzes laukā); ar testa strēmeli vien nepietiek (AUA, stipra rekomendācija).", text="urīna analīze ar mikroskopiju (eritrocīti redzes laukā)"))
     if uti:
-        add(_s("uc", "rec", "none", "Check the culture taken at NMC / in the ward and adjust the antibiotic.",
+        add(_s("uc", "rec", "none", "Pārbaudiet NMC / nodaļā paņemto uzsējumu un pielāgojiet antibiotiku.",
                text="paņemtā urīna uzsējuma rezultāts (Datamed.lv)"))
-        add(_s("ua", "rec", "2-6w", "Repeat urinalysis after the infection is treated: hematuria that persists needs "
-                                    "the full work-up.", text="atkārtota urīna analīze pēc infekcijas izārstēšanas"))
+        add(_s("ua", "rec", "2-6w", "Atkārtojiet urīna analīzi pēc infekcijas ārstēšanas: ja hematūrija saglabājas, nepieciešama pilna izmeklēšana.", text="atkārtota urīna analīze pēc infekcijas izārstēšanas"))
     hb = [x for x in (_num(v, "Hemoglobin (g/L)"), _num(v, "Hemoglobin at discharge (g/L)")) if x is not None]
     low = any(x < 100 for x in hb) or (_num(v, "Transfusion (RBC units)") or 0) > 0
     drugs = v.get("Antithrombotic therapy") or []
     add(_s("cbc", "rec" if (low or drugs) else "consider", "48-72h" if low else "1w",
-           "Hb check after bleeding – sooner if Hb was low, after a transfusion, or on antithrombotic drugs."))
+           "Hb kontrole pēc asiņošanas – ātrāk, ja Hb bija zems, pēc transfūzijas vai lietojot antitrombotiskus medikamentus."))
     if "Warfarin" in drugs:
-        add(_s("inr", "rec", "48-72h", "Warfarin: check the INR, especially if the dose was paused or changed."))
+        add(_s("inr", "rec", "48-72h", "Varfarīns: pārbaudiet INR, īpaši, ja deva tika pārtraukta vai mainīta."))
     contrast = "Selective embolisation" in procs
     add(_s("creat", "rec" if (raised or contrast) else "consider", "48-72h" if (raised or contrast) else "1w",
-           "Renal function: raised at NMC, after contrast (embolisation, CT), or before CT urography."))
+           "Nieru funkcija: ja paaugstināta NMC, pēc kontrastvielas (embolizācija, DT) vai pirms DT urogrāfijas."))
     return out
 
 
@@ -9227,43 +9181,33 @@ def n30_tests(v):
     recurrent = v.get("Recurrent cystitis")
     # (checking the NMC culture result is already written in the text when a culture was taken)
     if pregnant:
-        out.append(_s("uc", "rec", "2w", "Pregnancy: follow-up culture 1–2 weeks after treatment (common practice; "
-                                         "untreated bacteriuria raises the risk of pyelonephritis). EAU (strong): "
-                                         "culture in pregnancy – take one at NMC if not done.",
+        out.append(_s("uc", "rec", "2w", "Grūtniecība: kontroles uzsējums 1–2 nedēļas pēc ārstēšanas (ierasta prakse; neārstēta bakteriūrija palielina pielonefrīta risku). EAU (stipra rekomendācija): grūtniecības laikā uzsējums – paņemiet to NMC, ja nav paņemts.",
                       text="kontroles urīna uzsējums 1–2 nedēļas pēc ārstēšanas"))
         out.append(_s("ua", "avoid", "visit", NO_ROUTINE_UA))
     else:
-        out.append(_s("uc", "consider", "no_improve", "EAU (strong): culture if symptoms do not resolve or recur within "
-                                                      "4 weeks – this is already written as advice in the text."))
+        out.append(_s("uc", "consider", "no_improve", "EAU (stipra rekomendācija): uzsējums, ja simptomi neizzūd vai atkārtojas 4 nedēļu laikā – tas jau ierakstīts tekstā kā ieteikums."))
         if "Visible hematuria" in (v.get("Cystitis symptoms") or []):
-            out.append(_s("ua", "rec", "2-6w", "Hemorrhagic cystitis: check that the hematuria has gone after "
-                                               "treatment; if it persists – cystoscopy (green corridor Z03.167 from 45 "
-                                               "years).",
+            out.append(_s("ua", "rec", "2-6w", "Hemorāģisks cistīts: pārliecinieties, ka pēc ārstēšanas hematūrija izzudusi; ja tā saglabājas – cistoskopija (zaļais koridors Z03.167 no 45 gadu vecuma).",
                           text="atkārtota urīna analīze pēc infekcijas izārstēšanas (hematūrijas kontrolei)"))
         else:
             out.append(_s("ua", "avoid", "visit", NO_ROUTINE_UA))
     if not woman:
-        out.append(_s("pvr", "consider", "at_visit", "Men: check bladder emptying (residual urine)."))
-        out.append(_s("uroflow", "consider", "at_visit", "Men: look for bladder outlet obstruction."))
-        out.append(_s("psa", "avoid", "visit", "A UTI raises PSA – do not measure it now (wait at least 6 weeks)."))
+        out.append(_s("pvr", "consider", "at_visit", "Vīrieši: pārbaudiet urīnpūšļa iztukšošanos (atlikušais urīns)."))
+        out.append(_s("uroflow", "consider", "at_visit", "Vīrieši: meklējiet infravezikālu obstrukciju."))
+        out.append(_s("psa", "avoid", "visit", "UCI paaugstina PSA – tagad to nenosakiet (nogaidiet vismaz 6 nedēļas)."))
     if recurrent:
         if woman and not risks and not pregnant:
-            out.append(_s("cysto", "avoid", "visit", "EAU (weak): no routine cystoscopy or full abdominal ultrasound in "
-                                                     "women under 40 with recurrent cystitis and no risk factors."))
-            out.append(_s("us_kb", "consider", "visit", "Only in women over 40, with risk factors, or with residual "
-                                                        "urine / hematuria."))
+            out.append(_s("cysto", "avoid", "visit", "EAU (vāja rekomendācija): sievietēm līdz 40 gadu vecumam ar recidivējošu cistītu un bez riska faktoriem rutīnas cistoskopija vai pilna vēdera dobuma USS nav nepieciešama."))
+            out.append(_s("us_kb", "consider", "visit", "Tikai sievietēm pēc 40 gadu vecuma, ar riska faktoriem vai ar atlikušo urīnu / hematūriju."))
         else:
-            out.append(_s("us_kb", "rec", "visit", "Recurrent UTI with risk factors or in a man: look for a cause "
-                                                   "(residual urine, stones, obstruction)."))
+            out.append(_s("us_kb", "rec", "visit", "Recidivējoša UCI ar riska faktoriem vai vīrietim: meklējiet cēloni (atlikušais urīns, akmeņi, obstrukcija)."))
     if recurrent and v.get("Same organism soon after treatment"):
-        out.append(_s("ct_abd", "consider", "visit", "Bacterial persistence (Campbell-Walsh-Wein): CT to find a focus "
-                                                     "(stone, obstruction, abscess)."))
+        out.append(_s("ct_abd", "consider", "visit", "Bakteriāla persistence (Campbell-Walsh-Wein): DT perēkļa meklēšanai (akmens, obstrukcija, abscess)."))
         out = [o for o in out if o["id"] != "cysto"]
-        out.append(_s("cysto", "consider", "visit", "Bacterial persistence: cystoscopy for a diverticulum, stone or "
-                                                    "fistula if imaging does not explain it."))
+        out.append(_s("cysto", "consider", "visit", "Bakteriāla persistence: cistoskopija divertikula, akmens vai fistulas meklēšanai, ja attēldiagnostika to neizskaidro."))
     if v.get("Blood tests (N30)") == "Raised creatinine" or "Renal impairment" in risks:
-        out.append(_s("creat", "rec", "1w", "Recheck renal function (and the antibiotic dose)."))
-    out.append(_s("cbc", "avoid", "none", "Blood tests are not needed for uncomplicated cystitis."))
+        out.append(_s("creat", "rec", "1w", "Atkārtoti nosakiet nieru funkciju (un pārbaudiet antibiotikas devu)."))
+    out.append(_s("cbc", "avoid", "none", "Nekomplicēta cistīta gadījumā asins analīzes nav nepieciešamas."))
     return out
 
 
@@ -9277,29 +9221,22 @@ def c67_rc_tests(v):
     palliative = "Palliative" in str(v.get("Cystectomy type (man)") or v.get("Cystectomy type (woman)") or "") or \
         str(v.get("Indication (RC)")).startswith("Palliative")
     transfused = (_num(v, "Postoperative transfusion (RC, units)") or 0) > 0 or v.get("Anaemia (RC)")
-    out.append(_s("creat", "rec", "4-6w", "Renal function after RC: up to 29% progress to advanced CKD within a year "
-                                          "(EAU follow-up)."))
-    out.append(_s("nak", "rec", "4-6w", "Electrolytes after bowel diversion."))
+    out.append(_s("creat", "rec", "4-6w", "Nieru funkcija pēc radikālas cistektomijas: līdz 29% pacientu gada laikā progresē līdz smagai HNS (EAU novērošana)."))
+    out.append(_s("nak", "rec", "4-6w", "Elektrolīti pēc zarnu derivācijas."))
     if bowel:
-        out.append(_s("bgas", "rec", "4-6w", "Hyperchloraemic metabolic acidosis after bowel diversion (more with "
-                                             "neobladders) harms kidneys and bone."))
-        out.append(_s("b12", "rec", "12m", "EAU: measure vitamin B12 yearly after bowel diversion (low in ~17%)."))
+        out.append(_s("bgas", "rec", "4-6w", "Hiperhlorēmiska metaboliska acidoze pēc zarnu derivācijas (biežāk pēc neocistisa) bojā nieres un kaulus."))
+        out.append(_s("b12", "rec", "12m", "EAU: pēc zarnu derivācijas B12 vitamīnu nosakiet katru gadu (zems ~17% pacientu)."))
     out.append(_s("cbc", "rec" if transfused else "consider", "1w" if transfused else "4-6w",
-                  "Hb after the operation and transfusions."))
+                  "Hb pēc operācijas un transfūzijām."))
     stents = v.get("Ureteral stents (RC)") == "Discharged with stents" and diversion != "No diversion – nephrostomies"
     out.append(_s("us_k", "rec", "after_stent" if stents else "4-6w",
-                  "Ureteroenteric stricture (up to 20%) or obstruction: kidney ultrasound after stent removal."))
+                  "Ureteroenterālās anastomozes striktūra (līdz 20%) vai obstrukcija: nieru USS pēc stentu evakuācijas."))
     if not palliative:
-        out.append(_s("ct_cap", "rec", "6m", "EAU follow-up: CT every 6 months until year 3, then yearly."))
-        out.append(_s("ct_rc_later", "rec", "later", "EAU follow-up framework (expert opinion): CT every 6 months to "
-                                                     "year 3, then yearly; CT urography for the upper tract in "
-                                                     "multifocal disease, CIS or positive ureteral margins."))
-    out.append(_s("cyto", "consider", "6m", "Not routine after RC. EAU / Campbell-Walsh-Wein: urethral wash cytology "
-                                            "if the urethra is retained and there was CIS, prostatic urethra or "
-                                            "multifocal disease."))
-    out.append(_s("panel", "consider", "6m", "From your department's cystectomy discharge."))
-    out.append(_s("uc", "avoid", "symptoms", "Conduit / neobladder urine is always colonised – culture only with "
-                                             "infection symptoms (EAU: do not treat asymptomatic bacteriuria)."))
+        out.append(_s("ct_cap", "rec", "6m", "EAU novērošana: DT ik 6 mēnešus līdz 3. gadam, pēc tam katru gadu."))
+        out.append(_s("ct_rc_later", "rec", "later", "EAU novērošanas shēma (ekspertu viedoklis): DT ik 6 mēnešus līdz 3. gadam, pēc tam katru gadu; augšējo urīnceļu DT urogrāfija multifokālas slimības, CIS vai pozitīvu urīnvadu rezekcijas robežu gadījumā."))
+    out.append(_s("cyto", "consider", "6m", "Pēc radikālas cistektomijas rutīnā nav nepieciešams. EAU / Campbell-Walsh-Wein: uretras skalojamā šķidruma citoloģija, ja uretra saglabāta un bija CIS, prostatiskās uretras iesaiste vai multifokāla slimība."))
+    out.append(_s("panel", "consider", "6m", "No jūsu nodaļas cistektomijas izraksta."))
+    out.append(_s("uc", "avoid", "symptoms", "Konduīta / neocistisa urīns vienmēr ir kolonizēts – uzsējums tikai infekcijas simptomu gadījumā (EAU: asimptomātisku bakteriūriju neārstēt)."))
     return out
 
 
@@ -9312,27 +9249,23 @@ def n45_tests(v):
     abscess = _eo_abscess(v)
     raised = v.get("Labs (EO)") in ("Raised CRP / leukocytosis", "Raised CRP and creatinine")
     out.append(_s("crp", "rec" if raised else "consider", "48-72h" if nmc else "1w",
-                  "Review at 3 days if not improving (IUSTI); your discharge example rechecks CBC, CRP, creatinine "
-                  "and urea 5 days after discharge."))
-    out.append(_s("cbc", "rec" if raised else "consider", "48-72h" if nmc else "1w", "With the CRP."))
+                  "Ja nav uzlabojuma, izvērtēt pēc 3 dienām (IUSTI); jūsu izraksta piemērā PAA, CRO, kreatinīns un urīnviela tiek atkārtoti noteikti 5 dienas pēc izrakstīšanas."))
+    out.append(_s("cbc", "rec" if raised else "consider", "48-72h" if nmc else "1w", "Kopā ar CRO."))
     if v.get("Labs (EO)") == "Raised CRP and creatinine":
-        out.append(_s("creat", "rec", "1w", "Creatinine was raised."))
+        out.append(_s("creat", "rec", "1w", "Kreatinīns bija paaugstināts."))
     conservative_abscess = abscess and (nmc or v.get("Treatment (EO)") != "Surgery")
     out.append(_s("us_scrotum", "rec" if (conservative_abscess or v.get("Inflammation site (EO)") == "Orchitis")
                   else "consider", "4-6w",
-                  "Persistent swelling: ultrasound for abscess, infarction or tumour (IUSTI 2024; Campbell-Walsh-Wein).",
+                  "Ja tūska saglabājas: USS abscesa, infarkta vai audzēja izslēgšanai (IUSTI 2024; Campbell-Walsh-Wein).",
                   text="kontroles sēklinieku maisiņa USS (izslēgt abscesu, infarktu, audzēju)"))
-    out.append(_s("markers", "consider", "visit", "If a testicular mass persists after treatment: an 'orchitis' that "
-                                                  "does not resolve may be a germ cell tumour – markers with ultrasound."))
+    out.append(_s("markers", "consider", "visit", 'Ja pēc ārstēšanas sēkliniekā saglabājas veidojums: "orhīts", kas neizzūd, var būt germinatīvo šūnu audzējs – marķieri kopā ar USS.'))
     if _eo_sti(v):
-        out.append(_s("naat", "rec", "4-6w", "IUSTI 2024: test of cure for chlamydia / M. genitalium about 4 weeks after "
-                                             "treatment (gonorrhoea NAAT 2 weeks)."))
+        out.append(_s("naat", "rec", "4-6w", "IUSTI 2024: izārstēšanās kontrole hlamīdiju / M. genitalium gadījumā apmēram 4 nedēļas pēc ārstēšanas (gonorejas NAAT pēc 2 nedēļām)."))
     if (v.get("Likely source (EO)") or "").startswith("Enteric"):
-        out.append(_s("pvr", "consider", "at_visit", "Older men with enteric epididymitis: look for outlet obstruction "
-                                                     "(Campbell-Walsh-Wein)."))
-        out.append(_s("uroflow", "consider", "at_visit", "As above."))
+        out.append(_s("pvr", "consider", "at_visit", "Gados vecākiem vīriešiem ar enterālas izcelsmes epididimītu: meklējiet infravezikālu obstrukciju (Campbell-Walsh-Wein)."))
+        out.append(_s("uroflow", "consider", "at_visit", "Kā iepriekš."))
     if "Diabetes" in (v.get("Risk factors (EO)") or []):
-        out.append(_s("glucose", "consider", "1w", "Diabetes: glycaemic control affects healing and infection."))
+        out.append(_s("glucose", "consider", "1w", "Cukura diabēts: glikēmijas kontrole ietekmē dzīšanu un infekciju."))
     out.append(_s("uc", "avoid", "visit", NO_ROUTINE_UC))
     return out
 
@@ -9345,30 +9278,25 @@ def n41_tests(v):
     nmc = v.get("_department") == "NMC"
     raised = v.get("Labs (AP)") in ("Raised CRP / leukocytosis", "Raised CRP and creatinine")
     out.append(_s("crp", "rec" if (raised and nmc) else "consider", "48-72h" if (raised and nmc) else "visit",
-                  "Your NMC example repeats blood tests (CBC, CRP, creatinine, electrolytes) and urinalysis after "
-                  "3 weeks, before the urology visit; sooner if the patient is not improving."))
+                  "Jūsu NMC piemērā asins analīzes (PAA, CRO, kreatinīns, elektrolīti) un urīna analīze tiek atkārtotas pēc 3 nedēļām, pirms urologa vizītes; ātrāk, ja pacienta stāvoklis neuzlabojas."))
     out.append(_s("cbc", "rec" if (raised and nmc) else "consider", "48-72h" if (raised and nmc) else "visit",
-                  "With the CRP."))
+                  "Kopā ar CRO."))
     out.append(_s("creat", "rec" if v.get("Labs (AP)") == "Raised CRP and creatinine" else "consider", "visit",
-                  "Renal function (raised at NMC, or before the visit)."))
-    out.append(_s("nak", "consider", "visit", "From your NMC example (electrolytes)."))
-    out.append(_s("ua", "consider", "visit", "From your NMC example: urinalysis before the urology visit."))
+                  "Nieru funkcija (ja paaugstināta NMC vai pirms vizītes)."))
+    out.append(_s("nak", "consider", "visit", "No jūsu NMC piemēra (elektrolīti)."))
+    out.append(_s("ua", "consider", "visit", "No jūsu NMC piemēra: urīna analīze pirms urologa vizītes."))
     out.append(_s("trus", "rec" if _ap_abscess(v) and v.get("Abscess treatment (AP)") == "Antibiotics only"
                   else "consider", "no_improve",
-                  "EAU (weak): TRUS in selected cases to rule out an abscess – e.g. no improvement after 48–72 hours; "
-                  "after conservative abscess treatment to confirm shrinkage."))
-    out.append(_s("pvr", "rec", "at_visit", "After recovery: check bladder emptying (outlet obstruction is a "
-                                            "complicating factor – EAU strong: manage it)."))
-    out.append(_s("uroflow", "consider", "at_visit", "Outlet obstruction work-up after recovery."))
+                  "EAU (vāja rekomendācija): TRUS atsevišķos gadījumos abscesa izslēgšanai – piem., ja 48–72 stundu laikā nav uzlabojuma; pēc konservatīvas abscesa ārstēšanas, lai apstiprinātu tā samazināšanos."))
+    out.append(_s("pvr", "rec", "at_visit", "Pēc atlabšanas: pārbaudiet urīnpūšļa iztukšošanos (infravezikāla obstrukcija ir komplicējošs faktors – EAU stipra rekomendācija: to ārstēt)."))
+    out.append(_s("uroflow", "consider", "at_visit", "Infravezikālas obstrukcijas izmeklēšana pēc atlabšanas."))
     if "Recurrent prostatitis" in (v.get("Risk factors (AP)") or []):
-        out.append(_s("meares", "rec", "at_visit", "EAU (strong): Meares–Stamey test for suspected chronic bacterial "
-                                                   "prostatitis – after the acute episode, off antibiotics."))
+        out.append(_s("meares", "rec", "at_visit", "EAU (stipra rekomendācija): Meares–Stamey tests, ja ir aizdomas par hronisku bakteriālu prostatītu – pēc akūtās epizodes, bez antibiotikām."))
     if "STI risk (young, sexually active)" in (v.get("Risk factors (AP)") or []):
-        out.append(_s("naat", "consider", "4-6w", "Test of cure if an STI was found."))
+        out.append(_s("naat", "consider", "4-6w", "Izārstēšanās kontrole, ja konstatēta STI."))
     if "Diabetes" in (v.get("Risk factors (AP)") or []):
-        out.append(_s("glucose", "consider", "1w", "Diabetes: glycaemic control."))
-    out.append(_s("psa", "avoid", "6w", "PSA rises with prostatitis – do not measure it now; if needed, at least 6–8 "
-                                        "weeks after recovery."))
+        out.append(_s("glucose", "consider", "1w", "Cukura diabēts: glikēmijas kontrole."))
+    out.append(_s("psa", "avoid", "6w", "Prostatīta laikā PSA paaugstinās – tagad to nenosakiet; ja nepieciešams, ne ātrāk kā 6–8 nedēļas pēc atlabšanas."))
     out.append(_s("uc", "avoid", "visit", NO_ROUTINE_UC))
     return out
 
@@ -9378,19 +9306,16 @@ TEST_ADVISORS["N41.0"] = n41_tests
 
 def n44_tests(v):
     if v.get("_department") == "NMC":
-        return [_s("us_scrotum", "consider", "symptoms", "Repeat ultrasound if pain persists or the diagnosis is in "
-                                                        "doubt (then exploration).")]
+        return [_s("us_scrotum", "consider", "symptoms", "Atkārtota USS, ja sāpes saglabājas vai diagnoze ir apšaubāma (tad – eksplorācija).")]
     necrotic = str(v.get("Testis viability (TT)")).startswith("Necrotic")
     out = [_s("us_scrotum", "rec" if not necrotic else "consider", "3m",
-              "EAU: up to half of salvaged testes atrophy – ultrasound (volume, perfusion) after the oedema has settled "
-              "(not earlier than 1 month)." if not necrotic else "After orchiectomy: the remaining testis if needed.",
+              "EAU: līdz pusei saglabāto sēklinieku atrofējas – USS (tilpums, perfūzija) pēc tūskas mazināšanās (ne ātrāk kā pēc 1 mēneša)." if not necrotic else "Pēc orhektomijas: atlikušais sēklinieks, ja nepieciešams.",
               text="sēklinieku maisiņa USS ar doplerogrāfiju (sēklinieka izmērs, apasiņošana)")]
-    out.append(_s("semen", "consider", "6m", "EAU: subfertility in 36–39% after torsion – semen analysis if the patient "
-                                             "plans children."))
-    out.append(_s("cbc", "consider", "visit", "From your torsion discharge (before the 1-month visit)."))
-    out.append(_s("crp", "consider", "visit", "From your torsion discharge."))
-    out.append(_s("creat", "consider", "visit", "From your torsion discharge."))
-    out.append(_s("ua", "consider", "visit", "From your torsion discharge."))
+    out.append(_s("semen", "consider", "6m", "EAU: pēc torsijas subfertilitāte 36–39% gadījumu – spermogramma, ja pacients plāno bērnus."))
+    out.append(_s("cbc", "consider", "visit", "No jūsu torsijas izraksta (pirms 1 mēneša vizītes)."))
+    out.append(_s("crp", "consider", "visit", "No jūsu torsijas izraksta."))
+    out.append(_s("creat", "consider", "visit", "No jūsu torsijas izraksta."))
+    out.append(_s("ua", "consider", "visit", "No jūsu torsijas izraksta."))
     out.append(_s("uc", "avoid", "visit", NO_ROUTINE_UC))
     return out
 
@@ -9398,7 +9323,38 @@ def n44_tests(v):
 TEST_ADVISORS["N44"] = n44_tests
 
 
+def n50_tests(v):
+    treatment = v.get("Treatment (TI)")
+    removed = treatment in ("Orchiectomy (scrotal)", "Inguinal orchiectomy")
+    out = []
+    if not removed:
+        out.append(_s("us_scrotum", "rec", "4-6w", "Kontroles USS infarkta zonai jāsamazinās; ja tā nesamazinās vai palielinās, jāizslēdz audzējs (eksplorācija).",
+                      text="sēklinieku maisiņa USS ar doplerogrāfiju (infarkta zonas dinamika)"))
+    out.append(_s("markers", "rec" if v.get("Tumour markers (TI)") != "Normal" else "consider", "1w",
+                  "AFP, β-hCG un LDH palīdz izslēgt audzēju, kas var izskatīties pēc infarkta."))
+    if v.get("Cause (TI)") in ("Idiopathic", "Vasculitis / coagulation disorder", "Not determined"):
+        out.append(_s("thrombophilia", "consider", "visit", "Idiopātisks vai recidivējošs infarkts: meklējiet koagulācijas traucējumus vai vaskulītu."))
+    out.append(_s("cbc", "consider", "visit", PRACTICE_LABS))
+    out.append(_s("crp", "consider", "visit", PRACTICE_LABS))
+    if removed:
+        out.append(_s("semen", "consider", "6m", "Pēc orhektomijas, ja pacients plāno bērnus."))
+    out.append(_s("uc", "avoid", "visit", NO_ROUTINE_UC))
+    return out
+
+
+TEST_ADVISORS["N50.1"] = n50_tests
+
+
 # ----- tables the doctor fills in (st.data_editor) -----
+
+def _select_column(label, **kw):
+    """A choice column; format_func (Latvian names) needs a newer Streamlit, so it is dropped if not supported."""
+    try:
+        return st.column_config.SelectboxColumn(label, **kw)
+    except TypeError:
+        kw.pop("format_func", None)
+        return st.column_config.SelectboxColumn(label, **kw)
+
 
 def antibiotics_editor(key):
     empty = pd.DataFrame({
@@ -9413,15 +9369,18 @@ def antibiotics_editor(key):
     edited = st.data_editor(
         empty, key=key, num_rows="dynamic", width="stretch",
         column_config={
-            "Medication": st.column_config.SelectboxColumn(options=list(MEDICATION_CATALOG), required=True),
-            "Dose": st.column_config.TextColumn(help="For example 500 mg"),
-            "Route": st.column_config.SelectboxColumn(options=list(ROUTE_WORD), required=True),
-            "Frequency": st.column_config.SelectboxColumn(options=FREQUENCIES),
-            "Start date": st.column_config.DateColumn(format="DD.MM.YYYY", required=True),
+            "Medication": _select_column("Medikaments", options=list(MEDICATION_CATALOG), required=True,
+                                         format_func=tr_opt),
+            "Dose": st.column_config.TextColumn("Deva", help="Piemēram, 500 mg"),
+            "Route": _select_column("Ievadīšanas veids", options=list(ROUTE_WORD), required=True,
+                                    format_func=lambda r: {"IV": "i/v", "PO": "p/o", "IM": "i/m"}.get(r, r)),
+            "Frequency": _select_column("Biežums", options=FREQUENCIES),
+            "Start date": st.column_config.DateColumn("Sākuma datums", format="DD.MM.YYYY", required=True),
             "Continue at discharge": st.column_config.CheckboxColumn(
-                help="Tick the antibiotics that go home with the patient (they need dose, frequency and days)"),
-            "Days at home": st.column_config.NumberColumn(min_value=1, max_value=90, step=1, format="%d",
-                                                          help="How many more days after discharge"),
+                "Turpināt mājās",
+                help="Atzīmējiet antibiotikas, kuras pacients turpina mājās (tām nepieciešama deva, biežums un dienas)"),
+            "Days at home": st.column_config.NumberColumn("Dienas mājās", min_value=1, max_value=90, step=1, format="%d",
+                                                          help="Cik dienas vēl pēc izrakstīšanas"),
         },
     )
     return clean_rows(edited)
@@ -9436,11 +9395,11 @@ def labs_editor(key):
     edited = st.data_editor(
         empty, key=key, num_rows="dynamic", width="stretch",
         column_config={
-            "Test": st.column_config.SelectboxColumn(
-                options=list(LAB_TESTS), required=True,
-                help="Units: CRO mg/l, leukocytes ×10⁹/l, creatinine µmol/l, eGFR ml/min/1.73 m²"),
-            "Value": st.column_config.NumberColumn(required=True),
-            "Date": st.column_config.DateColumn(format="DD.MM.YYYY", required=True),
+            "Test": _select_column(
+                "Analīze", options=list(LAB_TESTS), required=True, format_func=tr_opt,
+                help="Mērvienības: CRO mg/l, leikocīti ×10⁹/l, kreatinīns µmol/l, eGFR ml/min/1,73 m²"),
+            "Value": st.column_config.NumberColumn("Vērtība", required=True),
+            "Date": st.column_config.DateColumn("Datums", format="DD.MM.YYYY", required=True),
         },
     )
     return clean_rows(edited)
@@ -9526,13 +9485,13 @@ BLOCK_PICKER_HTML = r"""<!DOCTYPE html>
 </head>
 <body>
 <div class="box" id="chosenBox">
-  <div class="box-title">Chosen</div>
-  <div class="tip">Goes into the recommendations in this order. Ctrl+click a block to send it back.</div>
+  <div class="box-title">Izvēlētie</div>
+  <div class="tip">Tiek iekļauti rekomendācijās šajā secībā. Ctrl+klikšķis uz bloka to atgriež atpakaļ.</div>
   <div id="chosenList"></div>
 </div>
 <div class="box" id="availBox">
-  <div class="box-title">Available</div>
-  <div class="tip">Drag a block up, or Ctrl+click it. Hover a block to read its notes.</div>
+  <div class="box-title">Pieejamie</div>
+  <div class="tip">Velciet bloku augšup vai izmantojiet Ctrl+klikšķi. Novietojiet kursoru uz bloka, lai izlasītu piezīmes.</div>
   <div id="availList"></div>
 </div>
 <script>
@@ -9620,7 +9579,7 @@ BLOCK_PICKER_HTML = r"""<!DOCTYPE html>
     card.className = "card" + (item.kind === "avoid" ? " avoid" : "");
     card.textContent = item.title;
     card.setAttribute("data-id", item.id);
-    card.title = (item.note ? item.note + "\n\n" : "") + "Ctrl+click moves this block between the lists.";
+    card.title = (item.note ? item.note + "\n\n" : "") + "Ctrl+klikšķis pārvieto šo bloku starp sarakstiem.";
     card.draggable = true;
     card.addEventListener("dragstart", function (event) {
       dragId = item.id;
@@ -9647,7 +9606,7 @@ BLOCK_PICKER_HTML = r"""<!DOCTYPE html>
     availList.innerHTML = "";
 
     if (chosen.length === 0) {
-      chosenList.appendChild(hint("Nothing chosen yet. Drag a block here, or Ctrl+click it."));
+      chosenList.appendChild(hint("Vēl nekas nav izvēlēts. Velciet bloku šeit vai izmantojiet Ctrl+klikšķi."));
     }
     chosen.forEach(function (id) { chosenList.appendChild(makeCard(byId[id])); });
 
@@ -9665,7 +9624,7 @@ BLOCK_PICKER_HTML = r"""<!DOCTYPE html>
       availList.appendChild(makeCard(item));
       shown += 1;
     });
-    if (shown === 0) { availList.appendChild(hint("All blocks are chosen.")); }
+    if (shown === 0) { availList.appendChild(hint("Visi bloki ir izvēlēti.")); }
 
     setHeight();
   }
@@ -9754,7 +9713,7 @@ def block_picker(code, blocks):
     """Show the panel for one diagnosis and return the ids of the chosen blocks, in order."""
     saved = st.session_state.get(f"chosen-{code}", [])
     result = _block_picker(
-        items=[{"id": b["id"], "title": b["title"], "group": b["group"],
+        items=[{"id": b["id"], "title": tr(b["title"]), "group": tr(b["group"]),
                 "note": b["note"], "kind": b.get("kind", "")} for b in blocks],
         initial=saved,
         default={"chosen": saved},
@@ -9784,8 +9743,8 @@ def _tests_clear(code, keys):
 
 
 def _timing_box(container, key, default):
-    return container.selectbox("When", TIMING_KEYS, index=TIMING_KEYS.index(default),
-                               format_func=lambda k: TIMINGS[k][0], key=key, label_visibility="collapsed")
+    return container.selectbox("Kad", TIMING_KEYS, index=TIMING_KEYS.index(default),
+                               format_func=lambda k: tr(TIMINGS[k][0]), key=key, label_visibility="collapsed")
 
 
 def render_tests(code, v):
@@ -9804,30 +9763,29 @@ def render_tests(code, v):
     n_rec = len(rec_keys)
     n_consider = sum(s["level"] == "consider" for s in suggestions)
 
-    title = "Follow-up tests (laboratory and imaging)"
+    title = "Kontroles izmeklējumi (laboratoriskie un attēldiagnostika)"
     if suggestions:
-        title += f" – {n_rec} recommended, {n_consider} to consider"
+        title += f" – ieteicami: {n_rec}, apsvērt: {n_consider}"
     chosen = []
     with st.expander(title, expanded=True):
-        st.caption("Nothing is added by default: tick a test and it goes into the recommendations. The suggestions "
-                   "follow the EAU guidelines (or the best available data) for the choices above and change with them.")
+        st.caption("Pēc noklusējuma nekas netiek pievienots: atzīmējiet izmeklējumu, un tas tiks iekļauts rekomendācijās. Ieteikumi atbilst EAU vadlīnijām (vai labākajiem pieejamajiem datiem) iepriekš izvēlētajiem parametriem un mainās līdz ar tiem.")
         c1, c2, c3 = st.columns([1, 1, 2], vertical_alignment="bottom")
-        c1.button("Tick all 🟢", key=f"{code}-tests-all", on_click=_tests_tick, args=(rec_keys, True),
+        c1.button("Atzīmēt visus 🟢", key=f"{code}-tests-all", on_click=_tests_tick, args=(rec_keys, True),
                   disabled=not rec_keys, width="stretch")
-        c2.button("Clear", key=f"{code}-tests-none", on_click=_tests_clear, args=(code, list(keys.values())),
+        c2.button("Notīrīt", key=f"{code}-tests-none", on_click=_tests_clear, args=(code, list(keys.values())),
                   width="stretch")
-        by = c3.selectbox("Who arranges them", list(TESTS_BY), key=f"{code}-tests-by")
+        by = c3.selectbox("Kas tos organizē", list(TESTS_BY), key=f"{code}-tests-by", format_func=tr_opt)
         if not suggestions:
-            st.caption("No tests are routinely needed in this situation. You can still add any test below.")
+            st.caption("Šajā situācijā rutīnā izmeklējumi nav nepieciešami. Zemāk joprojām varat pievienot jebkuru izmeklējumu.")
 
         level = None
         for number, s in enumerate(suggestions):
             if s["level"] != level:
                 level = s["level"]
                 icon, word = TEST_LEVELS[level]
-                st.markdown(f"**{icon} {word}**")
+                st.markdown(f"**{icon} {tr(word)}**")
             col_tick, col_when = st.columns([3, 2], vertical_alignment="center")
-            if col_tick.checkbox(FOLLOWUP_TESTS[s["id"]]["title"], key=keys[s["id"]]):
+            if col_tick.checkbox(tr(FOLLOWUP_TESTS[s["id"]]["title"]), key=keys[s["id"]]):
                 when = _timing_box(col_when, keys[s["id"]] + "-when", s["timing"])
                 chosen.append({"id": s["id"], "text": s.get("text") or FOLLOWUP_TESTS[s["id"]]["lv"], "timing": when})
             # the reason, shown once under a run of tests that share it
@@ -9835,20 +9793,20 @@ def render_tests(code, v):
             if not (following and following["why"] == s["why"] and following["level"] == level):
                 st.caption(s["why"])
 
-        st.markdown("**Other tests**")
-        others = st.multiselect("Add any other test", list(FOLLOWUP_TESTS), key=f"{code}-tests-other",
-                                format_func=lambda t: f"{FOLLOWUP_TESTS[t]['title']} ({FOLLOWUP_TESTS[t]['group'].lower()})",
-                                placeholder="Search all tests…", label_visibility="collapsed")
+        st.markdown("**Citi izmeklējumi**")
+        others = st.multiselect("Pievienot citu izmeklējumu", list(FOLLOWUP_TESTS), key=f"{code}-tests-other",
+                                format_func=lambda t: f"{tr(FOLLOWUP_TESTS[t]['title'])} ({tr(FOLLOWUP_TESTS[t]['group']).lower()})",
+                                placeholder="Meklēt visos izmeklējumos…", label_visibility="collapsed")
         for test in others:
             if any(c["id"] == test for c in chosen):
                 continue  # already ticked above
             col_name, col_when = st.columns([3, 2], vertical_alignment="center")
-            col_name.markdown(FOLLOWUP_TESTS[test]["title"])
+            col_name.markdown(tr(FOLLOWUP_TESTS[test]["title"]))
             when = _timing_box(col_when, f"{code}-to-{test}-when", "visit")
             chosen.append({"id": test, "text": FOLLOWUP_TESTS[test]["lv"], "timing": when})
         col_name, col_when = st.columns([3, 2], vertical_alignment="bottom")
-        free = col_name.text_input("Another test, typed in Latvian", key=f"{code}-tests-free",
-                                   placeholder="e.g. PTH, D vitamīns")
+        free = col_name.text_input("Cits izmeklējums (ierakstiet)", key=f"{code}-tests-free",
+                                   placeholder="piem., PTH, D vitamīns")
         if free.strip():
             when = _timing_box(col_when, f"{code}-tests-free-when", "visit")
             chosen.append({"id": "free", "text": free.strip().rstrip("."), "timing": when})
@@ -9898,6 +9856,13 @@ PE_PRESETS = {
     "Meatotomy – meatal stricture": ("Planned", "meatotomija", "uretras ārējās atveres (meatus) striktūru",
                                      "Meatus striktūra", "", ""),
     "Urethroplasty – urethral stricture": ("Planned", "uretroplastika", "{part_acc}", "{part_dx}", "", ""),
+    "Testicular infarction – conservative admission (no operation)": (
+        "Acute", "", "", "{M} sēklinieka segmentārs infarkts", "sāpēm {loc} sēkliniekā",
+        "NMC sēklinieku maisiņa USS ar doplerogrāfiju: {loc} sēkliniekā ķīļveida hipoehogēna zona bez asinsplūsmas – "
+        "segmentārs infarkts; sēklinieka torsijas un abscesa pazīmju nav."),
+    "Testicular infarction – exploration": (
+        "Acute", "{m} sēklinieka eksplorācija, rezekcija / orhektomija", "{m} sēklinieka infarktu",
+        "{M} sēklinieka infarkts", "", ""),
     "Testicular torsion – CITO exploration": (
         "Acute", "{m} sēklinieka eksplorācija, detorsija, orhidopeksija / orhektomija", "{adj} puses sēklinieka "
         "torsiju", "{Adj} puses testis torsija", "", ""),
@@ -9945,6 +9910,9 @@ PE_PARTS = {  # urethral stricture location -> words for the presets with {part_
     "Not specified": {"part_acc": "uretras striktūru", "part_dx": "Uretras striktūra"},
 }
 PE_INDICATIONS = {  # default indication text for these presets (EAU: second resection within 2–6 weeks)
+    "Testicular infarction – exploration":
+        "sēklinieka infarkts, audzēju nevar izslēgt; pacients informēts, ka atkarībā no atrades tiks veikta sēklinieka "
+        "rezekcija vai orhektomija",
     "Testicular torsion – CITO exploration":
         "sēklinieka torsija (CITO); pacients informēts, ka gadījumā, ja sēklinieka audi nebūs dzīvotspējīgi, tiks "
         "veikta orhektomija, un par kontralaterālā sēklinieka fiksāciju",
@@ -9962,6 +9930,10 @@ PE_INDICATIONS = {  # default indication text for these presets (EAU: second res
 PE_DRE = {"Acute bacterial prostatitis – acute admission (no operation)": "prostata palielināta, izteikti sāpīga",
           "Prostatic abscess – drainage": "prostata palielināta, izteikti sāpīga, palpējama fluktuācija"}
 PE_GENITALS = {"Hydrocele plasty": "{adj} puses hidrocēle",
+               "Testicular infarction – conservative admission (no operation)":
+                   "{mm} sēklinieks palpatori sāpīgs, normāli novietots, sēklinieku maisiņa āda bez apsārtuma",
+               "Testicular infarction – exploration":
+                   "{mm} sēklinieks palpatori sāpīgs, sablīvēts, normāli novietots",
                "Testicular torsion – CITO exploration": "pietūkums un palpatori sāpes {loc} sēkliniekā, sēklinieks "
                                                          "augstu novietots",
                "Epididymo-orchitis – acute admission (conservative)": "{mm} sēklinieks un piedēklis palielināti, "
@@ -10155,9 +10127,8 @@ def render_doc_header(kind):
     st.session_state.setdefault(f"hdr-date-{kind}", datetime.date.today())
     st.session_state.setdefault("hdr-surgeons", st.session_state.get("pe-surgeons", ""))
     st.session_state.setdefault("hdr-nurse", st.session_state.get("pe-nurse", ""))
-    with st.expander("Word file header (optional)", expanded=False):
-        st.caption("Used only in the Word file. On the online version leave the patient's name and history number "
-                   "empty and type them in Word.")
+    with st.expander("Word faila galvene (neobligāti)", expanded=False):
+        st.caption("Tiek izmantota tikai Word failā. Tiešsaistes versijā pacienta vārdu un slimības vēstures numuru atstājiet tukšu un ierakstiet tos Word failā.")
         c1, c2 = st.columns(2)
         h = {"patient": c1.text_input("Pacients", key="hdr-patient").strip()}
         day = c2.date_input("Datums", format="DD.MM.YYYY", key=f"hdr-date-{kind}")
@@ -10167,7 +10138,7 @@ def render_doc_header(kind):
             h["dept"] = c2.text_input("Nodaļa", key="hdr-dept").strip()
             h["surgeons"] = c1.text_input("Ķirurgs/ Asistents", key="hdr-surgeons").strip()
             h["nurse"] = c2.text_input("Operācijas māsa", key="hdr-nurse").strip()
-            h["anesth"] = c1.text_input("Anesteziologs (optional)", key="hdr-anesth").strip()
+            h["anesth"] = c1.text_input("Anesteziologs (neobligāti)", key="hdr-anesth").strip()
     return h
 
 
@@ -10206,7 +10177,7 @@ export default function (component) {
   if (!btn) {
     btn = document.createElement("button");
     btn.type = "button";
-    btn.textContent = "Copy";
+    btn.textContent = "Kopēt";
     parentElement.appendChild(btn);
     btn.addEventListener("click", async () => {
       const text = btn._text || "";
@@ -10224,10 +10195,10 @@ export default function (component) {
         try { ok = document.execCommand("copy"); } catch (e2) { ok = false; }
         box.remove();
       }
-      btn.textContent = ok ? "Copied" : "Copy failed";
+      btn.textContent = ok ? "Nokopēts" : "Neizdevās nokopēt";
       btn.classList.toggle("done", ok);
       clearTimeout(btn._timer);
-      btn._timer = setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("done"); }, 1500);
+      btn._timer = setTimeout(() => { btn.textContent = "Kopēt"; btn.classList.remove("done"); }, 1500);
     });
   }
   btn._text = data.text;
@@ -10283,17 +10254,17 @@ def section_summary(code, groups, known, fixed):
                 missing += 1
             continue
         if kind == "toggle":
-            text = group if value else ""
+            text = tr(group) if value else ""
         elif kind == "date":
             text = fmt_date(value) if hasattr(value, "strftime") else str(value)
         elif kind == "number":
-            text = f"{group.split(' (')[0]} {value:g}" if isinstance(value, (int, float)) else ""
+            text = f"{tr(group).split(' (')[0]} {value:g}" if isinstance(value, (int, float)) else ""
         elif kind == "multi":
-            text = ", ".join(str(v) for v in value)
+            text = ", ".join(str(tr(v)) for v in value)
         elif kind == "table":
             text = ""
         else:
-            text = str(value)
+            text = str(tr(value))
         if text:
             parts.append(text if len(text) <= 40 else text[:38] + "…")
     summary = " · ".join(parts)
@@ -10302,7 +10273,7 @@ def section_summary(code, groups, known, fixed):
 
 def word_button(label, data_maker, file_name, key):
     if not HAS_DOCX:
-        st.info("To download a Word file, install python-docx once: py -3.13 -m pip install python-docx")
+        st.info("Lai lejupielādētu Word failu, vienreiz instalējiet python-docx: py -3.13 -m pip install python-docx")
         return
     st.download_button(label, data=data_maker(), file_name=file_name, mime=DOCX_MIME, key=key,
                        icon=":material/download:")
@@ -10316,56 +10287,59 @@ def render_primary_evaluation(sex):
     left, right = st.columns([3, 2], gap="large")
     with left:
         with st.container(border=True, key="card-pe-case"):
-            preset = st.selectbox("Case", list(PE_PRESETS), key="pe-preset",
-                                  help="Type to search, e.g. URS, TURU or torsion. The case fills in typical wording.")
+            preset = st.selectbox("Gadījums", list(PE_PRESETS), key="pe-preset",
+                                  help="Rakstiet, lai meklētu, piem., URS, TURU vai torsija. Gadījums aizpilda tipiskos formulējumus.", format_func=tr_opt)
         adm_d, op_d, acc_d, dx_d, compl_d, course_d = PE_PRESETS[preset]
-        t_reason, t_history, t_status, t_plan = st.tabs(["1 · Reason", "2 · History", "3 · Status", "4 · Plan"],
+        t_reason, t_history, t_status, t_plan = st.tabs(["1 · Iemesls", "2 · Anamnēze", "3 · Stāvoklis", "4 · Plāns"],
                                                          key="pe-tabs")
         with t_reason:
             side = None
             if "{part" in op_d + acc_d + dx_d:  # urethral stricture: the location words change
-                side = st.radio("Stricture location", list(PE_PARTS), horizontal=True, key="pe-part")
-                op_d, acc_d, dx_d = (t.format(**PE_PARTS[side]) for t in (op_d, acc_d, dx_d))
+                side = st.radio("Striktūras lokalizācija", list(PE_PARTS), horizontal=True, key="pe-part", format_func=tr_opt)
+                op_d, acc_d, dx_d, compl_d, course_d = (t.format(**PE_PARTS[side])
+                                                         for t in (op_d, acc_d, dx_d, compl_d, course_d))
             elif "{" in op_d + acc_d + dx_d:  # this preset has a side: the side words change with it
-                side = st.radio("Side", ["Left", "Right"], horizontal=True, key="pe-side")
+                side = st.radio("Puse", ["Left", "Right"], horizontal=True, key="pe-side", format_func=tr_opt)
                 words = PE_SIDE_WORDS[side]
-                op_d, acc_d, dx_d = (t.format(**words) for t in (op_d, acc_d, dx_d))
+                op_d, acc_d, dx_d, compl_d, course_d = (t.format(**words)
+                                                         for t in (op_d, acc_d, dx_d, compl_d, course_d))
             tag = f"{preset}-{side}"  # new boxes (with the new side words) when the preset or the side changes
-            admission = st.radio("Admission", ["Planned", "Acute"], index=0 if adm_d == "Planned" else 1,
-                                 horizontal=True, key=f"pe-admission-{preset}")
-            operation = st.text_input("Operation (empty if no operation)", op_d, key=f"pe-op-{tag}")
+            admission = st.radio("Iestāšanās", ["Planned", "Acute"], index=0 if adm_d == "Planned" else 1,
+                                 horizontal=True, key=f"pe-admission-{preset}", format_func=tr_opt)
+            operation = st.text_input("Operācija (tukšs, ja operācijas nav)", op_d, key=f"pe-op-{tag}")
             if operation.strip():
-                dx_acc = st.text_input("Reason, as it follows 'sakarā ar iepriekš diagnosticētu ...'", acc_d,
+                dx_acc = st.text_input("Iemesls, kā turpinājums vārdiem 'sakarā ar iepriekš diagnosticētu ...'", acc_d,
                                        key=f"pe-dxacc-{tag}")
-                complaints = st.text_input("Complaints (optional)", key=f"pe-compl-{preset}")
+                complaints = st.text_input("Sūdzības (neobligāti)", key=f"pe-compl-{preset}")
                 course = ""
             else:
                 dx_acc = ""
-                complaints = st.text_input("Complaints, as they follow 'ar sūdzībām par ...'", compl_d,
+                complaints = st.text_input("Sūdzības, kā turpinājums vārdiem 'ar sūdzībām par ...'", compl_d,
                                            key=f"pe-compl-{preset}")
-                course = st.text_area("Before admission (NMC, investigations, findings)", course_d,
+                course = st.text_area("Pirms iestāšanās (NMC, izmeklējumi, atrades)", course_d,
                                       key=f"pe-course-{preset}", height=90)
-            diagnosis = st.text_area("Diagnosis (Slēdziens)", dx_d, key=f"pe-dx-{tag}", height=70)
+            diagnosis = st.text_area("Diagnoze (Slēdziens)", dx_d, key=f"pe-dx-{tag}", height=70)
         with t_history:
-            other = st.text_area("Citas slimības (empty = Nav datu)", key="pe-other", height=70)
+            other = st.text_area("Citas slimības (tukšs = Nav datu)", key="pe-other", height=70)
             c1, c2, c3 = st.columns(3)
-            tbc = c1.radio("TBC", ["Noliedz", "Apstiprina", "Nav datu"], key="pe-tbc")
-            hep = c2.radio("Hepatīti", ["Noliedz", "Apstiprina", "Nav datu"], key="pe-hep")
-            allergy = c3.radio("Medikamentu nepanesība", ["Noliedz", "Ir", "Nav datu"], key="pe-allergy")
-            allergy_text = st.text_input("Which medications", key="pe-allergy-text") if allergy == "Ir" else ""
-            operations = st.text_area("Pārciestas operācijas (empty = Nav datu)", key="pe-ops", height=70)
+            tbc = c1.radio("TBC", ["Noliedz", "Apstiprina", "Nav datu"], key="pe-tbc", format_func=tr_opt)
+            hep = c2.radio("Hepatīti", ["Noliedz", "Apstiprina", "Nav datu"], key="pe-hep", format_func=tr_opt)
+            allergy = c3.radio("Medikamentu nepanesība", ["Noliedz", "Ir", "Nav datu"], key="pe-allergy", format_func=tr_opt)
+            allergy_text = st.text_input("Kādi medikamenti", key="pe-allergy-text") if allergy == "Ir" else ""
+            operations = st.text_area("Pārciestas operācijas (tukšs = Nav datu)", key="pe-ops", height=70)
         with t_status:
             v = st.columns(5)
-            general = v[0].selectbox("Stāvoklis", ["Apmierinošs", "Vidēji smags", "Smags"], key="pe-general")
+            general = v[0].selectbox("Stāvoklis", ["Apmierinošs", "Vidēji smags", "Smags"], key="pe-general", format_func=tr_opt)
             hr = v[1].number_input("Pulss (x/min)", 20, 250, 70, key="pe-hr")
-            rhythm = v[2].selectbox("Ritms", ["Ritmiska", "Aritmiska"], key="pe-rhythm")
+            rhythm = v[2].selectbox("Ritms", ["Ritmiska", "Aritmiska"], key="pe-rhythm", format_func=tr_opt)
             bp = v[3].text_input("TA (mm/Hg)", "124/78", key="pe-bp")
             rr = v[4].number_input("Elpošana (x/min)", 5, 60, 16, key="pe-rr")
             # Everything is written as normal unless you pick it here (then its fields appear)
             genitals_d = PE_GENITALS.get(preset, "neizmainīti").format(**PE_SIDE_WORDS.get(side, PE_SIDE_WORDS["Left"]))
             dre_d = PE_DRE.get(preset, "")
             findings = st.pills(
-                "Findings – everything you don't pick is written as normal", PE_SYSTEMS, selection_mode="multi",
+                "Atrades – viss, ko neizvēlaties, tiek aprakstīts kā norma", PE_SYSTEMS, selection_mode="multi",
+                format_func=lambda s: "Vispārējais stāvoklis" if s == "General" else tr(s),
                 default=(["Genitals"] if preset in PE_GENITALS else []) + (["DRI"] if dre_d else []),
                 key=f"pe-systems-{tag}") or []
             conscious, tongue, edema, nodes = "Skaidra", "Valga, bez aplikuma", "Nav", "Nepalpējas"
@@ -10377,48 +10351,48 @@ def render_primary_evaluation(sex):
                 slot[0] += 1
                 return cols[(slot[0] - 1) % 3]
             if "General" in findings:
-                conscious = col().selectbox("Samaņa", ["Skaidra", "Apmiglota", "Sopors"], key="pe-conscious")
+                conscious = col().selectbox("Samaņa", ["Skaidra", "Apmiglota", "Sopors"], key="pe-conscious", format_func=tr_opt)
                 tongue = col().selectbox("Mēle", ["Valga, bez aplikuma", "Sausa, bez aplikuma", "Valga, ar aplikumu",
-                                                  "Sausa, ar aplikumu"], key="pe-tongue")
+                                                  "Sausa, ar aplikumu"], key="pe-tongue", format_func=tr_opt)
             if "Oedema, lymph nodes" in findings:
-                edema = col().selectbox("Tūskas", ["Nav", "Kāju distālajās daļās", "Ģeneralizētas"], key="pe-edema")
-                nodes = col().selectbox("Perifērie limfmezgli", ["Nepalpējas", "Palpējas palielināti"], key="pe-nodes")
+                edema = col().selectbox("Tūskas", ["Nav", "Kāju distālajās daļās", "Ģeneralizētas"], key="pe-edema", format_func=tr_opt)
+                nodes = col().selectbox("Perifērie limfmezgli", ["Nepalpējas", "Palpējas palielināti"], key="pe-nodes", format_func=tr_opt)
             if "Lungs" in findings:
-                breath = col().selectbox("Elpošana", ["Vezikulāra", "Novājināta", "Ar sēcieniem"], key="pe-breath")
+                breath = col().selectbox("Elpošana", ["Vezikulāra", "Novājināta", "Ar sēcieniem"], key="pe-breath", format_func=tr_opt)
             if "Abdomen" in findings:
                 abdomen = col().text_input("Vēders", "Mīksts, neuzpūsts; nesāpīgs", key="pe-abdomen")
                 peritoneal = col().selectbox("Peritoneja kairinājuma simptomi", ["NEGATĪVI", "POZITĪVI"],
-                                             key="pe-perit")
+                                             key="pe-perit", format_func=tr_opt)
             if "Kidneys" in findings:
                 kidneys = col().selectbox("Nieres apklauvējot", ["Nesāpīgas", "Sāpīga labā", "Sāpīga kreisā",
-                                                                 "Sāpīgas abas"], key="pe-kidneys")
+                                                                 "Sāpīgas abas"], key="pe-kidneys", format_func=tr_opt)
             if "Bladder" in findings:
-                bladder = col().selectbox("Urīnpūslis", ["Nepalpējas", "Palpējas, pilns"], key="pe-bladder")
+                bladder = col().selectbox("Urīnpūslis", ["Nepalpējas", "Palpējas, pilns"], key="pe-bladder", format_func=tr_opt)
             if "Genitals" in findings:
                 genitals = col().text_input("Ārējie dzimumorgāni", genitals_d, key=f"pe-genitals-{tag}")
             if "DRI" in findings:
                 dre = st.text_input("DRI / per rectum", dre_d, key=f"pe-dre-{tag}")
         with t_plan:
             if operation.strip():
-                indication = st.text_input("Indication (empty = the diagnosis)", PE_INDICATIONS.get(preset, ""),
+                indication = st.text_input("Indikācija (tukšs = diagnoze)", PE_INDICATIONS.get(preset, ""),
                                            key=f"pe-indication-{tag}",
-                                           placeholder="e.g. ekskrēcijas traucējumi; operabls prostatas CA")
+                                           placeholder="piem., ekskrēcijas traucējumi; operabls prostatas CA")
                 c1, c2, c3 = st.columns(3)
                 consent = c1.checkbox(f"{f['Pacients']} operācijai piekrīt", True, key="pe-consent")
                 no_contra = c2.checkbox("Kontrindikāciju nav", True, key="pe-contra")
                 prepared = c3.checkbox("Operācijai sagatavots", True, key="pe-prepared")
                 c1, c2 = st.columns(2)
-                surgeons = c1.text_input("Operē (surgeons)", key="pe-surgeons")
+                surgeons = c1.text_input("Operē (ķirurgi)", key="pe-surgeons")
                 nurse = c2.text_input("Op. māsa", key="pe-nurse")
                 plan = ""
             else:
-                plan = st.text_area("Plan", "Turpina ārstēšanos stacionārā!\nTerapija ordināciju lapā.", key="pe-plan",
+                plan = st.text_area("Plāns", "Turpina ārstēšanos stacionārā!\nTerapija ordināciju lapā.", key="pe-plan",
                                     height=80)
-                actions = st.text_input("Done at admission (optional)",
-                                        placeholder="e.g. Ievietots Foley 18 CH urīnpūšļa ilgkatetrs.", key="pe-actions")
+                actions = st.text_input("Veikts iestāšanās laikā (neobligāti)",
+                                        placeholder="piem., Ievietots Foley 18 CH urīnpūšļa ilgkatetrs.", key="pe-actions")
                 if actions.strip():
                     plan += "\n" + actions.strip().rstrip(".") + "."
-        add_decursus = st.checkbox("Add decursus (daily notes) to this evaluation", key="pe-add-dec")
+        add_decursus = st.checkbox("Pievienot šai apskatei decursus (dienas ierakstus)", key="pe-add-dec")
         decursus = render_decursus_cards(sex) if add_decursus else ""
 
     with right:
@@ -10426,7 +10400,7 @@ def render_primary_evaluation(sex):
     with paper:
         header = render_doc_header("pe")
     if not diagnosis.strip() or (operation.strip() and not dx_acc.strip()) or (not operation.strip() and not complaints.strip()):
-        paper.info("Fill in the reason (or complaints) and the diagnosis to see the text.")
+        paper.info("Aizpildiet iemeslu (vai sūdzības) un diagnozi, lai redzētu tekstu.")
         return
     kind = "plānveida kārtā" if admission == "Planned" else "akūtā kārtā"
     if operation.strip():
@@ -10492,8 +10466,8 @@ def render_primary_evaluation(sex):
     if decursus:
         text += "\n\n" + decursus
     with paper:
-        paper_area("Urologa apskate", text, f"pe-out-{hash(text)}", label="Primary evaluation")
-        word_button("Word file (Urologa apskate" + (" + decursus" if decursus else "") + ")",
+        paper_area("Urologa apskate", text, f"pe-out-{hash(text)}", label="Urologa apskate")
+        word_button("Word fails (Urologa apskate" + (" + decursus" if decursus else "") + ")",
                     lambda: evaluation_docx(header, reason, history, objective, dx_line, conclusion, decursus),
                     f"Urologa_apskate_{header.get('date', '').replace('.', '-') or 'bez_datuma'}.docx", "pe-word")
 
@@ -10603,6 +10577,105 @@ def _dec_vary_vitals():
         prev = {**vitals, "sys": vitals["sys"] or prev["sys"], "dia": vitals["dia"] or prev["dia"]}
     st.session_state["dd-vary"] = True  # days added from now on vary too
 
+# ----- Decursus: transfusion and imaging on a day -----
+# product id -> (name in the text, example amount for the box)
+TX_PRODUCTS = {
+    "erm": ("filtrēta eritrocītu masa", "e.g. 2 devas"),
+    "ssp": ("svaigi saldēta plazma", "e.g. 600 ml"),
+    "trm": ("trombocītu masa", "e.g. 1 deva"),
+    "alb": ("albumīns", "e.g. 20% 100 ml"),
+    "kri": ("krioprecipitāts", "e.g. 10 devas"),
+    "ig": ("imūnglobulīns", "e.g. 25 g"),
+}
+TX_INDICATIONS = [
+    "posthemorāģiskā anēmija", "akūts asins zudums", "simptomātiska anēmija", "Hb < 70 g/L",
+    "Hb < 80 g/L un sirds un asinsvadu slimība", "koagulopātija ar asiņošanu", "masīva asiņošana",
+    "trombocitopēnija ar asiņošanu", "trombocitopēnija pirms invazīvas manipulācijas",
+    "hipofibrinogenēmija ar asiņošanu", "hipoalbuminēmija", "hipogammaglobulinēmija / imūndeficīts",
+]
+# imaging id -> (name in the text: 'Veikta ...', example finding)
+IMAGING_EXAMS = {
+    "ctu": ("DT urogrāfija", "e.g. urīnceļi caurejami, kontrastvielas ekstravazācijas nav"),
+    "us": ("nieru un urīnpūšļa USG", "e.g. urostāzes nav, urīnpūslī šķidruma kolekciju nav"),
+    "ctap": ("DT vēdera dobumam un mazajam iegurnim", "e.g. šķidruma kolekciju un abscesu nav"),
+    "xr": ("rentgenogrāfija", "e.g. krūškurvja – bez infiltratīvām pārmaiņām"),
+}
+DEC_EVENT_FIELDS = {  # fields of a day's transfusion and imaging (not copied to the next day)
+    "tx": [], "tx_ind": [], "tx_ind_other": "", "tx_hb_pre": None, "tx_hb_post": None, "tx_ok": True, "img": [],
+    **{f"tx_{p}": "" for p in TX_PRODUCTS}, **{f"img_{e}": "" for e in IMAGING_EXAMS},
+}
+
+
+def _dec_transfusion_lines(i):
+    """'Veikta transfūzija: filtrēta eritrocītu masa 2 devas. Indikācijas: ... . Hb ... .' for day i."""
+    s = st.session_state
+    chosen = [p for p in TX_PRODUCTS if p in (s.get(f"dd{i}-tx") or [])]
+    if not chosen:
+        return []
+    items = []
+    for p in chosen:
+        amount = (s.get(f"dd{i}-tx_{p}") or "").strip()
+        items.append(TX_PRODUCTS[p][0] + (f" {amount}" if amount else ""))
+    lines = ["Veikta transfūzija: " + ", ".join(items)]
+    indications = list(s.get(f"dd{i}-tx_ind") or [])
+    other = (s.get(f"dd{i}-tx_ind_other") or "").strip().rstrip(".")
+    if other:
+        indications.append(other)
+    if indications:
+        lines.append("Indikācijas: " + ", ".join(indications))
+    pre, post = s.get(f"dd{i}-tx_hb_pre"), s.get(f"dd{i}-tx_hb_post")
+    if pre is not None and post is not None:
+        lines.append(f"Hb pirms transfūzijas {pre:g} g/L, pēc transfūzijas {post:g} g/L")
+    elif pre is not None:
+        lines.append(f"Hb pirms transfūzijas {pre:g} g/L")
+    elif post is not None:
+        lines.append(f"Hb pēc transfūzijas {post:g} g/L")
+    if s.get(f"dd{i}-tx_ok", True):
+        lines.append("Transfūzija noritēja bez reakcijām")
+    return lines
+
+
+def _dec_imaging_lines(i):
+    """'Veikta DT urogrāfija: ... .' for each examination done on day i."""
+    s = st.session_state
+    lines = []
+    for e in IMAGING_EXAMS:
+        if e in (s.get(f"dd{i}-img") or []):
+            finding = (s.get(f"dd{i}-img_{e}") or "").strip().rstrip(".")
+            lines.append(f"Veikta {IMAGING_EXAMS[e][0]}" + (f": {finding}" if finding else ""))
+    return lines
+
+
+def _dec_events_ui(i):
+    """The transfusion and imaging of day i, each in a fold-out that opens when something is chosen."""
+    s = st.session_state
+    with st.expander("Transfūzija" + (f" · izvēlēti: {len(s.get(f'dd{i}-tx') or [])}" if s.get(f"dd{i}-tx") else ""),
+                     expanded=bool(s.get(f"dd{i}-tx")), key=f"dd{i}-tx-exp"):
+        picked = st.multiselect("Komponenti un preparāti", list(TX_PRODUCTS), key=f"dd{i}-tx",
+                                format_func=lambda p: TX_PRODUCTS[p][0].capitalize())
+        if picked:
+            cols = st.columns(3)
+            for n, p in enumerate(picked):
+                cols[n % 3].text_input(f"{TX_PRODUCTS[p][0].capitalize()} – daudzums", key=f"dd{i}-tx_{p}",
+                                       placeholder=TX_PRODUCTS[p][1])
+            st.multiselect("Indikācijas", TX_INDICATIONS, key=f"dd{i}-tx_ind", format_func=tr_opt)
+            st.text_input("Cita indikācija (neobligāti)", key=f"dd{i}-tx_ind_other",
+                          placeholder="piem., Hb kritums pēc operācijas ar tahikardiju")
+            c = st.columns([1, 1, 2], vertical_alignment="bottom")
+            c[0].number_input("Hb pirms (g/L)", 0.0, 250.0, value=None, step=1.0, format="%g", key=f"dd{i}-tx_hb_pre")
+            c[1].number_input("Hb pēc (g/L)", 0.0, 250.0, value=None, step=1.0, format="%g", key=f"dd{i}-tx_hb_post")
+            c[2].checkbox("Noritēja bez reakcijām", key=f"dd{i}-tx_ok")
+    with st.expander("Izmeklējumi (DT, USG, rentgens)"
+                     + (f" · izvēlēti: {len(s.get(f'dd{i}-img') or [])}" if s.get(f"dd{i}-img") else ""),
+                     expanded=bool(s.get(f"dd{i}-img")), key=f"dd{i}-img-exp"):
+        exams = st.multiselect("Izmeklējumi", list(IMAGING_EXAMS), key=f"dd{i}-img",
+                               format_func=lambda e: IMAGING_EXAMS[e][0][:1].upper() + IMAGING_EXAMS[e][0][1:])
+        for e in exams:
+            name = IMAGING_EXAMS[e][0]
+            st.text_input(f"{name[:1].upper() + name[1:]} – atrade", key=f"dd{i}-img_{e}",
+                          placeholder=IMAGING_EXAMS[e][1])
+
+
 
 def _dec_add_day():
     n = st.session_state.get("dd-count", 1)
@@ -10619,6 +10692,8 @@ def _dec_add_day():
         st.session_state[f"dd{n}-drain_ml"], st.session_state[f"dd{n}-drain_look"] = None, "(no drain)"
         st.session_state[f"dd{n}-drain_out"] = False
     st.session_state[f"dd{n}-kind"] = "Apskate"
+    for field, default in DEC_EVENT_FIELDS.items():
+        st.session_state[f"dd{n}-{field}"] = list(default) if isinstance(default, list) else default
     st.session_state[f"dd{n}-daytype"] = "(auto)"
     last_date = st.session_state.get(f"dd{last}-until") or st.session_state.get(f"dd{last}-date")
     st.session_state[f"dd{n}-date"] = (last_date + datetime.timedelta(days=1)) if last_date else None
@@ -10682,6 +10757,12 @@ DEC_PRESETS = {  # typical findings filled into every day card (you can still ch
                                       "abdomen": "Vēders palpatori mīksts, sāpīgs operācijas brūces rajonā, "
                                                  "peristaltika novājināta.",
                                       "voiding": "Pa nefrostomām dzeltens urīns adekvātā daudzumā.", "notes": ""},
+    "Testicular infarction (conservative)": {"cath_look": "(no catheter)", "drain_look": "(no drain)",
+                                             "dressing": "(no dressing)",
+                                             "abdomen": "Vēders palpatori mīksts, nesāpīgs.",
+                                             "voiding": "Mikcija brīva, spontāna.",
+                                             "notes": "Sāpes sēkliniekā dinamikā mazinās, sēklinieku maisiņa tūska "
+                                                      "samazinās."},
     "Scrotal operation": {"cath_look": "(no catheter)", "drain_look": "(no drain)", "dressing": "Clean (short)",
                           "abdomen": "Vēders palpatori mīksts, nesāpīgs.",
                           "voiding": "Mikcija brīva, spontāna.",
@@ -10740,7 +10821,8 @@ def _dec_day_text(i, sex, op_date):
         tubes.append("Pa drenu " + g("drain_look") + " izdalījumi"
                      + (f" ap {g('drain_ml'):g} ml/dnn" if g("drain_ml") is not None else "")
                      + (", drenu evakuē" if g("drain_out") else ""))
-    for extra in [g("abdomen") or "", g("voiding") or ""] + tubes + [DRESSINGS[g("dressing")], g("notes") or ""]:
+    for extra in ([g("abdomen") or "", g("voiding") or ""] + tubes + _dec_imaging_lines(i) + _dec_transfusion_lines(i)
+                  + [DRESSINGS[g("dressing")], g("notes") or ""]):
         if extra.strip():
             e = sexed(extra.strip(), sex)
             parts.append(e if e.endswith(".") else e + ".")
@@ -10762,28 +10844,26 @@ def render_decursus_cards(sex):
     for i in range(n):
         for field, default in DEC_FIELDS.items():
             st.session_state.setdefault(f"dd{i}-{field}", default)
+        for field, default in DEC_EVENT_FIELDS.items():
+            st.session_state.setdefault(f"dd{i}-{field}", list(default) if isinstance(default, list) else default)
         st.session_state.setdefault(f"dd{i}-date", datetime.date.today() if i == 0 else None)
 
     with st.container(border=True, key="card-dec-course"):
         c = st.columns([3, 2], vertical_alignment="bottom")
-        c[0].selectbox("Typical course (fills the days; you can still change each day)", list(DEC_PRESETS),
-                       key="dec-preset", on_change=_dec_apply_preset)
-        op_date = c[1].date_input("Operation date (optional, fills the day type)", value=None, format="DD.MM.YYYY",
+        c[0].selectbox("Tipiskā gaita (aizpilda dienas; katru dienu joprojām var mainīt)", list(DEC_PRESETS),
+                       key="dec-preset", on_change=_dec_apply_preset, format_func=tr_opt)
+        op_date = c[1].date_input("Operācijas datums (neobligāti, aizpilda dienas veidu)", value=None, format="DD.MM.YYYY",
                                   key="dec-opdate")
         b = st.columns(3)
-        b[0].button("Add day", icon=":material/add:", on_click=_dec_add_day, key="dd-add", width="stretch",
-                    help="Copies the last examination day.")
-        b[1].button("Remove last day", icon=":material/remove:", on_click=_dec_remove_day, key="dd-remove",
+        b[0].button("Pievienot dienu", icon=":material/add:", on_click=_dec_add_day, key="dd-add", width="stretch",
+                    help="Nokopē pēdējo apskates dienu.")
+        b[1].button("Noņemt pēdējo dienu", icon=":material/remove:", on_click=_dec_remove_day, key="dd-remove",
                     width="stretch", disabled=n <= 1)
-        b[2].button("Vary vitals from Day 1", icon=":material/casino:", on_click=_dec_vary_vitals, key="dd-vary-btn",
+        b[2].button("Variēt vitālos rādītājus no 1. dienas", icon=":material/casino:", on_click=_dec_vary_vitals, key="dd-vary-btn",
                     width="stretch",
-                    help="Days 2 onwards get vital signs close to Day 1: pulse ±10/min and always even, blood pressure "
-                         "±15 systolic and ±10 diastolic (moving together), breathing 12–20/min, temperature with a "
-                         "normal day-to-day variation (a fever on Day 1 settles). Each day changes only a little from "
-                         "the day before. Click again for new values.")
+                    help="No 2. dienas vitālie rādītāji ir tuvi 1. dienai: pulss ±10/min un vienmēr pāra skaitlis, asinsspiediens ±15 sistoliskais un ±10 diastoliskais (mainās kopā), elpošana 12–20/min, temperatūra ar normālu svārstību no dienas uz dienu (drudzis 1. dienā mazinās). Katra diena no iepriekšējās atšķiras tikai nedaudz. Noklikšķiniet vēlreiz, lai iegūtu jaunas vērtības.")
         if st.session_state.get("dd-vary"):
-            st.caption("Vital signs vary from Day 1 – days you add now get their own values too. "
-                       "You can still change any day by hand.")
+            st.caption("Vitālie rādītāji tiek variēti no 1. dienas – arī tagad pievienotās dienas saņem savas vērtības. Jebkuru dienu joprojām var mainīt manuāli.")
 
     exams = [i for i in range(n) if st.session_state.get(f"dd{i}-kind") == "Apskate"]
 
@@ -10805,19 +10885,19 @@ def render_decursus_cards(sex):
             if len(values) >= 2:
                 col.metric(label, fmt.format(values[-1]), delta=fmt.format(values[-1] - values[0]),
                            delta_color="off", chart_data=values, chart_type="line", border=True,
-                           delta_description="from Day 1")
+                           delta_description="no 1. dienas")
 
     # The days: one row each, vital signs straight in the table
     with st.container(border=True, key="dd-table"):
         head = st.columns(DEC_ROW)
-        for col, title in zip(head, ["Date", "Day", "P", "TA", "E", "T °C", "Catheter"]):
+        for col, title in zip(head, ["Datums", "Diena", "P", "TA", "E", "T °C", "Katetrs"]):
             col.caption(f"**{title}**")
         for i in range(n):
             row = st.columns(DEC_ROW, vertical_alignment="center")
-            row[0].date_input(f"Day {i + 1} date", format="DD.MM.YYYY", key=f"dd{i}-date",
+            row[0].date_input(f"{i + 1}. dienas datums", format="DD.MM.YYYY", key=f"dd{i}-date",
                               label_visibility="collapsed")
             if st.session_state.get(f"dd{i}-kind") == "Apskate":
-                row[1].markdown(f"<span class='dd-day'>Day {i + 1}<br>{_dec_day_type(i, op_date) or 'Apskate'}</span>",
+                row[1].markdown(f"<span class='dd-day'>{i + 1}. diena<br>{_dec_day_type(i, op_date) or 'Apskate'}</span>",
                                 unsafe_allow_html=True)
                 row[2].number_input("P", 20, 250, key=f"dd{i}-pulse", label_visibility="collapsed")
                 row[3].text_input("TA", key=f"dd{i}-bp", label_visibility="collapsed")
@@ -10830,44 +10910,45 @@ def render_decursus_cards(sex):
                                 look + (f" · {ml:g} ml" if ml is not None else "")) + "</span>",
                                 unsafe_allow_html=True)
             else:
-                row[1].markdown(f"<span class='dd-day'>Day {i + 1}<br>Dežūrpersonāla uzraudzībā</span>",
+                row[1].markdown(f"<span class='dd-day'>{i + 1}. diena<br>Dežūrpersonāla uzraudzībā</span>",
                                 unsafe_allow_html=True)
 
     # The rest of each day, one tab per day
-    tabs = st.tabs([f"Day {i + 1}" for i in range(n)], key="dd-tabs")
+    tabs = st.tabs([f"{i + 1}. diena" for i in range(n)], key="dd-tabs")
     for i, tab in enumerate(tabs):
         with tab:
             c = st.columns([2, 3, 2])
-            kind = c[0].selectbox("Entry", ["Apskate", "Dežūrpersonāla uzraudzībā"], key=f"dd{i}-kind")
+            kind = c[0].selectbox("Ieraksts", ["Apskate", "Dežūrpersonāla uzraudzībā"], key=f"dd{i}-kind", format_func=tr_opt)
             if kind != "Apskate":
-                c[1].date_input("Until", value=None, format="DD.MM.YYYY", key=f"dd{i}-until")
-                c[2].text_input("Note", key=f"dd{i}-notes")
+                c[1].date_input("Līdz", value=None, format="DD.MM.YYYY", key=f"dd{i}-until")
+                c[2].text_input("Piezīme", key=f"dd{i}-notes")
                 continue
-            c[1].selectbox("Day type", ["(auto)", "(none)"] + DAY_TYPES, key=f"dd{i}-daytype")
-            c[2].selectbox("Stāvoklis", ["apmierinošs", "vidēji smags", "smags"], key=f"dd{i}-status")
+            c[1].selectbox("Dienas veids", ["(auto)", "(none)"] + DAY_TYPES, key=f"dd{i}-daytype", format_func=tr_opt)
+            c[2].selectbox("Stāvoklis", ["apmierinošs", "vidēji smags", "smags"], key=f"dd{i}-status", format_func=tr_opt)
             q = st.columns([2, 3])
-            feeling = q[0].selectbox("Sūdzības", list(FEELINGS), key=f"dd{i}-feeling")
-            q[1].text_input("Own text" if feeling == "Type my own" else "Extra complaints (optional)",
+            feeling = q[0].selectbox("Sūdzības", list(FEELINGS), key=f"dd{i}-feeling", format_func=tr_opt)
+            q[1].text_input("Savs teksts" if feeling == "Type my own" else "Papildu sūdzības (neobligāti)",
                             key=f"dd{i}-complaints")
             r = st.columns(2)
-            r[0].selectbox("Ritms", ["ritmisks", "aritmisks"], key=f"dd{i}-rhythm")
-            r[1].selectbox("Elpošana", ["vezikulāra", "novājināta", "ar sēcieniem"], key=f"dd{i}-breath")
+            r[0].selectbox("Ritms", ["ritmisks", "aritmisks"], key=f"dd{i}-rhythm", format_func=tr_opt)
+            r[1].selectbox("Elpošana", ["vezikulāra", "novājināta", "ar sēcieniem"], key=f"dd{i}-breath", format_func=tr_opt)
             a = st.columns(2)
             a[0].text_input("Vēders", key=f"dd{i}-abdomen")
             a[1].text_input("Mikcija / urīns", key=f"dd{i}-voiding",
-                            placeholder="e.g. Spontāna mikcija, izdalās dzidrs urīns.")
+                            placeholder="piem., Spontāna mikcija, izdalās dzidrs urīns.")
             k = st.columns([2, 3, 2], vertical_alignment="bottom")
             k[0].number_input("Katetrs ml/dnn", 0, 10000, step=100, key=f"dd{i}-cath_ml")
-            k[1].selectbox("Urīns pa katetru", CATH_LOOKS, key=f"dd{i}-cath_look")
+            k[1].selectbox("Urīns pa katetru", CATH_LOOKS, key=f"dd{i}-cath_look", format_func=tr_opt)
             k[2].checkbox("Katetru evakuē", key=f"dd{i}-cath_out")
             k = st.columns([2, 3, 2], vertical_alignment="bottom")
             k[0].number_input("Drena ml/dnn", 0, 5000, step=10, key=f"dd{i}-drain_ml")
-            k[1].selectbox("Izdalījumi pa drenu", DRAIN_LOOKS, key=f"dd{i}-drain_look")
+            k[1].selectbox("Izdalījumi pa drenu", DRAIN_LOOKS, key=f"dd{i}-drain_look", format_func=tr_opt)
             k[2].checkbox("Drenu evakuē", key=f"dd{i}-drain_out")
-            st.selectbox("Pārsiešana", list(DRESSINGS), key=f"dd{i}-dressing")
+            st.selectbox("Pārsiešana", list(DRESSINGS), key=f"dd{i}-dressing", format_func=tr_opt)
+            _dec_events_ui(i)
             e = st.columns([3, 2])
-            e[0].text_input("Other", key=f"dd{i}-notes")
-            e[1].selectbox("Ending", DEC_ENDINGS, key=f"dd{i}-ending")
+            e[0].text_input("Cits", key=f"dd{i}-notes")
+            e[1].selectbox("Nobeigums", DEC_ENDINGS, key=f"dd{i}-ending", format_func=tr_opt)
 
     return "\n\n".join(t for t in (_dec_day_text(i, sex, op_date) for i in range(n)) if t)
 
@@ -10884,14 +10965,14 @@ def render_decursus(sex):
     with right:
         with st.container(key="paper-dec"):
             header = render_doc_header("dec")
-            paper_area("Decursus", text, f"dec-out-{hash(text)}", label="Decursus text")
+            paper_area("Decursus", text, f"dec-out-{hash(text)}", label="Decursus teksts")
             if text:
                 def make():
                     doc = _docx_new()
                     _docx_page_header(doc, header)  # name and number at the top right of every page
                     decursus_docx(doc, text)
                     return _docx_bytes(doc)
-                word_button("Word file (decursus)", make, "Decursus.docx", "dec-word")
+                word_button("Word fails (decursus)", make, "Decursus.docx", "dec-word")
 
 
 # ---------------------------------------------------------------
@@ -11177,7 +11258,7 @@ export default function (component) {
     const svg = document.createElementNS(NS, "svg");
     svg.setAttribute("viewBox", `0 0 ${data.w} ${data.h}`);
     svg.setAttribute("role", "img");
-    svg.setAttribute("aria-label", "Bladder map: click a number to mark it");
+    svg.setAttribute("aria-label", "Urīnpūšļa karte: noklikšķiniet uz skaitļa, lai to atzīmētu");
     const img = document.createElementNS(NS, "image");
     img.setAttribute("href", data.img);
     img.setAttribute("width", data.w);
@@ -11259,13 +11340,13 @@ def bladder_site_picker(prefix, woman, title):
                                "w": BLADDER_MAP_SIZE[0], "h": BLADDER_MAP_SIZE[1], "reach": 70,
                                "points": {n: BLADDER_SITES[n][3] for n in BLADDER_SITES},
                                "selected": chosen, "disabled": [n for n in BLADDER_SITES if n not in numbers]})
-            st.caption("Click a number on the picture, or tick it in the list.")
+            st.caption("Noklikšķiniet uz skaitļa attēlā vai atzīmējiet to sarakstā.")
         else:
             st.image(bladder_map_png(chosen), width=360)
-            st.caption("Tick the sites in the list (clicking on the picture needs a newer Streamlit).")
+            st.caption("Atzīmējiet vietas sarakstā (klikšķināšanai uz attēla nepieciešama jaunāka Streamlit versija).")
     with right:
         for n in numbers:
-            st.checkbox(f"{n} – {BLADDER_SITES[n][0]}", key=f"{prefix}-site-{n}")
+            st.checkbox(f"{n} – {BLADDER_SITES[n][2][:1].upper() + BLADDER_SITES[n][2][1:]}", key=f"{prefix}-site-{n}")
     return [n for n in numbers if st.session_state.get(f"{prefix}-site-{n}")]
 
 
@@ -11291,27 +11372,25 @@ LASER_MODE = {"Fragmenting": "fragmentācijas režīmā", "Dusting": "pulverizā
 
 def cystolithotripsy_operation(c1, c2, c3, pt_acc):
     """Transurethral cystolithotripsy (department format). Returns (paragraphs, name)."""
-    st.caption("EAU: transurethral cystolithotripsy where possible (strong), preferably with a continuous-flow "
-               "instrument (nephroscope or resectoscope, weak); laser, pneumatic and mechanical lithotripsy are "
-               "equivalent. Send the stone for analysis.")
+    st.caption("EAU: ja iespējams, transuretrāla cistolitotripsija (stipra rekomendācija), vēlams ar nepārtrauktas plūsmas instrumentu (nefroskops vai rezektoskops, vāja rekomendācija); lāzera, pneimatiskā un mehāniskā litotripsija ir līdzvērtīgas. Nosūtiet akmeni analīzei.")
     pt_nom = "Paciente" if pt_acc == "Pacienti" else "Pacients"
-    anesthesia = c1.selectbox("Anestēzija", ["Intubācijas narkozē", "Spinālā anestēzijā"], key="op-cl-an")
-    scope = c2.selectbox("Instruments", ["cistoskopu", "nefroskopu (nepārtrauktas plūsmas)",
-                                         "rezektoskopu (nepārtrauktas plūsmas)"], key="op-cl-scope")
+    anesthesia = c1.selectbox("Anestēzija", ["Intubācijas narkozē", "Spinālā anestēzijā"], key="op-cl-an", format_func=tr_opt)
+    scope = c2.selectbox("Instrumenti", ["cistoskopu", "nefroskopu (nepārtrauktas plūsmas)",
+                                         "rezektoskopu (nepārtrauktas plūsmas)"], key="op-cl-scope", format_func=tr_opt)
     energy = c3.selectbox("Litotripsija", ["lāzers (Ho:YAG)", "pneimatiskā", "mehāniskais litotriptors"],
-                          key="op-cl-energy")
+                          key="op-cl-energy", format_func=tr_opt)
     mucosa = c1.selectbox("Gļotāda", ["neizmainīta", "hiperemēta", "trabekulāra", "trabekulāra, ar pseidodivertikuliem"],
-                          key="op-cl-mucosa")
-    urine = c2.selectbox("Urīns", ["dzidrs", "duļķains"], key="op-cl-urine")
-    many = c3.radio("Konkrementi", ["Viens", "Vairāki"], horizontal=True, key="op-cl-many") == "Vairāki"
+                          key="op-cl-mucosa", format_func=tr_opt)
+    urine = c2.selectbox("Urīns", ["dzidrs", "duļķains"], key="op-cl-urine", format_func=tr_opt)
+    many = c3.radio("Konkrementi", ["Viens", "Vairāki"], horizontal=True, key="op-cl-many", format_func=tr_opt) == "Vairāki"
     size = c1.number_input("Izmērs (cm)", 0.0, 15.0, value=None, step=0.5, key="op-cl-size")
-    shape = c2.selectbox("Forma", ["ovālas formas", "apaļas formas", "neregulāras formas"], key="op-cl-shape")
-    fr = c3.selectbox("3-kanālu katetrs (Fr)", ["18", "20", "22", "24"], index=2, key="op-cl-fr")
+    shape = c2.selectbox("Forma", ["ovālas formas", "apaļas formas", "neregulāras formas"], key="op-cl-shape", format_func=tr_opt)
+    fr = c3.selectbox("3-kanālu katetrs (Fr)", ["18", "20", "22", "24"], index=2, key="op-cl-fr", format_func=tr_opt)
     balloon = c1.number_input("Balons (ml)", 5, 60, 15, key="op-cl-balloon")
-    colour = c2.selectbox("Urīns pa katetru", ["viegli rozīgas krāsas", "dzidrs", "sārtas krāsas"], key="op-cl-colour")
+    colour = c2.selectbox("Urīns pa katetru", ["viegli rozīgas krāsas", "dzidrs", "sārtas krāsas"], key="op-cl-colour", format_func=tr_opt)
     ward = c3.text_input("Pārved uz", "4. nodaļu", key="op-cl-ward")
-    prostate = st.text_input("Papildu atrade (optional)", key="op-cl-extra",
-                             placeholder="e.g. Prostatas vidējā daiva izvirzās urīnpūslī.")
+    prostate = st.text_input("Papildu atrade (neobligāti)", key="op-cl-extra",
+                             placeholder="piem., Prostatas vidējā daiva izvirzās urīnpūslī.")
     codes = st.checkbox("Manipulāciju kodi tekstā", True, key="op-cl-codes")
     k1, k2 = st.columns(2)
     code_scope = k1.text_input("Cistoskopijas kods", "19161", key="op-cl-code1") if codes else ""
@@ -11350,30 +11429,28 @@ def cystolithotripsy_operation(c1, c2, c3, pt_acc):
 
 def hematuria_operation(c1, c2, c3, pt_acc):
     """Cystoscopy with clot evacuation and coagulation (hematuria / clot retention). Returns (paragraphs, name)."""
-    st.caption("Evacuate all clots first (Ellik evacuator or bladder syringe), find the source, coagulate the bleeding "
-               "points, take a biopsy of suspicious areas to exclude a tumour, and finish with a large 3-way catheter "
-               "and irrigation. If a tumour is resected, use the TURU description.")
+    st.caption("Vispirms evakuējiet visus recekļus (Ellik evakuators vai urīnpūšļa šļirce), atrodiet avotu, koagulējiet asiņojošās vietas, no aizdomīgām vietām ņemiet biopsiju audzēja izslēgšanai un beigās ievietojiet lielu trīsceļu katetru ar skalošanu. Ja tiek rezecēts audzējs, izmantojiet TURU aprakstu.")
     pt_nom = "Paciente" if pt_acc == "Pacienti" else "Pacients"
-    anesthesia = c1.selectbox("Anestēzija", ["Intubācijas narkozē", "Spinālā anestēzijā"], key="op-hc-an")
-    scope = c2.selectbox("Instruments", ["rezektoskopu (nepārtrauktas plūsmas)", "cistoskopu"], key="op-hc-scope")
-    evac = c3.selectbox("Recekļu evakuācija", ["Ellika evakuatoru", "Žanē šļirci"], key="op-hc-evac")
-    clots = c1.number_input("Recekļi (ml, optional)", 0, 3000, value=None, step=50, key="op-hc-ml")
+    anesthesia = c1.selectbox("Anestēzija", ["Intubācijas narkozē", "Spinālā anestēzijā"], key="op-hc-an", format_func=tr_opt)
+    scope = c2.selectbox("Instrumenti", ["rezektoskopu (nepārtrauktas plūsmas)", "cistoskopu"], key="op-hc-scope", format_func=tr_opt)
+    evac = c3.selectbox("Recekļu evakuācija", ["Ellika evakuatoru", "Žanē šļirci"], key="op-hc-evac", format_func=tr_opt)
+    clots = c1.number_input("Recekļi (ml, neobligāti)", 0, 3000, value=None, step=50, key="op-hc-ml")
     mucosa = c2.selectbox("Gļotāda pēc evakuācijas", ["hiperemēta, ar staru cistīta izmaiņām (teleangiektāzijas)",
-                                                       "hiperemēta", "trabekulāra", "neizmainīta"], key="op-hc-mucosa")
+                                                       "hiperemēta", "trabekulāra", "neizmainīta"], key="op-hc-mucosa", format_func=tr_opt)
     source = c3.selectbox("Asiņošanas avots", ["Difūza gļotādas asiņošana", "Atsevišķi asiņojoši asinsvadi", "Prostata",
                                                "Urīnpūšļa jaunveidojums", "Labā urīnvada atvere",
-                                               "Kreisā urīnvada atvere", "Avots nav atrasts"], key="op-hc-source")
-    energy = c1.selectbox("Koagulācija", ["bipolāru", "monopolāru"], key="op-hc-energy")
+                                               "Kreisā urīnvada atvere", "Avots nav atrasts"], key="op-hc-source", format_func=tr_opt)
+    energy = c1.selectbox("Koagulācija", ["bipolāru", "monopolāru"], key="op-hc-energy", format_func=tr_opt)
     biopsy = c2.checkbox("Biopsija no aizdomīgām vietām", key="op-hc-biopsy")
-    fr = c3.selectbox("3-kanālu katetrs (Fr)", ["20", "22", "24"], index=1, key="op-hc-fr")
+    fr = c3.selectbox("3-kanālu katetrs (Fr)", ["20", "22", "24"], index=1, key="op-hc-fr", format_func=tr_opt)
     balloon = c1.number_input("Balons (ml)", 5, 60, 20, key="op-hc-balloon")
     irrigation = c2.checkbox("Nepārtraukta skalošana", True, key="op-hc-irr")
-    colour = c3.selectbox("Urīns pa katetru", ["viegli rozīgas krāsas", "dzidrs", "sārtas krāsas"], key="op-hc-colour")
+    colour = c3.selectbox("Urīns pa katetru", ["viegli rozīgas krāsas", "dzidrs", "sārtas krāsas"], key="op-hc-colour", format_func=tr_opt)
     ward = st.text_input("Pārved uz", "4. nodaļu", key="op-hc-ward")
     codes = st.checkbox("Manipulāciju kodi tekstā", True, key="op-hc-codes")
     k1, k2 = st.columns(2)
     code_scope = k1.text_input("Cistoskopijas kods", "19161", key="op-hc-code1") if codes else ""
-    code_coag = k2.text_input("Koagulācijas kods (optional)", key="op-hc-code2") if codes else ""
+    code_coag = k2.text_input("Koagulācijas kods (neobligāti)", key="op-hc-code2") if codes else ""
     tag = lambda code: f" ({code.strip()})" if codes and code.strip() else ""
     coag = f"{energy} koagulāciju{tag(code_coag)}"
     orifice = source.endswith("urīnvada atvere")
@@ -11409,37 +11486,35 @@ def hematuria_operation(c1, c2, c3, pt_acc):
 
 def cystectomy_operation(woman, c1, c2, c3, pt_dat, pt_acc):
     """Radical cystectomy (department format, from the department's examples). Returns (paragraphs, name)."""
-    st.caption("EAU: standard LND (obturator, internal and external iliac); no bowel preparation; ERAS. Consider a "
-               "frozen section of the ureteral margins with CIS (Campbell-Walsh-Wein). Neobladder is not described "
-               "here – type it in the extra field if done.")
+    st.caption("EAU: standarta LND (obturatorā, iekšējā un ārējā iliakālā); bez zarnu sagatavošanas; ERAS. CIS gadījumā apsveriet urīnvadu rezekcijas robežu steidzamo histoloģiju (Campbell-Walsh-Wein). Neocistis šeit nav aprakstīts – ja veikts, ierakstiet to papildu laukā.")
     if woman:
         kind = c1.selectbox("Apjoms", ["ar dzemdi, piedēkļiem un maksts priekšējo sienu",
                                        "ar maksts priekšējo sienu (dzemde iepriekš izņemta)",
-                                       "orgānus saudzējoša"], key="op-rc-kind-w")
+                                       "orgānus saudzējoša"], key="op-rc-kind-w", format_func=tr_opt)
         urethra = c2.checkbox("Uretrektomija", True, key="op-rc-ure-w")
         nerve = False
     else:
         kind = "cistoprostatektomija"
         nerve = c1.checkbox("Nervus saudzējoša", key="op-rc-nerve")
         urethra = c2.checkbox("Uretrektomija", key="op-rc-ure-m")
-    lnd = c3.selectbox("Limfadenektomija", ["standarta abpusēja", "paplašināta abpusēja", "nav"], key="op-rc-lnd")
+    lnd = c3.selectbox("Limfadenektomija", ["standarta abpusēja", "paplašināta abpusēja", "nav"], key="op-rc-lnd", format_func=tr_opt)
     diversion = c1.selectbox("Urīna novadīšana", ["ileum conduit", "ureterokutanostomija", "nav (nefrostomas)"],
-                             key="op-rc-div")
+                             key="op-rc-div", format_func=tr_opt)
     frozen = c2.checkbox("Urīnvadu malu steidzamā histoloģija", key="op-rc-frozen")
     anesthesia = c3.selectbox("Anestēzija", ["Epidurālā un intubācijas anestēzijā", "Intubācijas anestēzijā"],
-                              key="op-rc-an")
-    finding = st.text_input("Atrade (optional)", key="op-rc-finding",
-                            placeholder="e.g. Vizualizē plašu audzēju ar ieaugšanu a. iliaca interna sinistra.")
+                              key="op-rc-an", format_func=tr_opt)
+    finding = st.text_input("Atrade (neobligāti)", key="op-rc-finding",
+                            placeholder="piem., Vizualizē plašu audzēju ar ieaugšanu a. iliaca interna sinistra.")
     k1, k2, k3, k4 = st.columns(4)
     if diversion == "ileum conduit":
         dist = k1.number_input("No ileocekālā leņķa (cm)", 5, 60, 25, key="op-rc-dist")
         length = k2.number_input("Segmenta garums (cm)", 8, 30, 15, key="op-rc-len")
         technique = k3.selectbox("Ureteroileālā anastomoze", ["atsevišķi (Bricker)", "kopīgā platformā (Wallace)"],
-                                 key="op-rc-tech")
+                                 key="op-rc-tech", format_func=tr_opt)
     elif diversion == "ureterokutanostomija":
         ucs_side = k1.selectbox("Ureterokutanostoma", ["abpusēja", "vienpusēja (transureteroureterostomija)"],
-                                key="op-rc-ucs")
-    skin = k4.selectbox("Āda", ["intrakutānu šuvi", "atsevišķām šuvēm", "skavām"], key="op-rc-skin")
+                                key="op-rc-ucs", format_func=tr_opt)
+    skin = k4.selectbox("Āda", ["intrakutānu šuvi", "atsevišķām šuvēm", "skavām"], key="op-rc-skin", format_func=tr_opt)
     drains = c1.number_input("Drenas", 0, 4, 1, key="op-rc-drains")
     ward = c2.text_input("Pārved uz", "nodaļu", key="op-rc-ward")
 
@@ -11511,19 +11586,18 @@ def cystectomy_operation(woman, c1, c2, c3, pt_dat, pt_acc):
 
 def cystoscopy_operation(c1, c2, c3, pt_acc):
     """Diagnostic cystoscopy, with or without biopsy. Returns (paragraphs, name)."""
-    st.caption("EAU NMIBC: flexible cystoscopy where available (strong); describe size, site and appearance of every "
-               "lesion (a bladder diagram helps); cold-cup biopsy of suspicious areas.")
+    st.caption("EAU NMIBC: ja pieejama, fleksibla cistoskopija (stipra rekomendācija); aprakstiet katra bojājuma izmēru, lokalizāciju un izskatu (palīdz urīnpūšļa shēma); no aizdomīgām vietām aukstā biopsija (cold-cup).")
     pt_nom = "Paciente" if pt_acc == "Pacienti" else "Pacients"
     anesthesia = c1.selectbox("Anestēzija", ["Vietējā anestēzijā (lidokaīna gels)", "Spinālā anestēzijā",
-                                             "Intravenozā anestēzijā"], key="op-cy-an")
-    scope = c2.selectbox("Instruments", ["fleksiblu cistoskopu", "rigīdu cistoskopu"], key="op-cy-scope")
+                                             "Intravenozā anestēzijā"], key="op-cy-an", format_func=tr_opt)
+    scope = c2.selectbox("Instrumenti", ["fleksiblu cistoskopu", "rigīdu cistoskopu"], key="op-cy-scope", format_func=tr_opt)
     urethra = c3.text_input("Uretra", "brīvi caurejama", key="op-cy-ure")
     mucosa = c1.selectbox("Gļotāda", ["bez patoloģiskām izmaiņām", "hiperemēta", "trabekulāra",
-                                      "ar pēcoperācijas rētu izmaiņām"], key="op-cy-muc")
+                                      "ar pēcoperācijas rētu izmaiņām"], key="op-cy-muc", format_func=tr_opt)
     orifices = c2.text_input("Urīnvadu atveres", "tipiskā vietā, izdalās dzidrs urīns", key="op-cy-ori")
     biopsy = c3.checkbox("Biopsija", key="op-cy-bx")
-    finding = st.text_input("Atrade (optional)", key="op-cy-find",
-                            placeholder="e.g. Kreisajā sānu sienā ~1 cm papillārs jaunveidojums.")
+    finding = st.text_input("Atrade (neobligāti)", key="op-cy-find",
+                            placeholder="piem., Kreisajā sānu sienā ~1 cm papillārs jaunveidojums.")
     where = st.text_input("Biopsijas vieta", "aizdomīgās gļotādas vietas", key="op-cy-where") if biopsy else ""
     wash = st.checkbox("Urīnpūšļa skalojums citoloģijai", key="op-cy-wash")
     text = [f"{pt_nom} atrodas dorsālās litotomijas guļā. {anesthesia}, pēc operācijas lauka apdares urīnpūslī ievada "
@@ -11538,10 +11612,10 @@ def cystoscopy_operation(c1, c2, c3, pt_acc):
 
 def scrotal_infection_operation(op, c1, c2, c3, pt_acc):
     """Orchiectomy, inguinal orchifuniculectomy, epididymectomy, revision / drainage (department wording)."""
-    side = c1.radio("Puse", ["Kreisā", "Labā"], horizontal=True, key="op-so-side")
+    side = c1.radio("Puse", ["Kreisā", "Labā"], horizontal=True, key="op-so-side", format_func=tr_opt)
     gen, acc, short, adj = {"Kreisā": ("kreisā", "kreiso", "kr.", "Kreisās"),
                             "Labā": ("labā", "labo", "lb.", "Labās")}[side]
-    anesthesia = c2.selectbox("Anestēzija", ["spinālā anestēzijā", "vispārējā anestēzijā"], key="op-so-an")
+    anesthesia = c2.selectbox("Anestēzija", ["spinālā anestēzijā", "vispārējā anestēzijā"], key="op-so-an", format_func=tr_opt)
     pus = c3.checkbox("Strutas – uzsējums", key="op-so-pus")
     pus_text = " Izdalās strutas, paņem materiālu uzsējumam." if pus else ""
     if op == "Orchiectomy (scrotal)":
@@ -11573,9 +11647,9 @@ def scrotal_infection_operation(op, c1, c2, c3, pt_acc):
                 "Preparātu nosūta histoloģiskai izmeklēšanai."]
         name = f"Epididimektomija {short} pusē"
     else:  # revision / drainage
-        where = c1.selectbox("Piekļuve", ["sēklinieku maisiņa", "cirkšņa"], key="op-so-where")
+        where = c1.selectbox("Piekļuve", ["sēklinieku maisiņa", "cirkšņa"], key="op-so-where", format_func=tr_opt)
         found = st.text_input("Atrade", "sastrutojušu hematomu", key="op-so-found",
-                              placeholder="e.g. abscesu, sastrutojušu hematomu, piocēli")
+                              placeholder="piem., abscesu, sastrutojušu hematomu, piocēli")
         text = [f"{anesthesia.capitalize()}, pēc op. lauka apdares izdara griezienu {short} {where} rajonā. Eksplorē "
                 f"{'funiculus spermaticus' if where == 'cirkšņa' else 'sēklinieku maisiņa saturu, sēklinieks vitāls'}, "
                 f"evakuē {found.strip()}." + (" Paņem materiālu uzsējumam." if pus else "") + " Dobumu skalo ar "
@@ -11587,18 +11661,16 @@ def scrotal_infection_operation(op, c1, c2, c3, pt_acc):
 
 def prostatic_abscess_operation(c1, c2, c3, pt_acc):
     """Prostatic abscess drainage: TRUS-guided aspiration or transurethral deroofing. Returns (paragraphs, name)."""
-    st.caption("Systematic review 2020: TRUS-guided aspiration for simple abscesses in stable patients; transurethral "
-               "deroofing for unwell patients, multiloculated abscesses, outlet obstruction or failed aspiration. "
-               "Send pus for culture.")
-    method = c1.selectbox("Metode", ["TRUS vadīta punkcija", "Transuretrāla atvēršana (deroofing)"], key="op-pa-m")
+    st.caption("Sistemātisks pārskats 2020: vienkāršu abscesu gadījumā stabiliem pacientiem – aspirācija TRUS kontrolē; transuretrāla drenāža (deroofing) – smagākā stāvoklī esošiem pacientiem, multilokulāru abscesu, infravezikālas obstrukcijas vai neveiksmīgas aspirācijas gadījumā. Nosūtiet strutas uzsējumam.")
+    method = c1.selectbox("Metode", ["TRUS vadīta punkcija", "Transuretrāla atvēršana (deroofing)"], key="op-pa-m", format_func=tr_opt)
     lobe = c2.selectbox("Lokalizācija", ["labajā daivā", "kreisajā daivā", "abās daivās", "vidējā daivā"],
-                        key="op-pa-lobe")
+                        key="op-pa-lobe", format_func=tr_opt)
     size = c3.number_input("Izmērs (cm)", 0.5, 10.0, 2.5, step=0.5, key="op-pa-size")
     ml = c1.number_input("Strutas (ml)", 0, 200, 10, key="op-pa-ml")
     if method.startswith("TRUS"):
         anesthesia = c2.selectbox("Anestēzija", ["Vietējā anestēzijā", "Intravenozā anestēzijā", "Spinālā anestēzijā"],
-                                  key="op-pa-an")
-        route = c3.selectbox("Pieeja", ["transrektāli", "transperineāli"], key="op-pa-route")
+                                  key="op-pa-an", format_func=tr_opt)
+        route = c3.selectbox("Pieeja", ["transrektāli", "transperineāli"], key="op-pa-route", format_func=tr_opt)
         drain = st.checkbox("Atstāj drenu (pigtail)", key="op-pa-drain")
         text = [f"{anesthesia}, pacients sānu guļā. Pēc op. lauka apdares TRUS kontrolē prostatas {lobe} vizualizē "
                 f"~{_comma(size)} cm hipoehogēnu šķidruma kolekciju. {route.capitalize()} ar punkcijas adatu veic "
@@ -11607,8 +11679,8 @@ def prostatic_abscess_operation(c1, c2, c3, pt_acc):
                 f" Manipulācija noritēja bez komplikācijām. {pt_acc} vispārēji apmierinošā stāvoklī pārved uz nodaļu."]
         name = "Prostatas abscesa punkcija un drenāža TRUS kontrolē"
     else:
-        anesthesia = c2.selectbox("Anestēzija", ["Spinālā anestēzijā", "Intubācijas narkozē"], key="op-pa-an2")
-        fr = c3.selectbox("3-kanālu katetrs (Fr)", ["18", "20", "22"], index=1, key="op-pa-fr")
+        anesthesia = c2.selectbox("Anestēzija", ["Spinālā anestēzijā", "Intubācijas narkozē"], key="op-pa-an2", format_func=tr_opt)
+        fr = c3.selectbox("3-kanālu katetrs (Fr)", ["18", "20", "22"], index=1, key="op-pa-fr", format_func=tr_opt)
         text = [f"{anesthesia}, pacients dorsālās litotomijas guļā. Pēc op. lauka apdares uretrā ievada rezektoskopu. "
                 f"Prostatas {lobe} vizualizē izspīlējumu. Ar cilpu atver abscesa dobumu (deroofing), izdalās ~{ml} ml "
                 "strutu, materiālu nosūta uzsējumam. Abscesa dobuma sienas rezecē, dobumu atskalo. Rūpīga hemostāze. "
@@ -11618,17 +11690,65 @@ def prostatic_abscess_operation(c1, c2, c3, pt_acc):
     return text, name
 
 
+def infarction_operation(c1, c2, c3, pt_acc):
+    """Testicular infarction: scrotal or inguinal exploration; testis preserved, resection or orchiectomy."""
+    st.caption("Ja audzēju nevar izslēgt (paaugstināti marķieri, neskaidra attēldiagnostika), eksplorāciju veiciet ingvināli. Segmentāru infarktu var rezecēt, saglabājot sēklinieku.")
+    side = c1.radio("Puse", ["Kreisā", "Labā"], horizontal=True, key="op-ti-side", format_func=tr_opt)
+    gen, acc, adj = {"Kreisā": ("kreisā", "kreiso", "Kreisās"), "Labā": ("labā", "labo", "Labās")}[side]
+    route = c2.radio("Pieeja", ["Skrotāla", "Ingvināla"], horizontal=True, key="op-ti-route", format_func=tr_opt)
+    result = c3.selectbox("Rezultāts", ["sēklinieks saglabāts", "rezekcija (daļēja orhektomija)", "orhektomija"],
+                          key="op-ti-res", format_func=tr_opt)
+    where = c1.selectbox("Infarkta zona", ["augšējā polā", "apakšējā polā", "vidusdaļā", "visā sēkliniekā"],
+                         key="op-ti-where", format_func=tr_opt)
+    fluid = c2.selectbox("Šķidrums", ["nav", "serozs", "hemorāģisks"], key="op-ti-fluid", format_func=tr_opt)
+    frozen = c3.checkbox("Ātrā histoloģija – audzēju nekonstatē", key="op-ti-frozen")
+    drain = c1.checkbox("Aspirācijas drena", key="op-ti-drain")
+    if route == "Ingvināla":
+        first = (f"Pēc op. lauka apdares izdara griezienu {gen} cirkšņa rajonā. Atver cirkšņa kanālu, izdala funiculus "
+                 "spermaticus un to nospiež ar mīksto spaili. Sēklinieku izvelk brūcē, šķeļ tunica vaginalis"
+                 + (f", izdalās {fluid} šķidrums" if fluid != "nav" else "") + ".")
+    else:
+        first = (f"Pēc op. lauka apdares izdara griezienu {gen} sēklinieku maisiņa pusē. Šķeļ tunica vaginalis"
+                 + (f", izdalās {fluid} šķidrums" if fluid != "nav" else "") + ". Sēklinieks nav rotējis ap sēklas auklu.")
+    if where == "visā sēkliniekā":
+        first += " Sēklinieks visā apjomā tumši zilgans, nekrotisks."
+    else:
+        first += f" Sēklinieka {where} tumši zilgana, ierobežota infarkta zona."
+    if frozen:
+        first += " Nosūtīta ātrā (sasaldētā griezuma) histoloģiskā izmeklēšana – audzēja šūnas nekonstatē."
+    if result == "orhektomija":
+        if route == "Ingvināla":
+            text = [first + " Funiculus spermaticus augsti pie iekšējā cirkšņa gredzena pārdala un liģē, ductus deferens "
+                    f"un asinsvadus liģē atsevišķi. Evakuē {acc} testis kopā ar funiculus spermaticus."]
+            name = f"{adj} puses ingvināla orhifunikulektomija"
+        else:
+            text = [first + " Funiculus spermaticus pārdala un liģē. Izdala atsevišķi ductus deferens un a. et v. "
+                    f"testiculares, tās cauršuj un šķeļ. Evakuē {acc} testis."]
+            name = f"{adj} puses orhektomija"
+    elif result.startswith("rezekcija"):
+        text = [first + " Infarkta zonu izgriež veselo audu robežās, rūpīga hemostāze, tunica albuginea slēdz ar "
+                "uzsūcošu šuvi. Sēklinieku ievieto atpakaļ sēklinieku maisiņā."]
+        name = f"{side} sēklinieka eksplorācija, rezekcija (daļēja orhektomija)"
+    else:
+        text = [first + " Pārējie sēklinieka audi vitāli – sēklinieku saglabā un ievieto atpakaļ sēklinieku maisiņā."]
+        name = f"{side} sēklinieka eksplorācija"
+    tissue = result != "sēklinieks saglabāts"
+    text.append("Rūpīga hemostāze." + (" Atstāj aspirācijas drenu." if drain else "") + " Brūci slēdz pa kārtām. Ādu "
+                f"slēdz ar atsevišķām šuvēm. Sterili pārsēji. {pt_acc} pārved uz 4. nodaļu." +
+                ("\nPreparātu nosūta histoloģiskai izmeklēšanai." if tissue else ""))
+    return text, name
+
+
 def torsion_operation(c1, c2, c3, pt_acc):
     """Testicular torsion: exploration, detorsion and orchidopexy, or orchiectomy; contralateral fixation."""
-    st.caption("EAU: preserve the testis unless unequivocally necrotic; fix the contralateral testis immediately after "
-               "detorsion. Warm the testis 10 minutes before deciding.")
-    side = c1.radio("Puse", ["Kreisā", "Labā"], horizontal=True, key="op-tt-side")
+    st.caption("EAU: saglabājiet sēklinieku, ja vien tas nav nepārprotami nekrotisks; kontralaterālo sēklinieku fiksējiet uzreiz pēc detorsijas. Pirms lēmuma sildiet sēklinieku 10 minūtes.")
+    side = c1.radio("Puse", ["Kreisā", "Labā"], horizontal=True, key="op-tt-side", format_func=tr_opt)
     gen, acc, other, adj = {"Kreisā": ("kreisā", "kreiso", "labā", "Kreisās"),
                             "Labā": ("labā", "labo", "kreisā", "Labās")}[side]
-    turns = c2.selectbox("Rotācija", ["2 reizes", "1 reizi", "3 reizes", "par 180°"], key="op-tt-turns")
+    turns = c2.selectbox("Rotācija", ["2 reizes", "1 reizi", "3 reizes", "par 180°"], key="op-tt-turns", format_func=tr_opt)
     result = c3.selectbox("Sēklinieks", ["vitāls pēc detorsijas", "daļēji atjaunojas pēc apsildīšanas", "nekrotisks"],
-                          key="op-tt-res")
-    fluid = c1.selectbox("Šķidrums", ["hemorāģisks", "serozs", "nav"], key="op-tt-fluid")
+                          key="op-tt-res", format_func=tr_opt)
+    fluid = c1.selectbox("Šķidrums", ["hemorāģisks", "serozs", "nav"], key="op-tt-fluid", format_func=tr_opt)
     sutures = c2.number_input("Fiksācijas šuves", 1, 4, 3, key="op-tt-sut")
     contra = c3.checkbox("Kontralaterālā orhidopeksija", True, key="op-tt-contra")
     hyd = c1.checkbox("Hidatīdas ekscīzija", key="op-tt-hyd")
@@ -11663,36 +11783,28 @@ def torsion_operation(c1, c2, c3, pt_acc):
 def stricture_operation(op, c1, c2, c3, pt_dat, pt_acc):
     """Operation descriptions for urethral strictures. Returns (paragraphs, name)."""
     notes = {
-        "Optical urethrotomy (DVIU)": "EAU: DVIU/dilatation for a primary, single, short (< 2 cm) bulbar stricture; not "
-                                      "for penile strictures (strong); not more than twice if urethroplasty is possible "
-                                      "(strong); laser and cold knife are equivalent. Catheter ≤ 72 h after an "
-                                      "uncomplicated DVIU (weak).",
-        "Urethral dilation": "EAU: visually controlled dilatation rather than blind dilatation (weak); same indications "
-                             "as DVIU.",
-        "Meatotomy": "EAU: meatoplasty or distal urethroplasty for meatal stenosis (weak); send tissue if lichen "
-                     "sclerosus is suspected.",
-        "Urethroplasty (EPA / buccal graft)": "EAU: transecting EPA for short post-traumatic bulbar strictures (strong); "
-                                              "free graft for bulbar strictures not suitable for EPA (strong); dorsal or "
-                                              "ventral graft as per expertise; urethrogram before catheter removal "
-                                              "(strong). Check this template against your surgeons' practice.",
+        "Optical urethrotomy (DVIU)": "EAU: DVIU/dilatācija primārai, vienai, īsai (< 2 cm) bulbārai striktūrai; nelietot penilām striktūrām (stipra rekomendācija); ne vairāk kā divas reizes, ja iespējama uretroplastika (stipra rekomendācija); lāzers un aukstais nazis ir līdzvērtīgi. Katetrs ≤ 72 h pēc nekomplicētas DVIU (vāja rekomendācija).",
+        "Urethral dilation": "EAU: dilatācija vizuālā kontrolē, nevis akla dilatācija (vāja rekomendācija); indikācijas tās pašas, kas DVIU.",
+        "Meatotomy": "EAU: meatoplastika vai distāla uretroplastika ārējās atveres stenozes gadījumā (vāja rekomendācija); ja ir aizdomas par lichen sclerosus, nosūtiet audus izmeklēšanai.",
+        "Urethroplasty (EPA / buccal graft)": "EAU: transsekcijas EPA īsām posttraumatiskām bulbārām striktūrām (stipra rekomendācija); brīvs transplantāts bulbārām striktūrām, kas nav piemērotas EPA (stipra rekomendācija); dorsāls vai ventrāls transplantāts atbilstoši pieredzei; uretrogramma pirms katetra evakuācijas (stipra rekomendācija). Pārbaudiet, vai šī veidne atbilst jūsu ķirurgu praksei.",
     }
     st.caption(notes[op])
     anesthesia = c1.selectbox("Anestēzija", ["spinālā anestēzijā", "vispārējā anestēzijā", "vietējā anestēzijā"],
-                              key=f"op-st-an-{op}")
+                              key=f"op-st-an-{op}", format_func=tr_opt)
     an = anesthesia[0].upper() + anesthesia[1:]
     fr = c2.selectbox("Katetrs (Ch)", ["14", "16", "18", "20"], index=2 if op != "Urethroplasty (EPA / buccal graft)"
-                      else 1, key=f"op-st-fr-{op}")
+                      else 1, key=f"op-st-fr-{op}", format_func=tr_opt)
     if op != "Meatotomy":
         loc_key = c3.selectbox("Striktūras vieta", [k for k in STRICTURE_LOC if k != "Meatus"],
-                               index=1 if op == "Urethroplasty (EPA / buccal graft)" else 0, key=f"op-st-loc-{op}")
+                               index=1 if op == "Urethroplasty (EPA / buccal graft)" else 0, key=f"op-st-loc-{op}", format_func=tr_opt)
         loc = STRICTURE_LOC[loc_key]
     if op == "Optical urethrotomy (DVIU)":
-        tool = c1.selectbox("Instruments", ["Sachse nazis (aukstais nazis)", "lāzers (Ho:YAG)", "lāzers (tūlija)"],
-                            key="op-st-tool")
-        clock = c2.selectbox("Incīzija", ["pl. 12", "pl. 11 un 1", "pl. 12 un 6"], key="op-st-clock")
+        tool = c1.selectbox("Instrumenti", ["Sachse nazis (aukstais nazis)", "lāzers (Ho:YAG)", "lāzers (tūlija)"],
+                            key="op-st-tool", format_func=tr_opt)
+        clock = c2.selectbox("Incīzija", ["pl. 12", "pl. 11 un 1", "pl. 12 un 6"], key="op-st-clock", format_func=tr_opt)
         wire = c3.checkbox("Drošības stīga", True, key="op-st-wire")
-        bladder = st.text_input("Urīnpūšļa atrade (optional)", key="op-st-bladder",
-                                placeholder="e.g. urīnpūslī konkrements Ø 1 cm – evakuē")
+        bladder = st.text_input("Urīnpūšļa atrade (neobligāti)", key="op-st-bladder",
+                                placeholder="piem., urīnpūslī konkrements Ø 1 cm – evakuē")
         laser = tool.startswith("lāzers")
         name = "Lāzeruretrotomija" if laser else "Optiskā uretrotomija (pēc Sachse)"
         cut = (f"Ievada lāzera šķiedru ({tool.split('(')[1].rstrip(')')}) un veic striktūras pārdalīšanu {clock}"
@@ -11710,8 +11822,8 @@ def stricture_operation(op, c1, c2, c3, pt_dat, pt_acc):
                 "nodaļu."]
     elif op == "Urethral dilation":
         method = c1.selectbox("Dilatācija", ["ar metāla bužiem", "ar fasciālajiem dilatatoriem pa stīgu",
-                                             "ar balona dilatatoru"], key="op-st-method")
-        upto = c2.selectbox("Līdz (Ch)", ["18", "20", "22", "24", "26"], index=2, key="op-st-upto")
+                                             "ar balona dilatatoru"], key="op-st-method", format_func=tr_opt)
+        upto = c2.selectbox("Līdz (Ch)", ["18", "20", "22", "24", "26"], index=2, key="op-st-upto", format_func=tr_opt)
         name = "Uretras dilatācija"
         text = [f"Pēc operācijas lauka tualetes {anesthesia}, {pt_dat} atrodoties dorsālās litotomijas guļā, uretrā "
                 f"ievada cistoskopu. Uretras {loc} konstatē striktūru. Caur striktūru urīnpūslī ievada vadītājstīgu. "
@@ -11721,7 +11833,7 @@ def stricture_operation(op, c1, c2, c3, pt_dat, pt_acc):
                 f"Vispārējā apmierinošā stāvoklī {pt_acc.lower()} pārved uz nodaļu."]
     elif op == "Meatotomy":
         length = c3.number_input("Incīzija (mm)", 2, 20, 8, key="op-st-mm")
-        calibre = c1.selectbox("Kalibrē līdz (Ch)", ["18", "20", "22", "24"], index=2, key="op-st-cal")
+        calibre = c1.selectbox("Kalibrē līdz (Ch)", ["18", "20", "22", "24"], index=2, key="op-st-cal", format_func=tr_opt)
         catheter = c2.checkbox("Ilgkatetrs", True, key="op-st-mcath")
         biopsy = c3.checkbox("Audi histoloģijai", False, key="op-st-mbiopsy")
         name = "Meatotomija"
@@ -11736,11 +11848,11 @@ def stricture_operation(op, c1, c2, c3, pt_dat, pt_acc):
     else:  # urethroplasty
         kind = c1.selectbox("Tehnika", ["Ekscīzija un primāra anastomoze (EPA)",
                                         "Vaiga gļotādas transplantāts – dorsāls onlay",
-                                        "Vaiga gļotādas transplantāts – ventrāls onlay"], key="op-st-kind")
+                                        "Vaiga gļotādas transplantāts – ventrāls onlay"], key="op-st-kind", format_func=tr_opt)
         length = c2.number_input("Striktūras garums (cm)", 0.5, 20.0, 2.0, step=0.5, key="op-st-len")
         drain = c3.checkbox("Drena", True, key="op-st-drain")
-        cheek = c1.radio("Vaigs", ["Kreisais", "Labais"], horizontal=True, key="op-st-cheek") if "Vaiga" in kind else ""
-        donor = c2.selectbox("Donorvieta", ["šuj ar Vicryl 4-0", "atstāj atvērtu"], key="op-st-donor")             if "Vaiga" in kind else ""
+        cheek = c1.radio("Vaigs", ["Kreisais", "Labais"], horizontal=True, key="op-st-cheek", format_func=tr_opt) if "Vaiga" in kind else ""
+        donor = c2.selectbox("Donorvieta", ["šuj ar Vicryl 4-0", "atstāj atvērtu"], key="op-st-donor", format_func=tr_opt)             if "Vaiga" in kind else ""
         len_text = f"{length:g}".replace(".", ",")
         opening = (f"{an}, {pt_dat} atrodoties litotomijas guļā, pēc operācijas lauka apdares veic perineālu griezienu "
                    "pa viduslīniju. Pārdala m. bulbospongiosus, izdala un mobilizē bulbāro uretru. Uretrā ievadītā "
@@ -11771,16 +11883,14 @@ def stricture_operation(op, c1, c2, c3, pt_dat, pt_acc):
 
 def urs_operation(flexible, c1, c2, c3, pt_dat, pt_acc):
     """Operation description of URS or FURS, from the steps that were done. Returns (paragraphs, name)."""
-    st.caption("EAU urolithiasis: use a safety wire, take stones out only under direct vision, and a stent is not "
-               "needed after an uncomplicated, complete URS (place one for residual fragments, ureteral injury, "
-               "oedema, infection or when in doubt). Tick only what was done.")
-    side = c1.radio("Puse", ["Kreisā", "Labā"], horizontal=True, key="op-u-side")
+    st.caption("EAU urolitiāze: izmantojiet drošības stīgu, akmeņus izņemiet tikai tiešā redzes kontrolē; pēc nekomplicētas, pilnīgas URS stents nav nepieciešams (ievietojiet to atlikušo fragmentu, urīnvada bojājuma, tūskas, infekcijas gadījumā vai šaubu gadījumā). Atzīmējiet tikai to, kas veikts.")
+    side = c1.radio("Puse", ["Kreisā", "Labā"], horizontal=True, key="op-u-side", format_func=tr_opt)
     left = side == "Kreisā"
     ost, ost_loc, adj, m_acc = (("kreiso", "kreisajā", "kreisās", "kreiso") if left
                                 else ("labo", "labajā", "labās", "labo"))
     tag = "f" if flexible else "s"
     anesthesia = c2.selectbox("Anestēzija", ["vispārējā anestēzijā", "spinālā anestēzijā"],
-                              index=0 if flexible else 1, key=f"op-u{tag}-an")
+                              index=0 if flexible else 1, key=f"op-u{tag}-an", format_func=tr_opt)
     stent_out = c3.checkbox("Iepriekšējā stenta evakuācija sākumā", flexible, key=f"op-u{tag}-stentout")
     cysto = st.text_input("Cistoskopijas atrade", "Urīnpūšļa gļotāda neizmainīta, ostijas simetriskas.",
                           key=f"op-u{tag}-cysto")
@@ -11810,17 +11920,17 @@ def urs_operation(flexible, c1, c2, c3, pt_dat, pt_acc):
     if not flexible:
         st.markdown("**Ureterorenoskopija**")
         b1, b2, b3 = st.columns(3)
-        reach = b1.selectbox("Cik tālu veikta URS", URS_REACH, key="op-us-reach")
-        finding = b2.selectbox("Atrade", URS_FINDINGS, key="op-us-find") if reach in URS_REACH[:2] else None
-        where = b3.selectbox("Vieta urīnvadā", list(URS_LOCATIONS), key="op-us-where") \
+        reach = b1.selectbox("Cik tālu veikta URS", URS_REACH, key="op-us-reach", format_func=tr_opt)
+        finding = b2.selectbox("Atrade", URS_FINDINGS, key="op-us-find", format_func=tr_opt) if reach in URS_REACH[:2] else None
+        where = b3.selectbox("Vieta urīnvadā", list(URS_LOCATIONS), key="op-us-where", format_func=tr_opt) \
             if finding in ("Stone", "Stricture") else None
         actions, size, impacted = [], None, False
         if finding == "Stone":
             d1, d2 = st.columns([1, 2])
             size = d1.number_input("Konkrements (mm)", 0, 50, value=None, key="op-us-size")
             impacted = d1.checkbox("Iesprūdis", key="op-us-impacted")
-            actions = d2.pills("Ko darīja ar konkrementu", URS_ACTIONS, selection_mode="multi", key="op-us-actions") or []
-            result = d2.selectbox("Rezultāts", list(URS_RESULTS), key="op-us-result") if actions else None
+            actions = d2.pills("Ko darīja ar konkrementu", URS_ACTIONS, selection_mode="multi", key="op-us-actions", format_func=tr_opt) or []
+            result = d2.selectbox("Rezultāts", list(URS_RESULTS), key="op-us-result", format_func=tr_opt) if actions else None
         side_word = "" if stent_out else f"{adj} puses "
         if reach == "No URS – stent only":
             name_parts.append(f"cistoskopija, {side_word}retrogrāda JJ stenta ievietošana")
@@ -11872,15 +11982,15 @@ def urs_operation(flexible, c1, c2, c3, pt_dat, pt_acc):
         semirigid = b1.checkbox("Sākumā semirigīda URS", True, key="op-uf-semi")
         sheath = b2.checkbox("Piekļuves apvalks (UAS)", True, key="op-uf-uas")
         sheath_size = b3.selectbox("UAS izmērs", ["9,5/11,5 Fr", "10/12 Fr", "11/13 Fr", "12/14 Fr"], index=1,
-                                   key="op-uf-uas-size") if sheath else ""
-        places = st.multiselect("Konkrementa vieta", list(FURS_PLACES), default=["Renal pelvis"], key="op-uf-places")
+                                   key="op-uf-uas-size", format_func=tr_opt) if sheath else ""
+        places = st.multiselect("Konkrementa vieta", list(FURS_PLACES), default=["Renal pelvis"], key="op-uf-places", format_func=tr_opt)
         d1, d2, d3 = st.columns(3)
         several = d1.checkbox("Vairāki konkrementi", key="op-uf-several")
         size = d1.number_input("Lielākais (mm)", 0, 60, value=None, key="op-uf-size")
         actions = d2.pills("Ko darīja ar konkrementu", FURS_ACTIONS, selection_mode="multi",
-                           default=["Laser lithotripsy"], key="op-uf-actions") or []
-        mode = d3.selectbox("Lāzera režīms", list(LASER_MODE), key="op-uf-mode") if "Laser lithotripsy" in actions else None
-        result = d3.selectbox("Rezultāts", list(URS_RESULTS), key="op-uf-result")
+                           default=["Laser lithotripsy"], key="op-uf-actions", format_func=tr_opt) or []
+        mode = d3.selectbox("Lāzera režīms", list(LASER_MODE), key="op-uf-mode", format_func=tr_opt) if "Laser lithotripsy" in actions else None
+        result = d3.selectbox("Rezultāts", list(URS_RESULTS), key="op-uf-result", format_func=tr_opt)
         name_parts.append(("" if stent_out else f"{adj} puses ") + "fleksibla ureterorenoskopija (FURS)")
         if semirigid:
             text.append(f"{along} {ost_loc} ostijā ievada semirigīdo ureterorenoskopu un izmeklē {m_acc} urīnvadu – "
@@ -11916,12 +12026,12 @@ def urs_operation(flexible, c1, c2, c3, pt_dat, pt_acc):
     e1, e2, e3 = st.columns(3)
     stent_in = e1.checkbox("JJ stenta ievietošana", stent_default, key=f"op-u{tag}-stent")
     if stent_in:
-        fr = e2.selectbox("Stents (Fr)", ["4,8", "6", "7"], index=1, key=f"op-u{tag}-stent-fr")
-        cm = e3.selectbox("Garums (cm)", ["22", "24", "26", "28"], index=2, key=f"op-u{tag}-stent-cm")
+        fr = e2.selectbox("Stents (Fr)", ["4,8", "6", "7"], index=1, key=f"op-u{tag}-stent-fr", format_func=tr_opt)
+        cm = e3.selectbox("Garums (cm)", ["22", "24", "26", "28"], index=2, key=f"op-u{tag}-stent-cm", format_func=tr_opt)
         string = e1.checkbox("Ar diegu (izņemšanai)", False, key=f"op-u{tag}-string")
     foley = e2.checkbox("Foley katetrs", False, key=f"op-u{tag}-foley")
     if foley:
-        foley_fr = e3.selectbox("Katetrs (Fr)", ["14", "16", "18", "20"], index=1, key=f"op-u{tag}-foley-fr")
+        foley_fr = e3.selectbox("Katetrs (Fr)", ["14", "16", "18", "20"], index=1, key=f"op-u{tag}-foley-fr", format_func=tr_opt)
     end = []
     if stent_in:
         end.append(f"{'Gar drošības stīgu' if wire else 'Pa stīgu'} rentgenoskopijas kontrolē ievada JJ stentu "
@@ -11946,7 +12056,7 @@ OP_GROUPS = {
     'Endoscopic': ['TURP', 'TURU', 'Re-TURU (scar resection)', 'Cystoscopy (diagnostic) ± biopsy', 'Cystoscopy, stent removal', 'URS (semirigid)', 'FURS (flexible)', 'Cystolithotripsy', 'Cystoscopy – clot evacuation, coagulation (hematuria)', 'Optical urethrotomy (DVIU)', 'Urethral dilation', 'Prostatic abscess drainage'],
     'Laparoscopic': ['Laparoscopic radical prostatectomy', 'Laparoscopic nephrectomy', 'Laparoscopic kidney resection', 'Laparoscopic pyeloplasty'],
     'Open': ['Radical cystectomy', 'Urethroplasty (EPA / buccal graft)'],
-    'Penile and scrotal': ['Circumcision', 'Dorsumcision (dorsal slit)', 'Meatotomy', 'Testicular torsion – exploration', 'Orchiectomy (scrotal)', 'Inguinal orchifuniculectomy', 'Epididymectomy', 'Epididymal tumour extirpation', 'Scrotal / funicular revision, drainage', 'Hydrocele plasty', 'Scrotal mass excision'],
+    'Penile and scrotal': ['Circumcision', 'Dorsumcision (dorsal slit)', 'Meatotomy', 'Testicular torsion – exploration', 'Testicular infarction – exploration', 'Orchiectomy (scrotal)', 'Inguinal orchifuniculectomy', 'Epididymectomy', 'Epididymal tumour extirpation', 'Scrotal / funicular revision, drainage', 'Hydrocele plasty', 'Scrotal mass excision'],
     '48. nodaļa': ['Percutaneous trocar epicystostomy (48)', 'Nephrostomy change under US (48)'],
 }
 OP_GROUP_OF = {op: group for group, names in OP_GROUPS.items() for op in names}
@@ -11968,10 +12078,10 @@ def op_picker():
         st.session_state["op-recent"] = recent
     others = [o for o in recent if o != current]  # the ones used before this one
     if others:
-        st.pills("Recent", others, key="op-recent-pick", on_change=_op_recent_picked)
-    return st.selectbox("Operation", [o for names in OP_GROUPS.values() for o in names], key="op-type",
-                        format_func=lambda o: f"{OP_GROUP_OF[o]} · {o}",
-                        help="Type to search, e.g. TUR, URS or orhi.")
+        st.pills("Nesenās", others, key="op-recent-pick", on_change=_op_recent_picked, format_func=tr_opt)
+    return st.selectbox("Operācija", [o for names in OP_GROUPS.values() for o in names], key="op-type",
+                        format_func=lambda o: f"{OP_GROUP_LV.get(OP_GROUP_OF[o], OP_GROUP_OF[o])} · {tr(o)}",
+                        help="Rakstiet, lai meklētu, piem., TUR, URS vai orhi.")
 
 
 def render_operation(sex):
@@ -11987,14 +12097,14 @@ def render_operation(sex):
         with st.container(border=True, key="card-op-details"):
             c1, c2, c3 = st.columns(3)
             if op == "TURP":
-                scope = c1.selectbox("Rezektoskops (Ch)", ["24", "26"], index=1, key="op-turp-scope")
+                scope = c1.selectbox("Rezektoskops (Ch)", ["24", "26"], index=1, key="op-turp-scope", format_func=tr_opt)
                 mucosa = st.text_input("Urīnpūšļa atrade", "gļotāda vizuāli neizmainīta, uretera ostijas brīvas", key="op-turp-mucosa")
                 neck = c2.checkbox("Urīnpūšļa kakliņa incīzija", True, key="op-turp-neck")
-                hemostasis = c3.selectbox("Hemostāze", ["ar vaporizācijas rullīti", "ar koagulācijas cilpu"], key="op-turp-hemo")
-                fr = c1.selectbox("Katetrs (Fr)", ["18", "20", "22", "24"], index=1, key="op-turp-fr")
+                hemostasis = c3.selectbox("Hemostāze", ["ar vaporizācijas rullīti", "ar koagulācijas cilpu"], key="op-turp-hemo", format_func=tr_opt)
+                fr = c1.selectbox("Katetrs (Fr)", ["18", "20", "22", "24"], index=1, key="op-turp-fr", format_func=tr_opt)
                 balloon = c2.number_input("Balons (ml)", 5, 80, 40, key="op-turp-balloon")
                 traction = c3.checkbox("Vieglā ekstenzijā", True, key="op-turp-traction")
-                urine = c1.selectbox("Urīns pa katetru", ["viegli sārtas krāsas", "sārtas krāsas", "dzidrs"], key="op-turp-urine")
+                urine = c1.selectbox("Urīns pa katetru", ["viegli sārtas krāsas", "sārtas krāsas", "dzidrs"], key="op-turp-urine", format_func=tr_opt)
                 ward = c2.text_input("Pārved uz", "4. nodaļu", key="op-turp-ward")
                 histology = c3.checkbox("Čipsi uz histoloģiju", True, key="op-turp-hist")
                 urine_text = "dzidrs urīns" if urine == "dzidrs" else f"{urine} urīns"
@@ -12013,12 +12123,12 @@ def render_operation(sex):
                 if histology:
                     text.append("Rezekcijas čipsi nosūtīti histoloģiskai izmeklēšanai.")
             elif op == "TURU":
-                scope = c1.selectbox("Rezektoskops (Ch)", ["24", "26"], index=1, key="op-turu-scope")
-                number = c2.radio("Veidojumi", ["Viens", "Vairāki"], index=1, horizontal=True, key="op-turu-number")
-                kind = c3.selectbox("Izskats", ["papillārs", "solīds", "plakans (CIS aizdomas)"], key="op-turu-kind")
+                scope = c1.selectbox("Rezektoskops (Ch)", ["24", "26"], index=1, key="op-turu-scope", format_func=tr_opt)
+                number = c2.radio("Veidojumi", ["Viens", "Vairāki"], index=1, horizontal=True, key="op-turu-number", format_func=tr_opt)
+                kind = c3.selectbox("Izskats", ["papillārs", "solīds", "plakans (CIS aizdomas)"], key="op-turu-kind", format_func=tr_opt)
                 sites = bladder_site_picker("op-turu", woman, "Veidojumu lokalizācija")
                 detrusor = c1.checkbox("Paraugā detruzora muskulis", True, key="op-turu-det")
-                fr = c2.selectbox("Katetrs (Fr)", ["18", "20", "22"], index=1, key="op-turu-fr")
+                fr = c2.selectbox("Katetrs (Fr)", ["18", "20", "22"], index=1, key="op-turu-fr", format_func=tr_opt)
                 balloon = c3.number_input("Balons (ml)", 5, 60, 20, key="op-turu-balloon")
                 ward = c1.text_input("Pārved uz", "nodaļu", key="op-turu-ward")
                 instill = c2.checkbox("Agrīna instilācija", True, key="op-turu-inst")
@@ -12041,17 +12151,15 @@ def render_operation(sex):
                 if instill and drug.strip():
                     text.append(f"Agrīnā pēcoperācijas periodā saņēma {drug.strip()} intravezikālu instilāciju.")
             elif op == "Re-TURU (scar resection)":
-                st.caption("EAU NMIBC: a second resection 2–6 weeks after the first (T1, incomplete resection, no detrusor "
-                           "muscle); it must include the primary tumour site. A single early instillation is meant for the "
-                           "first TURU, not routinely for re-TURU.")
-                scope = c1.selectbox("Rezektoskops (Ch)", ["24", "26"], index=1, key="op-rt-scope")
+                st.caption("EAU NMIBC: atkārtota rezekcija 2–6 nedēļas pēc pirmās (T1, nepilnīga rezekcija, nav detrūzora muskuļa); tai jāietver primārā audzēja vieta. Vienreizēja agrīna instilācija paredzēta pirmajai TURU, nevis rutīnā re-TURU.")
+                scope = c1.selectbox("Rezektoskops (Ch)", ["24", "26"], index=1, key="op-rt-scope", format_func=tr_opt)
                 sites = bladder_site_picker("op-rt", woman, "Rētas lokalizācija")
                 finding = c2.selectbox("Rētas atrade", ["bez redzama atlikušā audzēja", "ar atlikušiem papillāriem audiem",
-                                                        "ar aizdomīgu, sārtu gļotādu"], key="op-rt-find")
-                new = c3.text_input("Jauni veidojumi (empty = nav)", key="op-rt-new",
-                                    placeholder="e.g. jumtā papillārs veidojums 5 mm")
+                                                        "ar aizdomīgu, sārtu gļotādu"], key="op-rt-find", format_func=tr_opt)
+                new = c3.text_input("Jauni veidojumi (tukšs = nav)", key="op-rt-new",
+                                    placeholder="piem., jumtā papillārs veidojums 5 mm")
                 separate = c1.checkbox("Rezekcijas pamatne atsevišķi", True, key="op-rt-sep")
-                fr = c2.selectbox("Katetrs (Fr)", ["18", "20", "22"], index=1, key="op-rt-fr")
+                fr = c2.selectbox("Katetrs (Fr)", ["18", "20", "22"], index=1, key="op-rt-fr", format_func=tr_opt)
                 balloon = c3.number_input("Balons (ml)", 5, 60, 20, key="op-rt-balloon")
                 ward = c1.text_input("Pārved uz", "nodaļu", key="op-rt-ward")
                 name = "Atkārtota TURU (re-TURU)"
@@ -12071,7 +12179,7 @@ def render_operation(sex):
                     f"pārved uz {ward.strip()}. Rezekcijas materiāls nosūtīts histoloģiskai izmeklēšanai.",
                 ]
             elif op == "Cystoscopy, stent removal":
-                side = c1.radio("Puse", ["Kreisā", "Labā", "Abas"], horizontal=True, key="op-cs-side")
+                side = c1.radio("Puse", ["Kreisā", "Labā", "Abas"], horizontal=True, key="op-cs-side", format_func=tr_opt)
                 findings = st.text_input("Atrade", "uretra normāla platuma, urīnpūšļa gļotāda nav izmainīta, urēteru ostijas "
                                          "normālas, simetriskas", key="op-cs-find")
                 removal = c2.checkbox("Stenta evakuācija", True, key="op-cs-remove")
@@ -12092,10 +12200,10 @@ def render_operation(sex):
                 text.append("Evakuē instrumentu.")
             elif op == "Percutaneous trocar epicystostomy (48)":
                 incision = c1.number_input("Griezums virs simfīzes (cm)", 1, 5, 2, key="op-ec-cm")
-                ch = c2.selectbox("Katetrs (Ch)", ["Not stated", "12", "14", "16", "18"], key="op-ec-ch")
+                ch = c2.selectbox("Katetrs (Ch)", ["Not stated", "12", "14", "16", "18"], key="op-ec-ch", format_func=tr_opt)
                 balloon = c3.number_input("Balons (ml NaCl 0,9%)", 2, 20, 5, key="op-ec-balloon")
                 volume = c1.number_input("Izdalās urīns (ml)", 0, 5000, 400, step=50, key="op-ec-vol")
-                look = c2.selectbox("Urīns", ["dzidra", "duļķaina", "ar asiņu piejaukumu"], key="op-ec-look")
+                look = c2.selectbox("Urīns", ["dzidra", "duļķaina", "ar asiņu piejaukumu"], key="op-ec-look", format_func=tr_opt)
                 name = "Perkutāna troakāra epicistostomija"
                 catheter = "epicistostomas katetru" if ch == "Not stated" else f"Ch {ch} epicistostomas katetru"
                 text = [f"Pēc operācijas lauka apdares ar polispirtu šķīdumu lokālā anestēzijā ar Sol. Lidocaini 2%, veic "
@@ -12104,9 +12212,9 @@ def render_operation(sex):
                         "šķīduma. Fiksē katetru ar ādas šuvi. Pārsējs. "
                         f"Pa epicistostomu izdalās {volume} ml {look} urīna."]
             elif op == "Nephrostomy change under US (48)":
-                side = c1.radio("Puse", ["Kreisā", "Labā", "Abas"], horizontal=True, key="op-nc-side")
-                ch = c2.selectbox("Nefrostoma (Ch)", ["8", "10", "12", "14"], index=1, key="op-nc-ch")
-                position = c3.selectbox("Novietojums", ["adekvāts", "neadekvāts – koriģēts"], key="op-nc-pos")
+                side = c1.radio("Puse", ["Kreisā", "Labā", "Abas"], horizontal=True, key="op-nc-side", format_func=tr_opt)
+                ch = c2.selectbox("Nefrostoma (Ch)", ["8", "10", "12", "14"], index=1, key="op-nc-ch", format_func=tr_opt)
+                position = c3.selectbox("Novietojums", ["adekvāts", "neadekvāts – koriģēts"], key="op-nc-pos", format_func=tr_opt)
                 if side == "Abas":
                     name = "Abpusēja nefrostomu nomaiņa USS kontrolē"
                     text = ["Pēc operācijas lauka apdares abās pusēs secīgi caur nefrostomu ievada stīgu. Uz stīgas evakuē "
@@ -12118,11 +12226,11 @@ def render_operation(sex):
                             f"stīgas ievada Ch {ch} nefrostomas katetru. Evakuē stīgu. USS kontrolē konstatē nefrostomas "
                             f"novietojumu. Nefrostomas novietojums {position}. Fiksē nefrostomas katetru."]
             elif op == "Epididymal tumour extirpation":
-                side = c1.radio("Puse", ["Labā", "Kreisā"], horizontal=True, key="op-ep-side")
-                part = c2.selectbox("Daļa", ["Cauda epididimis", "Corpus epididimis", "Caput epididimis"], key="op-ep-part")
+                side = c1.radio("Puse", ["Labā", "Kreisā"], horizontal=True, key="op-ep-side", format_func=tr_opt)
+                part = c2.selectbox("Daļa", ["Cauda epididimis", "Corpus epididimis", "Caput epididimis"], key="op-ep-part", format_func=tr_opt)
                 size = c3.text_input("Izmērs", "~ 1 x 2 cm", key="op-ep-size")
                 look = st.text_input("Veidojums", "blīvu, labi norobežotu veidojumu", key="op-ep-look")
-                histology = st.text_input("Histoloģija (optional)", key="op-ep-hist")
+                histology = st.text_input("Histoloģija (neobligāti)", key="op-ep-hist")
                 short, word = ("lb.", "lb.") if side == "Labā" else ("kr.", "kr.")
                 name = f"Epididimis jaunveidojuma ekstirpācija {short} pusē"
                 text = [f"Pēc op. lauka trīsreizējas apdares, veic griezienu skrotum ādā {short} pusē, šķeļ tunica vaginalis "
@@ -12142,8 +12250,8 @@ def render_operation(sex):
             elif op == "Laparoscopic radical prostatectomy":
                 lnd = c1.checkbox("Iegurņa limfadenektomija", True, key="op-rp-lnd")
                 nerve = c2.selectbox("Nervu saudzēšana", ["Nav", "Labajā pusē", "Kreisajā pusē", "Abās pusēs"],
-                                     key="op-rp-nerve")
-                fr = c3.selectbox("Katetrs (Fr)", ["16", "18", "20"], index=1, key="op-rp-fr")
+                                     key="op-rp-nerve", format_func=tr_opt)
+                fr = c3.selectbox("Katetrs (Fr)", ["16", "18", "20"], index=1, key="op-rp-fr", format_func=tr_opt)
                 balloon = c1.number_input("Balons (ml)", 5, 40, 20, key="op-rp-balloon")
                 drain = c2.checkbox("Drena pie anastomozes", True, key="op-rp-drain")
                 extras = (["iegurņa limfadenektomiju"] if lnd else []) + \
@@ -12176,16 +12284,16 @@ def render_operation(sex):
                 text.append("Preparāts: " + ("lb. puses l/m; kr. puses l/m; prostata." if lnd else "prostata.")
                             + " Preparātu nosūta histoloģiskai izmeklēšanai.")
             elif op in ("Laparoscopic nephrectomy", "Laparoscopic kidney resection", "Laparoscopic pyeloplasty"):
-                side = c1.radio("Puse", ["Labā", "Kreisā"], horizontal=True, key="op-lap-side")
-                right = side == "Labā"
-                adj = "labās" if right else "kreisās"        # labās puses ..., labās lumbotomijas guļā
-                loc = "labajā" if right else "kreisajā"     # labajā pararektālajā rajonā
-                lat = "dx." if right else "sin."
-                kidney_acc = "labo nieri" if right else "kreiso nieri"
+                side = c1.radio("Puse", ["Labā", "Kreisā"], horizontal=True, key="op-lap-side", format_func=tr_opt)
+                is_right = side == "Labā"
+                adj = "labās" if is_right else "kreisās"        # labās puses ..., labās lumbotomijas guļā
+                loc = "labajā" if is_right else "kreisajā"     # labajā pararektālajā rajonā
+                lat = "dx." if is_right else "sin."
+                kidney_acc = "labo nieri" if is_right else "kreiso nieri"
                 access = (f"Pēc operācijas lauka 3x apdares ar polialkohola šķīdumu intubācijas narkozē, {pt_dat} atrodoties "
                           f"{adj} lumbotomijas guļā, veic griezienu 2 cm virs umbo {loc} pararektālajā rajonā.")
                 if op == "Laparoscopic nephrectomy":
-                    fr = c2.selectbox("Katetrs (Fr)", ["14", "16", "18", "20"], index=2, key="op-nx-fr")
+                    fr = c2.selectbox("Katetrs (Fr)", ["14", "16", "18", "20"], index=2, key="op-nx-fr", format_func=tr_opt)
                     drain = c3.checkbox("Drena nieres gultnē", False, key="op-nx-drain")
                     name = f"Laparoskopiska {adj} puses nefrektomija"
                     text = [
@@ -12201,7 +12309,7 @@ def render_operation(sex):
                         "Evakuē troakārus. Brūces sašuj pa kārtām.",
                         f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz nodaļu.",
                         "",
-                        f"Preparāts: {'labā' if right else 'kreisā'} niere.",
+                        f"Preparāts: {'labā' if is_right else 'kreisā'} niere.",
                         "Preparātu nosūta histoloģiskai izmeklēšanai.",
                     ]
                 elif op == "Laparoscopic kidney resection":
@@ -12235,7 +12343,7 @@ def render_operation(sex):
                     stent = c2.checkbox("Uretera stents", True, key="op-pp-stent")
                     drain = c3.checkbox("Drena pie anastomozes", True, key="op-pp-drain")
                     suture = c1.text_input("Šuve", "3.0 Vicryl", key="op-pp-suture")
-                    name = f"{'Labās' if right else 'Kreisās'} puses laparoskopiska pieloplastika"
+                    name = f"{'Labās' if is_right else 'Kreisās'} puses laparoskopiska pieloplastika"
                     text = [
                         access + " Paņemot uz turētājiem, pārdala aponeirozi un peritoneju. Ievada Veresa adatu, uzpilda "
                         "vēdera dobumu līdz 14 mmHg. Ievada 10 mm troakāru. 5 cm laterālāk no optikas troakāra veic "
@@ -12251,30 +12359,28 @@ def render_operation(sex):
                         f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz nodaļu.",
                     ]
             elif op == "Scrotal mass excision":
-                st.caption("Every scrotal mass needs an ultrasound first. A solid intratesticular mass is treated with an "
-                           "inguinal orchidectomy (EAU), and a suspected paratesticular sarcoma with an inguinal approach – "
-                           "not with a scrotal excision.")
+                st.caption("Katram sēklinieku maisiņa veidojumam vispirms nepieciešama USS. Solīdu intratestikulāru veidojumu ārstē ar ingvinālu orhektomiju (EAU), bet aizdomas par paratestikulāru sarkomu – ar ingvinālu pieeju, nevis skrotālu ekscīziju.")
                 anesthesia = c1.selectbox("Anestēzija", ["spinālā anestēzijā", "vispārējā anestēzijā",
-                                                         "vietējā anestēzijā ar Sol. Lidocaini 1%"], key="op-sm-an")
-                position = c2.selectbox("Guļa", ["dorsālas litotomijas guļā", "muguras guļā"], key="op-sm-pos")
-                place = c3.selectbox("Vieta", list(SCROTAL_PLACE), key="op-sm-place")
-                side = c1.selectbox("Puse", list(SCROTAL_SIDE), key="op-sm-side")
-                many = c2.radio("Veidojumi", ["Viens", "Vairāki"], horizontal=True, key="op-sm-many") == "Vairāki"
+                                                         "vietējā anestēzijā ar Sol. Lidocaini 1%"], key="op-sm-an", format_func=tr_opt)
+                position = c2.selectbox("Guļa", ["dorsālas litotomijas guļā", "muguras guļā"], key="op-sm-pos", format_func=tr_opt)
+                place = c3.selectbox("Vieta", list(SCROTAL_PLACE), key="op-sm-place", format_func=tr_opt)
+                side = c1.selectbox("Puse", list(SCROTAL_SIDE), key="op-sm-side", format_func=tr_opt)
+                many = c2.radio("Veidojumi", ["Viens", "Vairāki"], horizontal=True, key="op-sm-many", format_func=tr_opt) == "Vairāki"
                 size = c3.number_input("Izmērs (cm)", 0.0, 30.0, value=None, step=0.5, key="op-sm-size")
                 incision = c1.selectbox("Griezums", ["virs veidojuma", "pa scrotum viduslīniju (raphe)",
                                                      "scrotum/perineālā rajonā", "elipsveida ādas griezums ap veidojumu"],
-                                        key="op-sm-inc")
+                                        key="op-sm-inc", format_func=tr_opt)
                 looks = {  # (before the noun, singular / plural, after the noun)
                     "iekapsulēts, mīksti elastīgs": ("iekapsulētu, mīksti elastīgu", "iekapsulētus, mīksti elastīgus", ""),
                     "cistisks, ar biezu, baltu saturu": ("cistisku", "cistiskus", " ar biezu, baltu saturu"),
                     "mīksts, lipomatozs": ("mīkstu, lipomatozu", "mīkstus, lipomatozus", ""),
                     "blīvs, ar skaidrām robežām": ("blīvu", "blīvus", " ar skaidrām robežām"),
                 }
-                look = c2.selectbox("Veidojuma raksturs", list(looks), key="op-sm-look")
+                look = c2.selectbox("Veidojuma raksturs", list(looks), key="op-sm-look", format_func=tr_opt)
                 free = c3.checkbox("Nav saistīts ar sēklinieku un sēklas virvīti", True, key="op-sm-free")
                 drain = c1.checkbox("Drenāža (gumijas strēmele)", False, key="op-sm-drain")
                 closure = c2.selectbox("Šuves", ["Zemādas šuve. Ādas šuves.", "Zemādas šuve. Intrakutāna uzsūcoša šuve."],
-                                       key="op-sm-close")
+                                       key="op-sm-close", format_func=tr_opt)
                 name = scrotal_words({"Scrotal mass location": place, "Scrotal mass number": "Multiple" if many else "Single"})[2]
                 name = name[0].upper() + name[1:]
                 noun = "veidojumus" if many else "veidojumu"
@@ -12293,10 +12399,10 @@ def render_operation(sex):
                     f"{'Veidojumus' if many else 'Veidojumu'} nosūta patohistoloģiskai izmeklēšanai.",
                 ]
             elif op == "Hydrocele plasty":
-                side = c1.radio("Puse", ["Labā", "Kreisā"], horizontal=True, key="op-h-side")
+                side = c1.radio("Puse", ["Labā", "Kreisā"], horizontal=True, key="op-h-side", format_func=tr_opt)
                 technique = c2.selectbox("Tehnika", ["Izvēršana (Winkelmann)", "Ekscīzija (Bergmann)", "Plikācija (Lord)"],
-                                         key="op-h-tech")
-                fluid = c3.selectbox("Šķidrums", ["serozs", "hemorāģisks", "duļķains"], key="op-h-fluid")
+                                         key="op-h-tech", format_func=tr_opt)
+                fluid = c3.selectbox("Šķidrums", ["serozs", "hemorāģisks", "duļķains"], key="op-h-fluid", format_func=tr_opt)
                 drain = c1.checkbox("Drenāža", True, key="op-h-drain")
                 ward = c2.text_input("Pārved uz", "nodaļu", key="op-h-ward")
                 short = "lb." if side == "Labā" else "kr."
@@ -12310,6 +12416,8 @@ def render_operation(sex):
                         f"apvalkiem. Konstatē hidrocēli. Pārdala to, izdalās {fluid} šķidrums. {step} Rūpīga hemostāze."
                         + (" Drena." if drain else "") + " Ādu slēdz ar atsevišķām šuvēm. Sterils pārsējs.",
                         f"{pt_acc} vispārēji apmierinošā stāvoklī pārved uz {ward.strip()}."]
+            elif op == "Testicular infarction – exploration":
+                text, name = infarction_operation(c1, c2, c3, pt_acc)
             elif op == "Testicular torsion – exploration":
                 text, name = torsion_operation(c1, c2, c3, pt_acc)
             elif op == "Prostatic abscess drainage":
@@ -12322,11 +12430,11 @@ def render_operation(sex):
             elif op == "Cystoscopy (diagnostic) ± biopsy":
                 text, name = cystoscopy_operation(c1, c2, c3, pt_acc)
             elif op == "Dorsumcision (dorsal slit)":
-                reason = c1.selectbox("Indikācija", ["parafimoze", "fimoze"], key="op-ds-reason")
+                reason = c1.selectbox("Indikācija", ["parafimoze", "fimoze"], key="op-ds-reason", format_func=tr_opt)
                 anesthesia = c2.selectbox("Anestēzija", ["lokālā anestēzijā", "spinālā anestēzijā", "vispārējā anestēzijā"],
-                                          key="op-ds-an")
+                                          key="op-ds-an", format_func=tr_opt)
                 suture = c3.text_input("Šuves", "4.0 Vicryl", key="op-ds-suture")
-                ward = c1.selectbox("Pēc operācijas", ["pārved uz palātu", "izraksta ambulatori"], key="op-ds-ward")
+                ward = c1.selectbox("Pēc operācijas", ["pārved uz palātu", "izraksta ambulatori"], key="op-ds-ward", format_func=tr_opt)
                 name = "Dorsumcīzija"
                 ring = "parafimozes (iespīlējuma) gredzenu" if reason == "parafimoze" else "fimozes gredzenu"
                 text = [
@@ -12338,7 +12446,7 @@ def render_operation(sex):
                        else f"{pt_acc} vispārējā apmierinošā stāvoklī izraksta ambulatori.")
                 ]
             elif op == "Circumcision":
-                anesthesia = c1.selectbox("Anestēzija", ["spinālā anestēzijā", "vispārējā anestēzijā", "vietējā anestēzijā"], key="op-c-an")
+                anesthesia = c1.selectbox("Anestēzija", ["spinālā anestēzijā", "vispārējā anestēzijā", "vietējā anestēzijā"], key="op-c-an", format_func=tr_opt)
                 antiseptic = c2.text_input("Lauka apdare ar", "polispirtu šķīdumu", key="op-c-anti")
                 margin = c3.number_input("Atkāpe no corona glandis (mm)", 2, 15, 5, key="op-c-margin")
                 suture = c1.text_input("Šuves", "SafilQuick 4.0", key="op-c-suture")
@@ -12353,13 +12461,13 @@ def render_operation(sex):
                     + f" Rūpīga hemostāze. Brūci slēdz ar atsevišķām {suture.strip()} šuvēm. Sterils pārsējs. Pacientu "
                     f"vispārēji apmierinošā stāvoklī pārved uz {ward.strip()}."
                 ]
-            complications = st.text_input("Intraoperatīvas komplikācijas / papildus atrade (optional)", key=f"op-extra-{op}")
+            complications = st.text_input("Intraoperatīvas komplikācijas / papildus atrade (neobligāti)", key=f"op-extra-{op}")
     if complications.strip():
         text.append(complications.strip().rstrip(".") + ".")
     with right:
         paper = st.container(key="paper-op")
     if op in ("TURU", "Re-TURU (scar resection)") and not sites:
-        paper.info("Choose where the tumour is." if op == "TURU" else "Choose where the scar is.")
+        paper.info("Izvēlieties, kur atrodas audzējs." if op == "TURU" else "Izvēlieties, kur atrodas rēta.")
         return
     with paper:
         header = render_doc_header("op")
@@ -12367,30 +12475,1634 @@ def render_operation(sex):
                   + (f"Anesteziologs: {header['anesth']}\n" if header.get("anesth") else "")
                   + ("\n" if name or header.get("anesth") else "") + "Operācijas apraksts:\n\n" + "\n".join(text))
         paper_area("Operācijas apraksts", output, f"op-out-{hash(output)}")
-        word_button("Word file (Operācijas apraksts)", lambda: operation_docx(header, name, text, figure),
+        word_button("Word fails (Operācijas apraksts)", lambda: operation_docx(header, name, text, figure),
                     f"Operacijas_apraksts_{header.get('date', '').strip('.').replace('.', '-') or 'bez_datuma'}.docx",
                     "op-word")
+
+
+# ---------------------------------------------------------------
+# 2z. LATVIAN SCREEN TEXTS
+# Inside, the app works with English names (field names, choices, presets). The screen shows them
+# in Latvian through tr(). To change a word on the screen, change it here (the right-hand side).
+# ---------------------------------------------------------------
+
+LV = {
+    # Field names (the questions)
+    "Admission": "Iestāšanās",
+    "Stay": "Ārstēšana",
+    "Infection": "Infekcija",
+    "Side": "Puse",
+    "Surgery": "Operācija",
+    "Surgery type": "Operācijas veids",
+    "Operation date": "Operācijas datums",
+    "Anesthesia": "Anestēzija",
+    "Phimosis degree": "Fimozes pakāpe",
+    "Balanoposthitis": "Balanopostīts",
+    "Catheter type": "Katetra veids",
+    "Catheter size (Fr)": "Katetra izmērs (Fr)",
+    "Catheter reason": "Katetra indikācija",
+    "Stone size (mm)": "Konkrementa izmērs (mm)",
+    "Right stone size (mm)": "Labās puses konkrementa izmērs (mm)",
+    "Left stone size (mm)": "Kreisās puses konkrementa izmērs (mm)",
+    "CRO elevated": "CRO paaugstināts",
+    "Leukocytosis": "Leikocitoze",
+    "Urine infection signs": "Infekcijas pazīmes urīnā",
+    "Admission date": "Iestāšanās datums",
+    "Discharge date": "Izrakstīšanas datums",
+    "Symptoms": "Sūdzības",
+    "Infection complexity": "Infekcijas komplicētība",
+    "Infection site": "Infekcijas lokalizācija",
+    "Pyelonephritis side": "Pielonefrīta puse",
+    "Infection context": "Infekcijas apstākļi",
+    "Older (postmenopausal) woman": "Gados vecāka (postmenopauzes) sieviete",
+    "Infection complexity (N39)": "Infekcijas komplicētība",
+    "Complications": "Komplikācijas",
+    "Complications status": "Komplikāciju stāvoklis",
+    "Comorbidities": "Blakusslimības",
+    "Diagnosis certainty": "Diagnozes ticamība",
+    "Has catheter": "Ir urīnpūšļa katetrs",
+    "Catheter action": "Darbība ar katetru",
+    "Catheter Fr": "Katetra izmērs (Fr)",
+    "Catheter indication": "Katetra indikācija",
+    "Catheter at discharge": "Katetrs izrakstoties",
+    "Urine drainage": "Urīna attece",
+    "Voiding after removal": "Urinācija pēc katetra evakuācijas",
+    "Has stents": "Ir urīnvada stenti",
+    "Stent count": "Stentu skaits",
+    "Stent side": "Stenta puse",
+    "Stent age": "Stenta vecums",
+    "Stents at discharge": "Stenti izrakstoties",
+    "Stent plan": "Stenta plāns",
+    "Stent plan date": "Stenta plāna datums",
+    "Antibiotics": "Antibiotikas",
+    "Antibiotic allergy status": "Alerģija pret antibiotikām",
+    "Antibiotic renal adjustment": "Antibiotiku devas pielāgošana nieru funkcijai",
+    "Antibiotic review": "Antibiotiku terapijas pārskatīšana",
+    "Urine specimen": "Urīna paraugs",
+    "Urine culture": "Urīna uzsējums",
+    "Culture organism": "Uzsējumā augošais mikroorganisms",
+    "Culture checked by": "Uzsējuma rezultātu pārbauda",
+    "Blood culture": "Asins uzsējums",
+    "Labs": "Analīzes",
+    "Clinical status": "Klīniskais stāvoklis",
+    "Temperature trend": "Temperatūras dinamika",
+    "Pain trend": "Sāpju dinamika",
+    "Urinary symptoms trend": "Urinācijas sūdzību dinamika",
+    "Inflammatory markers trend": "Iekaisuma rādītāju dinamika",
+    "Renal function trend": "Nieru funkcijas dinamika",
+    "Hemodynamic status": "Hemodinamika",
+    "Oral intake": "Perorāla uzņemšana",
+    "Treatment tolerance": "Terapijas panesamība",
+    "Discharge readiness": "Gatavība izrakstīšanai",
+    "Urology follow-up": "Kontrole pie urologa",
+    "Urology follow-up date": "Urologa kontroles datums",
+    "Fluid intake": "Šķidruma uzņemšana",
+    "Warning signs": "Brīdinājuma pazīmes",
+    "Urostasis grade": "Urostāzes pakāpe",
+    "Pain controlled": "Sāpes kontrolētas",
+    "Stone location": "Konkrementa lokalizācija",
+    "Renal colic": "Nieru kolika",
+    "Urinary tract infection": "Urīnceļu infekcija",
+    "Procedure": "Procedūra",
+    "Lithotripsy": "Litotripsija",
+    "JJ stent placed": "Ievietots JJ stents",
+    "Procedure date": "Procedūras datums",
+    "Intraoperative course": "Operācijas gaita",
+    "Intraoperative complications": "Intraoperatīvās komplikācijas",
+    "Postoperative course": "Pēcoperācijas periods",
+    "Postoperative complications": "Pēcoperācijas komplikācijas",
+    "Discharge status": "Stāvoklis izrakstoties",
+    "Investigations": "Izmeklējumi",
+    "Discharged with catheter": "Izrakstīts ar katetru",
+    "Catheter removal date": "Katetra evakuācijas datums",
+    "Stent removal": "Stenta izņemšana",
+    "Stent removal date": "Stenta izņemšanas datums",
+    "Tumour verification": "Audzēja verifikācija",
+    "Tumour number": "Audzēju skaits",
+    "Tumour location": "Audzēja lokalizācija",
+    "TURU type": "TURU veids",
+    "Operation details": "Operācijas detaļas",
+    "Intravesical treatment": "Intravezikāla terapija",
+    "Intravesical treatment (other)": "Intravezikāla terapija (cita)",
+    "Catheter removal": "Katetra evakuācija",
+    "Catheter removed on": "Katetrs evakuēts (datums)",
+    "Planned catheter removal (optional)": "Plānotā katetra evakuācija (neobligāti)",
+    "Voiding after catheter removal": "Urinācija pēc katetra evakuācijas",
+    "Histology": "Histoloģija",
+    "Tumour stage": "Audzēja stadija",
+    "Side (TT)": "Puse",
+    "Pain duration (TT)": "Sāpju ilgums",
+    "Pain since (TT)": "Sāpes kopš",
+    "Doppler US (TT)": "Doplerogrāfija",
+    "Manual detorsion at NMC (TT)": "Manuāla detorsija NMC",
+    "Anesthesia (TT)": "Anestēzija",
+    "Rotation (TT)": "Rotācija",
+    "Testis viability (TT)": "Sēklinieka dzīvotspēja",
+    "Contralateral fixation (TT)": "Kontralaterālā sēklinieka fiksācija",
+    "Appendix testis excised (TT)": "Hidatīda ekscidēta",
+    "Drain (TT)": "Drena",
+    "Postoperative course (TT)": "Pēcoperācijas periods",
+    "Postoperative complications (TT)": "Pēcoperācijas komplikācijas",
+    "Histology (TT)": "Histoloģija",
+    "Histology result (TT)": "Histoloģijas rezultāts",
+    "Discuss testicular prosthesis": "Apspriest sēklinieka protēzi",
+    "Fertility advice (TT)": "Ieteikumi par fertilitāti",
+    "Blue dot sign": '"Blue dot" simptoms',
+    "Control visit (TT)": "Kontroles vizīte",
+    "Side (TI)": "Puse",
+    "Pain duration (TI)": "Sāpju ilgums",
+    "Cause (TI)": "Cēlonis",
+    "Infarction extent (TI)": "Infarkta apjoms",
+    "Imaging (TI)": "Attēldiagnostika",
+    "Tumour markers (TI)": "Audzēja marķieri",
+    "Treatment (TI)": "Ārstēšana",
+    "Ward course (TI)": "Gaita nodaļā",
+    "Operation date (TI)": "Operācijas datums",
+    "Anesthesia (TI)": "Anestēzija",
+    "Drain (TI)": "Drena",
+    "Postoperative course (TI)": "Pēcoperācijas periods",
+    "Postoperative complications (TI)": "Pēcoperācijas komplikācijas",
+    "Histology (TI)": "Histoloģija",
+    "Histology result (TI)": "Histoloģijas rezultāts",
+    "Skin sutures (TI)": "Ādas šuves",
+    "Prosthesis advice (TI)": "Ieteikums par sēklinieka protēzi",
+    "Symptoms (AP)": "Sūdzības",
+    "Symptom duration (AP)": "Sūdzību ilgums",
+    "Context (AP)": "Apstākļi",
+    "Risk factors (AP)": "Riska faktori",
+    "DRE (AP)": "DRI (per rectum)",
+    "Labs (AP)": "Analīzes",
+    "Urine tests (AP)": "Urīna izmeklējumi",
+    "Imaging (AP)": "Attēldiagnostika",
+    "Abscess size (cm) (AP)": "Abscesa izmērs (cm)",
+    "Sepsis signs (AP)": "Sepses pazīmes",
+    "Retention drainage (AP)": "Urīna retences drenāža",
+    "Drained volume (AP)": "Izvadītais urīna daudzums",
+    "First IV dose at NMC (AP)": "Pirmā i/v deva NMC",
+    "IV antibiotic (AP)": "I/v antibiotika",
+    "Abscess treatment (AP)": "Abscesa ārstēšana",
+    "Abscess procedure date (AP)": "Abscesa procedūras datums",
+    "Culture result (AP)": "Uzsējuma rezultāts",
+    "Ward course (AP)": "Gaita nodaļā",
+    "Catheter at discharge (AP)": "Katetrs izrakstoties",
+    "Catheter removal date (AP)": "Katetra evakuācijas datums",
+    "Control visit (AP)": "Kontroles vizīte",
+    "Side (EO)": "Puse",
+    "Inflammation site (EO)": "Iekaisuma lokalizācija",
+    "Onset (EO)": "Sākums",
+    "Symptom duration (EO)": "Sūdzību ilgums",
+    "Symptoms (EO)": "Sūdzības",
+    "Likely source (EO)": "Iespējamais infekcijas avots",
+    "Risk factors (EO)": "Riska faktori",
+    "Scrotal US (EO)": "Sēklinieku maisiņa USS",
+    "Labs (EO)": "Analīzes",
+    "Urine tests (EO)": "Urīna izmeklējumi",
+    "Sepsis signs (EO)": "Sepses pazīmes",
+    "Ceftriaxone given at NMC": "NMC ievadīts ceftriaksons",
+    "Treatment (EO)": "Ārstēšana",
+    "IV antibiotic (EO)": "I/v antibiotika",
+    "After failed conservative therapy": "Pēc neefektīvas konservatīvas terapijas",
+    "Operation (EO)": "Operācija",
+    "Anesthesia (EO)": "Anestēzija",
+    "Postoperative course (EO)": "Pēcoperācijas periods",
+    "Postoperative complications (EO)": "Pēcoperācijas komplikācijas",
+    "Drain (EO)": "Drena",
+    "Histology (EO)": "Histoloģija",
+    "Histology result (EO)": "Histoloģijas rezultāts",
+    "Culture result (EO)": "Uzsējuma rezultāts",
+    "Control visit (EO)": "Kontroles vizīte",
+    "C67 operation": "Operācija",
+    "Smoker (C67)": "Smēķētājs",
+    "Recurrent tumour": "Recidivējošs audzējs",
+    "Largest tumour over 3 cm": "Lielākais audzējs > 3 cm",
+    "Age over 70 (C67)": "Vecums > 70 gadiem",
+    "Detrusor muscle in specimen": "Paraugā detruzora muskulis",
+    "Variant histology / LVI": "Varianta histoloģija / LVI",
+    "Adjuvant plan (NMIBC)": "Adjuvantās terapijas plāns (NMIBC)",
+    "Indication (RC)": "Indikācija",
+    "Clinical T (RC)": "Klīniskā T stadija",
+    "Clinical N (RC)": "Klīniskā N stadija",
+    "Clinical M (RC)": "Klīniskā M stadija",
+    "Previous treatment (RC)": "Iepriekšējā ārstēšana",
+    "Persistent hematuria (RC)": "Persistējoša hematūrija",
+    "Anaemia (RC)": "Anēmija",
+    "Preoperative transfusion (RC, units)": "Pirmsoperācijas transfūzija (devas)",
+    "Cystectomy type (man)": "Cistektomijas veids",
+    "Cystectomy type (woman)": "Cistektomijas veids",
+    "Urethrectomy (RC)": "Uretrektomija",
+    "Approach (RC)": "Pieeja",
+    "Lymph node dissection (RC)": "Limfadenektomija",
+    "Urinary diversion": "Urīna derivācija",
+    "Anesthesia (RC)": "Anestēzija",
+    "Postoperative transfusion (RC, units)": "Pēcoperācijas transfūzija (devas)",
+    "Bowel recovery (RC)": "Zarnu darbības atjaunošanās",
+    "Drain (RC)": "Drena",
+    "Drain removed on day (RC)": "Drena evakuēta (pēcoperācijas diena)",
+    "Ureteral stents (RC)": "Urīnvada stenti",
+    "Stent removal date (RC)": "Stentu izņemšanas datums",
+    "Stent removal time (RC)": "Stentu izņemšanas laiks",
+    "Neobladder catheter removal (RC)": "Neocistis katetra evakuācija",
+    "Histology (RC)": "Histoloģija",
+    "Histology expected (RC)": "Histoloģija gaidāma (datums)",
+    "pT (RC)": "pT",
+    "pN (RC)": "pN",
+    "Nodes positive / removed (RC)": "Pozitīvi / izņemti limfmezgli",
+    "Margins (RC)": "Rezekcijas robežas",
+    "Histology details (RC)": "Histoloģijas detaļas",
+    "Diabetes diet (RC)": "Diabēta diēta",
+    "Urology visit (RC)": "Urologa vizīte",
+    "Tumour grade": "Audzēja diferenciācijas pakāpe",
+    "Concomitant CIS": "Vienlaicīga CIS",
+    "N stage": "N stadija",
+    "M stage": "M stadija",
+    "Histology details": "Histoloģijas detaļas",
+    "Discharge paper": "Izraksta veids",
+    "Activity restriction": "Saudzējošs režīms",
+    "Urology visit": "Urologa vizīte",
+    "Urology visit (C61)": "Urologa vizīte",
+    "Oncology council": "Onkoloģiskais konsīlijs",
+    "Oncology council date": "Konsīlija datums",
+    "Operation": "Operācija",
+    "Clinical T stage": "Klīniskā T stadija",
+    "Prostate N stage": "N stadija",
+    "Prostate M stage": "M stadija",
+    "Biopsy Gleason score": "Biopsijas Gleason summa",
+    "RP approach": "Prostatektomijas pieeja",
+    "Lymph node dissection": "Limfadenektomija",
+    "TURP anesthesia": "Anestēzija",
+    "Bladder irrigation after surgery": "Urīnpūšļa skalošana pēc operācijas",
+    "Pathological T stage": "Patoloģiskā T stadija",
+    "Pathological N stage": "Patoloģiskā N stadija",
+    "Surgical margin": "Ķirurģiskā robeža",
+    "Final Gleason score": "Galīgā Gleason summa",
+    "Prostate histology details": "Histoloģijas detaļas",
+    "NMC reason": "Vēršanās iemesls NMC",
+    "NMC catheter Fr": "Katetra izmērs NMC (Fr)",
+    "Drained urine (ml)": "Izvadītais urīns (ml)",
+    "Hematuria management": "Hematūrijas ārstēšana",
+    "Hemodynamically stable": "Hemodinamiski stabils",
+    "Urine clearing": "Urīns kļūst gaišāks",
+    "Pain location": "Sāpju lokalizācija",
+    "Fever at NMC": "Drudzis NMC",
+    "Urology consultation": "Urologa konsultācija",
+    "Kidney operation": "Nieres operācija",
+    "Kidney side": "Nieres puse",
+    "Tumour size (cm)": "Audzēja izmērs (cm)",
+    "RCC clinical T stage": "NŠK klīniskā T stadija",
+    "RCC N stage": "NŠK N stadija",
+    "RCC M stage": "NŠK M stadija",
+    "Kidney approach": "Pieeja",
+    "Adrenalectomy": "Adrenalektomija",
+    "Renal function at discharge": "Nieru funkcija izrakstoties",
+    "Creatinine at discharge (µmol/l)": "Kreatinīns izrakstoties (µmol/l)",
+    "eGFR at discharge": "GFĀ izrakstoties",
+    "RCC subtype": "NŠK apakštips",
+    "RCC pT stage": "NŠK pT stadija",
+    "RCC pN stage": "NŠK pN stadija",
+    "RCC margin": "Rezekcijas robeža",
+    "RCC ISUP grade": "ISUP pakāpe",
+    "Kidney histology details": "Histoloģijas detaļas",
+    "Follow-up risk group": "Novērošanas riska grupa",
+    "NMC imaging": "Attēldiagnostika NMC",
+    "Urostasis on imaging": "Urostāze attēldiagnostikā",
+    "Sepsis signs": "Sepses pazīmes",
+    "Able to take oral medication": "Var lietot medikamentus perorāli",
+    "Pregnant": "Grūtniecība",
+    "Initial IV antibiotic at NMC": "Pirmā i/v antibiotika NMC",
+    "Conservative reason": "Konservatīvas ārstēšanas iemesls",
+    "Frenuloplasty": "Frenuloplastika",
+    "Paraphimosis duration": "Parafimozes ilgums",
+    "Paraphimosis cause": "Parafimozes cēlonis",
+    "Glans appearance": "Dzimumlocekļa galviņas izskats",
+    "Paraphimosis treatment": "Parafimozes ārstēšana",
+    "Before reduction (PF)": "Pirms repozīcijas",
+    "Dorsumcision sutures": "Dorsumcīzijas šuves",
+    "Control visit (PF)": "Kontroles vizīte",
+    "Control visit date (PF)": "Kontroles vizītes datums",
+    "Control visit time (PF)": "Kontroles vizītes laiks",
+    "Suture removal at the visit": "Šuvju izņemšana vizītē",
+    "Plan circumcision": "Plānot cirkumcīziju",
+    "Urinary retention (diagnosis)": "Urīna retence (diagnozē)",
+    "Drained volume (ml)": "Izvadītais daudzums (ml)",
+    "Urine appearance at change": "Urīna izskats maiņas laikā",
+    "Urosepsis": "Urosepse",
+    "Drainage": "Drenāža",
+    "Drainage date": "Drenāžas datums",
+    "Purulent urine on drainage": "Strutains urīns drenējot",
+    "Definitive stone treatment": "Konkrementa definitīvā ārstēšana",
+    "Definitive treatment date": "Definitīvās ārstēšanas datums",
+    "Symptom duration": "Sūdzību ilgums",
+    "Symptom onset": "Sūdzību sākums",
+    "Fever status": "Temperatūra iestājoties",
+    "Relevant history": "Nozīmīga anamnēze",
+    "Catheter route": "Katetra veids",
+    "Stent type": "Stenta veids",
+    "Stent indication": "Stenta indikācija",
+    "Stent insertion date": "Stenta ievietošanas datums",
+    "Urine appearance": "Urīna izskats",
+    "Imaging": "Attēldiagnostika",
+    "Hydronephrosis": "Hidronefroze",
+    "Obstruction drained": "Obstrukcija drenēta",
+    "Chronic medication changes": "Pastāvīgās terapijas izmaiņas",
+    "Stricture location": "Striktūras lokalizācija",
+    "Stricture length (cm)": "Striktūras garums (cm)",
+    "Stricture cause": "Striktūras cēlonis",
+    "Previous stricture treatment": "Iepriekšējā striktūras ārstēšana",
+    "Stricture compensation": "Striktūras kompensācija",
+    "Stricture verified by": "Striktūra verificēta ar",
+    "Urethrotomy instrument": "Uretrotomijas instruments",
+    "Also performed (N35)": "Papildus veikts",
+    "Rest after endoscopic treatment": "Saudzējošs režīms pēc endoskopiskas ārstēšanas",
+    "Catheter removal place (N35)": "Katetra evakuācijas vieta",
+    "Catheter removal time (N35)": "Katetra evakuācijas laiks",
+    "Stricture operation": "Striktūras operācija",
+    "N35 anesthesia": "Anestēzija",
+    "Tissue for histology": "Audi histoloģijai",
+    "Histology result (N35)": "Histoloģijas rezultāts",
+    "Catheter Fr (N35)": "Katetra izmērs (Fr)",
+    "Catheter at discharge (N35)": "Katetrs izrakstoties",
+    "Planned catheter removal (N35)": "Plānotā katetra evakuācija",
+    "Voiding after removal (N35)": "Urinācija pēc katetra evakuācijas",
+    "Self-dilation taught": "Apmācīts pašdilatācijā",
+    "Nephrostomy side": "Nefrostomas puse",
+    "Nephrostomy co-diagnoses": "Blakusdiagnozes",
+    "Nephrostomy Ch": "Nefrostomas izmērs (Ch)",
+    "Nephrostomy function": "Nefrostomas funkcija",
+    "Irrigation performed": "Veikta skalošana",
+    "Fixed with skin sutures": "Fiksēta ar ādas šuvēm",
+    "Infection signs at change": "Infekcijas pazīmes maiņas laikā",
+    "Fever (48)": "Drudzis",
+    "Supervising doctor": "Atbildīgais ārsts",
+    "Next nephrostomy change": "Nākamā nefrostomas maiņa",
+    "Investigations (48)": "Izmeklējumi",
+    "Time since it fell out": "Laiks kopš izkrišanas",
+    "Systemic signs (NF)": "Sistēmiskas pazīmes",
+    "Solitary kidney": "Vienīgā niere",
+    "Hydronephrosis on US (NF)": "Hidronefroze USS",
+    "Blood tests (NF)": "Asins analīzes",
+    "Premedication given": "Veikta premedikācija",
+    "Puncture result (NF)": "Punkcijas rezultāts",
+    "Urine from new nephrostomy": "Urīns no jaunās nefrostomas",
+    "Urine culture taken (NF)": "Paņemts urīna uzsējums",
+    "Ward treatment (NF)": "Ārstēšana nodaļā",
+    "Antibiotic in the ward (NF)": "Antibiotika nodaļā",
+    "Urine culture result (NF)": "Urīna uzsējuma rezultāts",
+    "Ward course (NF)": "Gaita nodaļā",
+    "Definitive plan (NF)": "Turpmākais plāns",
+    "BPH indication": "Operācijas indikācija (LPH)",
+    "Prostate volume (ml)": "Prostatas tilpums (ml)",
+    "Preoperative catheter": "Katetrs pirms operācijas",
+    "TURP technique": "TURP tehnika",
+    "Histology result (BPH)": "Histoloģijas rezultāts",
+    "Previous BPH medication": "Iepriekšējā LPH terapija",
+    "Failed urethral catheterisation": "Neveiksmīga uretrāla katetrizācija",
+    "Ultrasound guided": "USS kontrolē",
+    "Creatinine raised (N35)": "Paaugstināts kreatinīns",
+    "Investigations (N35)": "Izmeklējumi",
+    "RP drain": "Drena",
+    "Catheter removal place": "Katetra evakuācijas vieta",
+    "Catheter removal time": "Katetra evakuācijas laiks",
+    "Sauna and pool": "Pirts un baseins",
+    "PUJ side": "PUS obstrukcijas puse",
+    "Retention cause": "Retences cēlonis",
+    "Retention type": "Retences veids",
+    "Retention duration": "Retences ilgums",
+    "Previous retention episodes": "Iepriekšējas retences epizodes",
+    "Ultrasound at NMC": "USS NMC",
+    "Enlarged prostate on US": "Palielināta prostata USS",
+    "Upper tract dilatation": "Augšējo urīnceļu paplašināšanās",
+    "Labs at NMC": "Analīzes NMC",
+    "Other NMC findings (optional)": "Cita atrade NMC (neobligāti)",
+    "Back pain or neurological symptoms": "Muguras sāpes vai neiroloģiski simptomi",
+    "Retention drainage": "Retences drenāža",
+    "Retention catheter Fr": "Katetra izmērs (Fr)",
+    "Catheter plan (R33)": "Katetra plāns",
+    "Cystitis symptoms": "Cistīta simptomi",
+    "Symptom duration (N30)": "Sūdzību ilgums",
+    "Pyelonephritis signs (N30)": "Pielonefrīta pazīmes",
+    "Vaginal discharge": "Izdalījumi no maksts",
+    "Pregnant (N30)": "Grūtniecība",
+    "Pregnancy week": "Grūtniecības nedēļa",
+    "Postmenopausal": "Postmenopauze",
+    "Recurrent cystitis": "Recidivējošs cistīts",
+    "Same organism soon after treatment": "Tas pats mikroorganisms drīz pēc terapijas",
+    "Antibiotic in the last 3 months": "Antibiotikas pēdējos 3 mēnešos",
+    "Risk factors (N30)": "Riska faktori",
+    "Penicillin allergy": "Alerģija pret penicilīnu",
+    "Suprapubic tenderness": "Jutīgums virs simfīzes",
+    "Urinalysis (N30)": "Urīna analīze",
+    "Urine culture taken": "Paņemts urīna uzsējums",
+    "Blood tests (N30)": "Asins analīzes",
+    "Ultrasound (N30)": "USS",
+    "Residual urine (ml)": "Atlikušais urīns (ml)",
+    "Treatment approach (N30)": "Ārstēšanas pieeja",
+    "Referral (N30)": "Nosūtījums",
+    "Hematuria type": "Hematūrijas veids",
+    "Hematuria duration": "Hematūrijas ilgums",
+    "Hematuria symptoms": "Hematūrijas simptomi",
+    "Clot retention (bladder tamponade)": "Recekļu retence (urīnpūšļa tamponāde)",
+    "Hematuria cause": "Hematūrijas cēlonis",
+    "Risk factors (R31)": "Riska faktori",
+    "Antithrombotic therapy": "Antitrombotiskā terapija",
+    "Antithrombotic plan": "Antitrombotiskās terapijas plāns",
+    "INR (optional)": "INR (neobligāti)",
+    "Hemodynamics (R31)": "Hemodinamika",
+    "Hemoglobin (g/L)": "Hemoglobīns (g/L)",
+    "Ultrasound findings (R31)": "USS atrade",
+    "CT at NMC (R31)": "DT NMC",
+    "NMC catheter (R31)": "Katetrs NMC",
+    "Catheter type (R31)": "Katetra veids",
+    "Catheter Fr (R31)": "Katetra izmērs (Fr)",
+    "Bladder washout (R31)": "Urīnpūšļa skalošana",
+    "Urine colour at discharge": "Urīna krāsa izrakstoties",
+    "Ward treatment (R31)": "Ārstēšana nodaļā",
+    "Transfusion (RBC units)": "Transfūzija (ER devas)",
+    "Hematuria procedure": "Procedūra hematūrijas dēļ",
+    "Cystoscopy date (R31)": "Cistoskopijas datums",
+    "Anesthesia (R31)": "Anestēzija",
+    "Cystoscopy finding (R31)": "Cistoskopijas atrade",
+    "Embolisation date": "Embolizācijas datums",
+    "Histology (R31)": "Histoloģija",
+    "Histology result (R31)": "Histoloģijas rezultāts",
+    "Discharge paper (R31)": "Izraksta veids",
+    "Posthemorrhagic anemia": "Posthemorāģiskā anēmija",
+    "Hemoglobin at discharge (g/L)": "Hemoglobīns izrakstoties (g/L)",
+    "Green corridor (GP referral)": "Zaļais koridors (ģimenes ārsta nosūtījums)",
+    "Urology consultation (R31)": "Urologa konsultācija",
+    "Bladder stone number": "Urīnpūšļa konkrementu skaits",
+    "Bladder stone size (cm)": "Urīnpūšļa konkrementa izmērs (cm)",
+    "Bladder stone found by": "Konkrements atrasts ar",
+    "Bladder stone cause": "Konkrementa cēlonis",
+    "Cystolithotripsy method": "Cistolitotripsijas metode",
+    "Done at the same time (N21)": "Vienlaicīgi veikts",
+    "Anesthesia (N21)": "Anestēzija",
+    "Urine culture (N21)": "Urīna uzsējums",
+    "Culture organism (N21)": "Uzsējumā augošais mikroorganisms",
+    "Stone sent for analysis": "Konkrements nosūtīts analīzei",
+    "Scrotal mass location": "Veidojuma lokalizācija",
+    "Scrotal mass side": "Veidojuma puse",
+    "Scrotal mass number": "Veidojumu skaits",
+    "Scrotal mass size (cm)": "Veidojuma izmērs (cm)",
+    "Scrotal mass type": "Veidojuma veids",
+    "Scrotal mass type (other)": "Veidojuma veids (cits)",
+    "Inflamed / infected lesion": "Iekaisis / inficēts veidojums",
+    "Scrotal anesthesia": "Anestēzija",
+    "Scrotal drain": "Drena",
+    "Scrotal histology result": "Histoloģijas rezultāts",
+    "Histology expected (date)": "Histoloģija gaidāma (datums)",
+    "Other diagnoses (optional)": "Citas diagnozes (neobligāti)",
+    "PUJ cause": "PUS obstrukcijas cēlonis",
+    "Split renal function (%)": "Nieru diferencētā funkcija (%)",
+    "Pyeloplasty approach": "Pieloplastikas pieeja",
+    "Pyeloplasty technique": "Pieloplastikas tehnika",
+    "Vessel transposition": "Asinsvada transpozīcija",
+    "Pyeloplasty stent": "Stents pēc pieloplastikas",
+    "Stent removal plan": "Stenta izņemšanas plāns",
+    "Stent removal date (N13)": "Stenta izņemšanas datums",
+    "Pyeloplasty drain": "Drena",
+    "PUJ histology result": "Histoloģijas rezultāts",
+    "Hydrocele side": "Hidrocēles puse",
+    "Scrotal ultrasound before surgery": "Sēklinieku maisiņa USS pirms operācijas",
+    "Hydrocele technique": "Hidrocēles operācijas tehnika",
+    "N43 anesthesia": "Anestēzija",
+    "Hydrocele drain": "Drena",
+    "Drain removal date": "Drenas evakuācijas datums",
+    "Scrotal hematoma": "Sēklinieku maisiņa hematoma",
+    "Skin sutures": "Ādas šuves",
+    # Choices
+    "Acute": "Akūti",
+    "Planned": "Plānveidā",
+    "Inpatient": "Stacionāri",
+    "Outpatient": "Ambulatori",
+    "With infection": "Ar infekciju",
+    "Without infection": "Bez infekcijas",
+    "Right": "Labā",
+    "Left": "Kreisā",
+    "Both": "Abas",
+    "Circumcision": "Cirkumcīzija",
+    "Dorsumcision": "Dorsumcīzija",
+    "Spinal": "Spinālā",
+    "General": "Vispārējā",
+    "Local": "Vietējā",
+    "Subtotal": "Subtotāla",
+    "Total": "Totāla",
+    "Urethral": "Uretrāls",
+    "Cystostomy": "Epicistostoma",
+    "Not specified": "Nav precizēts",
+    "Prostate cancer": "Prostatas vēzis",
+    "BPH": "LPH",
+    "Lumbar pain": "Sāpes jostas apvidū",
+    "Flank pain": "Sāpes sānos",
+    "Dysuria": "Dizūrija",
+    "Pollakiuria": "Polakiūrija",
+    "Urgency": "Neatliekama vēlme urinēt",
+    "Fever": "Drudzis",
+    "Chills": "Drebuļi",
+    "Hematuria": "Hematūrija",
+    "General weakness": "Vispārējs vājums",
+    "Complicated": "Komplicēta",
+    "Uncomplicated": "Nekomplicēta",
+    "Not classified": "Nav klasificēta",
+    "Lower urinary tract": "Apakšējie urīnceļi",
+    "Upper urinary tract": "Augšējie urīnceļi",
+    "Pyelonephritis": "Pielonefrīts",
+    "Urinary catheter": "Urīnpūšļa katetrs",
+    "Ureteral stents": "Urīnvada stenti",
+    "Nephrostomy": "Nefrostoma",
+    "Urostomy": "Urostoma",
+    "After urological manipulation": "Pēc uroloģiskas manipulācijas",
+    "Urinary tract obstruction": "Urīnceļu obstrukcija",
+    "Acute kidney injury": "Akūts nieru bojājums",
+    "Sepsis": "Sepse",
+    "Resolved": "Novērsta",
+    "Ongoing": "Turpinās",
+    "Confirmed": "Apstiprināta",
+    "Possible": "Iespējama",
+    "Changed": "Nomainīts",
+    "Inserted": "Ievietots",
+    "Left in place": "Atstāts",
+    "Urinary retention": "Urīna retence",
+    "Urine output monitoring": "Diurēzes kontrole",
+    "Postoperative care": "Pēcoperācijas aprūpe",
+    "Securing urine drainage": "Urīna atteces nodrošināšana",
+    "In place": "Saglabāts",
+    "Removed": "Evakuēts",
+    "Free": "Brīva",
+    "Reduced": "Samazināta",
+    "None": "Nav",
+    "Not documented": "Nav dokumentēts",
+    "Voids independently": "Urinē patstāvīgi",
+    "Feeling of incomplete emptying": "Nepilnīgas iztukšošanās sajūta",
+    "Increased residual urine": "Palielināts atlikušais urīns",
+    "Not tested": "Nav pārbaudīts",
+    "On a specific date": "Noteiktā datumā",
+    "At the outpatient urology review": "Ambulatorās urologa vizītes laikā",
+    "Not yet scheduled": "Vēl nav ieplānots",
+    "No known allergy": "Alerģija nav zināma",
+    "Documented allergy": "Dokumentēta alerģija",
+    "Unknown": "Nav zināms",
+    "Not required": "Nav nepieciešama",
+    "Dose adjusted": "Deva pielāgota",
+    "Interval adjusted": "Intervāls pielāgots",
+    "Requires review": "Jāpārskata",
+    "Reviewed and confirmed": "Pārskatīta un apstiprināta",
+    "Pending culture": "Gaida uzsējumu",
+    "Requires prescriber review": "Jāpārskata ordinējošam ārstam",
+    "Fresh urine specimen": "Svaigs urīna paraugs",
+    "From catheter sampling port": "No katetra paraugu ņemšanas porta",
+    "Not taken": "Nav paņemts",
+    "Result not yet known": "Rezultāts vēl nav zināms",
+    "Positive": "Pozitīvs",
+    "Negative": "Negatīvs",
+    "Possibly contaminated sample": "Iespējami kontaminēts paraugs",
+    "Not performed": "Nav veikts",
+    "Family doctor": "Ģimenes ārsts",
+    "Treating urologist": "Ārstējošais urologs",
+    "Hospital department": "Stacionāra nodaļa",
+    "Pending": "Gaida",
+    "Improved": "Uzlabojies",
+    "Stable": "Stabils",
+    "Deteriorated": "Pasliktinājies",
+    "Incomplete assessment": "Nepilnīgs novērtējums",
+    "Afebrile": "Afebrils",
+    "Fever resolved": "Temperatūra normalizējusies",
+    "Persistent fever": "Persistējošs drudzis",
+    "Recurrent fever": "Atkārtots drudzis",
+    "Unchanged": "Bez izmaiņām",
+    "Increased": "Palielinājies",
+    "Not present initially": "Sākotnēji nebija",
+    "Persistent": "Saglabājas",
+    "Decreasing": "Samazinās",
+    "Increasing": "Pieaug",
+    "Not available": "Nav pieejams",
+    "Not assessed": "Nav novērtēts",
+    "Unstable": "Nestabila",
+    "Adequate": "Adekvāta",
+    "Unable to tolerate": "Nepanes",
+    "Well tolerated": "Labi panes",
+    "Adverse reaction": "Blakusparādības",
+    "Treatment changed": "Terapija mainīta",
+    "Clinician confirms discharge": "Ārsts apstiprina izrakstīšanu",
+    "Requires reassessment": "Nepieciešama atkārtota izvērtēšana",
+    "Flank or lumbar pain": "Sāpes sānos vai jostas apvidū",
+    "Urine drainage problems": "Urīna atteces traucējumi",
+    "Inability to urinate": "Nespēja urinēt",
+    "Marked hematuria": "Izteikta hematūrija",
+    "General deterioration": "Vispārējā stāvokļa pasliktināšanās",
+    "No urostasis": "Urostāzes nav",
+    "Yes": "Jā",
+    "No": "Nē",
+    "Kidney": "Niere",
+    "Renal pelvis": "Nieres bļodiņa",
+    "Upper ureter": "Urīnvada augšējā trešdaļa",
+    "Middle ureter": "Urīnvada vidējā trešdaļa",
+    "Lower ureter": "Urīnvada apakšējā trešdaļa",
+    "Ureteral orifice": "Urīnvada atvere",
+    "Laser lithotripsy": "Lāzerlitotripsija",
+    "Pneumatic lithotripsy": "Pneimatiskā litotripsija",
+    "Basket extraction": "Ekstrakcija ar groziņu",
+    "Without complications": "Bez komplikācijām",
+    "With complications": "Ar komplikācijām",
+    "Uneventful": "Bez komplikācijām",
+    "Satisfactory": "Apmierinošs",
+    "Good": "Labs",
+    "Cystoscopy": "Cistoskopija",
+    "Ultrasound": "USS",
+    "CT": "DT",
+    "Single": "Viens",
+    "Two": "Divi",
+    "Three": "Trīs",
+    "Multiple": "Vairāki",
+    "Left lateral wall": "Kreisā sānu siena",
+    "Right lateral wall": "Labā sānu siena",
+    "Posterior wall": "Mugurējā siena",
+    "Anterior wall": "Priekšējā siena",
+    "Dome": "Jumts",
+    "Trigone": "Trīsstūris",
+    "Bladder neck": "Urīnpūšļa kakliņš",
+    "Epirubicin single instillation": "Vienreizēja epirubicīna instilācija",
+    "Other (type below)": "Cits (ierakstiet zemāk)",
+    "Day 1 after surgery": "1. pēcoperācijas dienā",
+    "Day 2 after surgery": "2. pēcoperācijas dienā",
+    "Day 3 after surgery": "3. pēcoperācijas dienā",
+    "Voids independently, urine clear": "Urinē patstāvīgi, urīns dzidrs",
+    "Voids independently, mild hematuria": "Urinē patstāvīgi, neliela hematūrija",
+    "Voids independently, mild incontinence": "Urinē patstāvīgi, viegla nesaturēšana",
+    "Known": "Zināma",
+    "Other / not malignant": "Cits / nav ļaundabīgs",
+    "Under 6 hours": "Mazāk nekā 6 stundas",
+    "6–12 hours": "6–12 stundas",
+    "12–24 hours": "12–24 stundas",
+    "More than 24 hours": "Vairāk nekā 24 stundas",
+    "No blood flow": "Asinsplūsmas nav",
+    "Reduced (partial) blood flow": "Samazināta (daļēja) asinsplūsma",
+    "Not done – clinical diagnosis": "Nav veikta – klīniska diagnoze",
+    "Not attempted": "Nav mēģināta",
+    "Attempted – pain relief": "Mēģināta – sāpes mazinājās",
+    "Attempted – unsuccessful": "Mēģināta – neveiksmīga",
+    "720° (2 turns)": "720° (2 apgriezieni)",
+    "More than 720°": "Vairāk nekā 720°",
+    "Not stated": "Nav norādīts",
+    "Viable – detorsion and orchidopexy": "Vitāls – detorsija un orhidopeksija",
+    "Doubtful – preserved after warming, orchidopexy": "Šaubīgs – saglabāts pēc apsildīšanas, orhidopeksija",
+    "Necrotic – orchiectomy": "Nekrotisks – orhektomija",
+    "No drain": "Bez drenas",
+    "Removed in the ward": "Evakuēta nodaļā",
+    "Discharged with drain": "Izrakstīts ar drenu",
+    "Urologist in 1 month": "Urologs pēc 1 mēneša",
+    "Urologist in 3 months": "Urologs pēc 3 mēnešiem",
+    "Urologist in 1 week": "Urologs pēc 1 nedēļas",
+    "Hours": "Dažas stundas",
+    "1–3 days": "1–3 dienas",
+    "4–7 days": "4–7 dienas",
+    "More than a week": "Ilgāk par nedēļu",
+    "Idiopathic": "Idiopātisks",
+    "After epididymo-orchitis": "Pēc epididimoorhīta",
+    "After torsion": "Pēc torsijas",
+    "After trauma": "Pēc traumas",
+    "After inguinal / scrotal surgery": "Pēc cirkšņa / sēklinieku maisiņa operācijas",
+    "Vasculitis / coagulation disorder": "Vaskulīts / koagulācijas traucējumi",
+    "Not determined": "Nav noskaidrots",
+    "Segmental": "Segmentārs",
+    "Global (whole testis)": "Globāls (viss sēklinieks)",
+    "Doppler US": "Doplerogrāfija",
+    "Contrast-enhanced US": "Kontrastvielas USS",
+    "MRI": "MR",
+    "Normal": "Normā",
+    "Not done": "Nav veikti",
+    "Elevated": "Paaugstināti",
+    "Conservative": "Konservatīva",
+    "Scrotal exploration – testis preserved": "Skrotāla eksplorācija – sēklinieks saglabāts",
+    "Partial orchiectomy": "Daļēja orhektomija",
+    "Orchiectomy (scrotal)": "Orhektomija (skrotāla)",
+    "Inguinal orchiectomy": "Ingvināla orhektomija",
+    "Pain decreased": "Sāpes mazinājās",
+    "Pain resolved": "Sāpes izzuda",
+    "Absorbable": "Uzsūcošās",
+    "Non-absorbable": "Neuzsūcošās",
+    "Dysuria / frequency": "Dizūrija / bieža urinācija",
+    "Perineal / suprapubic pain": "Sāpes starpenē / virs simfīzes",
+    "Difficulty voiding / weak stream": "Apgrūtināta urinācija / vāja strūkla",
+    "1 day": "1 diena",
+    "2–3 days": "2–3 dienas",
+    "About 1 week": "Apmēram 1 nedēļa",
+    "Spontaneous (community)": "Spontāns (sadzīvē iegūts)",
+    "After prostate biopsy": "Pēc prostatas biopsijas",
+    "After catheter / instrumentation": "Pēc katetra / instrumentālas manipulācijas",
+    "Recurrent prostatitis": "Recidivējošs prostatīts",
+    "BPH / outlet obstruction": "LPH / infravezikāla obstrukcija",
+    "Diabetes": "Cukura diabēts",
+    "Immunosuppression": "Imūnsupresija",
+    "Indwelling catheter": "Pastāvīgs katetrs",
+    "Fluoroquinolone in the last 6 months": "Fluorhinolons pēdējos 6 mēnešos",
+    "STI risk (young, sexually active)": "STI risks (jauns, seksuāli aktīvs)",
+    "Enlarged, very tender, warm": "Palielināta, ļoti jutīga, silta",
+    "Tender, fluctuating area (abscess?)": "Jutīga, fluktuējoša zona (abscess?)",
+    "Mildly raised CRP": "Nedaudz paaugstināts CRO",
+    "Raised CRP / leukocytosis": "Paaugstināts CRO / leikocitoze",
+    "Raised CRP and creatinine": "Paaugstināts CRO un kreatinīns",
+    "Urinalysis: leukocytes / nitrite": "Urīna analīze: leikocīti / nitrīti",
+    "Midstream urine culture": "Vidējās strūklas urīna uzsējums",
+    "First-void urine NAAT (STI)": "Pirmās porcijas urīna NAAT (STI)",
+    "Ultrasound – no residual urine, no abscess": "USS – atlikušā urīna nav, abscesa nav",
+    "Ultrasound – residual urine": "USS – atlikušais urīns",
+    "TRUS – prostatitis, no abscess": "TRUS – prostatīts, abscesa nav",
+    "TRUS / CT / MRI – prostatic abscess": "TRUS / DT / MR – prostatas abscess",
+    "No retention": "Retences nav",
+    "Urethral catheter (small calibre)": "Uretrāls katetrs (mazs diametrs)",
+    "Suprapubic catheter": "Epicistostoma",
+    "Antibiotics only": "Tikai antibiotikas",
+    "TRUS-guided aspiration / drainage": "Aspirācija / drenāža TRUS kontrolē",
+    "Transurethral drainage (deroofing)": "Transuretrāla drenāža (deroofing)",
+    "Fever resolved, CRP falling": "Temperatūra normalizējusies, CRO samazinās",
+    "Removed – voids, no residual urine": "Evakuēts – urinē, atlikušā urīna nav",
+    "Urologist in 2–3 weeks": "Urologs pēc 2–3 nedēļām",
+    "Family doctor in 1 week": "Ģimenes ārsts pēc 1 nedēļas",
+    "Not needed": "Nav nepieciešams",
+    "Epididymitis": "Epididimīts",
+    "Epididymo-orchitis": "Epididimoorhīts",
+    "Orchitis": "Orhīts",
+    "Gradual (hours to days)": "Pakāpeniski (stundas līdz dienas)",
+    "Sudden": "Pēkšņi",
+    "Urethral discharge": "Izdalījumi no urīnizvadkanāla",
+    "Scrotal redness / swelling": "Sēklinieku maisiņa apsārtums / tūska",
+    "Enteric / urinary (UTI, obstruction, catheter, instrumentation)": "Enterāls / urīnceļu (UCI, obstrukcija, katetrs, manipulācija)",
+    "Sexually transmitted": "Seksuāli transmisīvs",
+    "Both possible": "Iespējami abi",
+    "Mumps (viral)": "Epidēmiskais parotīts (vīrusu)",
+    "Not clear": "Nav skaidrs",
+    "Indwelling catheter / epicystostomy": "Pastāvīgs katetrs / epicistostoma",
+    "Recent urological procedure": "Nesena uroloģiska manipulācija",
+    "Bladder outlet obstruction (BPH)": "Infravezikāla obstrukcija (LPH)",
+    "Insertive anal intercourse": "Anāls insertīvs dzimumakts",
+    "Epididymitis (hyperaemia)": "Epididimīts (hiperēmija)",
+    "Reactive hydrocele": "Reaktīva hidrocēle",
+    "Abscess of the epididymis": "Piedēkļa abscess",
+    "Abscess of the testis": "Sēklinieka abscess",
+    "Pyocele": "Piocēle",
+    "Testicular infarction / ischaemia": "Sēklinieka infarkts / išēmija",
+    "Normal testicular blood flow": "Normāla sēklinieka asinsplūsma",
+    "No inflammatory changes": "Iekaisuma izmaiņu nav",
+    "First-void urine NAAT (chlamydia, gonorrhoea, M. genitalium)": "Pirmās porcijas urīna NAAT (hlamīdijas, gonoreja, M. genitalium)",
+    "Leukocyturia": "Leikocitūrija",
+    "Conservative (IV antibiotics)": "Konservatīva (i/v antibiotikas)",
+    "Inguinal orchifuniculectomy": "Ingvināla orhifunikulektomija",
+    "Epididymectomy": "Epididimektomija",
+    "Abscess drainage / revision": "Abscesa drenāža / revīzija",
+    "Scrotal exploration": "Skrotāla eksplorācija",
+    "Not sent": "Nav nosūtīts",
+    "Urologist in 2 weeks": "Urologs pēc 2 nedēļām",
+    "4. Urology (sutures)": "4. uroloģijas nodaļa (šuves)",
+    "Radical cystectomy": "Radikāla cistektomija",
+    "Present": "Ir",
+    "Absent": "Nav",
+    "Decide after histology / council": "Lemt pēc histoloģijas / konsīlija",
+    "No further instillations": "Turpmākas instilācijas nav nepieciešamas",
+    "Intravesical chemotherapy course": "Intravezikālas ķīmijterapijas kurss",
+    "BCG induction + maintenance": "BCG indukcija + uzturošā terapija",
+    "Discuss radical cystectomy": "Apspriest radikālu cistektomiju",
+    "Muscle-invasive bladder cancer": "Muskulī invazīvs urīnpūšļa vēzis",
+    "Very high-risk / BCG-unresponsive NMIBC": "Ļoti augsta riska / BCG nereaģējošs NMIBC",
+    "Palliative (bleeding, pain, fistula)": "Paliatīva (asiņošana, sāpes, fistula)",
+    "BCG instillations": "BCG instilācijas",
+    "Intravesical chemotherapy": "Intravezikāla ķīmijterapija",
+    "Neoadjuvant cisplatin chemotherapy": "Neoadjuvanta cisplatīna ķīmijterapija",
+    "Perioperative durvalumab (NIAGARA)": "Perioperatīvs durvalumabs (NIAGARA)",
+    "Pelvic radiotherapy": "Iegurņa staru terapija",
+    "Nephrostomy right": "Labās puses nefrostoma",
+    "Nephrostomy left": "Kreisās puses nefrostoma",
+    "Radical cystoprostatectomy": "Radikāla cistoprostatektomija",
+    "Nerve-sparing cystoprostatectomy": "Nervus saudzējoša cistoprostatektomija",
+    "Palliative cystectomy": "Paliatīva cistektomija",
+    "With hysterectomy, adnexa and anterior vaginal wall": "Ar histerektomiju, adneksām un maksts priekšējo sienu",
+    "With anterior vaginal wall (no uterus)": "Ar maksts priekšējo sienu (bez dzemdes)",
+    "Organ-sparing (uterus and vagina preserved)": "Orgānus saudzējoša (dzemde un maksts saglabātas)",
+    "Open": "Atvērta",
+    "Robot-assisted": "Robotasistēta",
+    "Laparoscopic": "Laparoskopiska",
+    "Standard bilateral (obturator, internal and external iliac)": "Standarta abpusēja (obturatorā, iekšējā un ārējā iliakālā)",
+    "Extended bilateral": "Paplašināta abpusēja",
+    "Ileal conduit": "Ileālais konduīts",
+    "Orthotopic neobladder": "Ortotopiska neocistis",
+    "Ureterocutaneostomy": "Ureterokutaneostomija",
+    "No diversion – nephrostomies": "Bez derivācijas – nefrostomas",
+    "Epidural + general": "Epidurālā + vispārējā",
+    "Peristalsis and stool recovered": "Peristaltika un vēdera izeja atjaunojušās",
+    "Ileus, resolved conservatively": "Ileuss, novērsts konservatīvi",
+    "Discharged with the drain": "Izrakstīts ar drenu",
+    "Discharged with stents": "Izrakstīts ar stentiem",
+    "No stents": "Bez stentiem",
+    "4–6 weeks": "4–6 nedēļas",
+    "3 months": "3 mēneši",
+    "6 months": "6 mēneši",
+    "Low grade (LG)": "Zemas pakāpes (LG)",
+    "High grade (HG)": "Augstas pakāpes (HG)",
+    "Temporary": "Pagaidu",
+    "Final": "Galīgais",
+    "1 week": "1 nedēļa",
+    "2 weeks": "2 nedēļas",
+    "3 weeks": "3 nedēļas",
+    "4 weeks": "4 nedēļas",
+    "1 month": "1 mēnesis",
+    "6 weeks": "6 nedēļas",
+    "Will be discussed after histology": "Tiks apspriests pēc histoloģijas",
+    "Already discussed": "Jau apspriests",
+    "Not applicable": "Nav attiecināms",
+    "Radical prostatectomy": "Radikāla prostatektomija",
+    "Not known": "Nav zināms",
+    "Open retropubic": "Atvērta retropubiska",
+    "pNx (no lymph node dissection)": "pNx (limfmezglu disekcija nav veikta)",
+    "Pain": "Sāpes",
+    "Observation": "Novērošana",
+    "Three-way catheter and bladder irrigation": "Trīsceļu katetrs un urīnpūšļa skalošana",
+    "Within 1 week": "1 nedēļas laikā",
+    "In 1–2 weeks": "Pēc 1–2 nedēļām",
+    "In 4 weeks": "Pēc 4 nedēļām",
+    "Radical nephrectomy": "Radikāla nefrektomija",
+    "Partial nephrectomy": "Nieres rezekcija",
+    "Mildly impaired, stable": "Viegli pazemināta, stabila",
+    "Deteriorating": "Pasliktinās",
+    "Clear cell": "Gaišo šūnu",
+    "Papillary": "Papillārs",
+    "Chromophobe": "Hromofobs",
+    "Other RCC": "Cits NŠK",
+    "Benign": "Labdabīgs",
+    "Not graded": "Pakāpe nav noteikta",
+    "Low": "Zems",
+    "Intermediate": "Vidējs",
+    "High": "Augsts",
+    "Paraphimosis": "Parafimoze",
+    "A few hours": "Dažas stundas",
+    "2 days": "2 dienas",
+    "More than 2 days": "Vairāk nekā 2 dienas",
+    "After intercourse / masturbation": "Pēc dzimumakta / masturbācijas",
+    "After urinary catheterisation": "Pēc urīnpūšļa katetrizācijas",
+    "After examination / hygiene": "Pēc izmeklēšanas / higiēnas procedūrām",
+    "Pink, viable": "Sārts, vitāls",
+    "Dusky / cyanotic": "Tumšs / cianotisks",
+    "Necrotic areas": "Nekrozes zonas",
+    "Manual reduction": "Manuāla repozīcija",
+    "Dorsumcision (manual reduction failed)": "Dorsumcīzija (manuāla repozīcija neizdevās)",
+    "Local anaesthesia": "Vietējā anestēzija",
+    "Manual compression of the oedema": "Tūskas manuāla kompresija",
+    "Puncture of the oedema (Dundee)": "Tūskas punkcija (Dundee)",
+    "4-0 Vicryl interrupted": "4-0 Vicryl atsevišķas šuves",
+    "4-0 Vicryl Rapide interrupted": "4-0 Vicryl Rapide atsevišķas šuves",
+    "No sutures": "Bez šuvēm",
+    "4. Urology department": "4. uroloģijas nodaļa",
+    "Urologist outpatient": "Urologs ambulatori",
+    "Yellow, clear": "Dzeltens, dzidrs",
+    "Cloudy": "Duļķains",
+    "Blood-tinged": "Ar asins piejaukumu",
+    "With clots": "Ar recekļiem",
+    "JJ stent": "JJ stents",
+    "Percutaneous nephrostomy": "Perkutāna nefrostomija",
+    "To be decided by the urologist": "Lems urologs",
+    "1–2 days": "1–2 dienas",
+    "3–7 days": "3–7 dienas",
+    "Over a week": "Ilgāk par nedēļu",
+    "Gradual": "Pakāpeniski",
+    "After catheter change": "Pēc katetra maiņas",
+    "After stent insertion": "Pēc stenta ievietošanas",
+    "Febrile": "Febrils",
+    "Subfebrile": "Subfebrils",
+    "Previous UTIs": "Iepriekšējas UCI",
+    "Recurrent UTIs": "Recidivējošas UCI",
+    "Nephrolithiasis": "Nefrolitiāze",
+    "Urological surgery": "Uroloģiska operācija",
+    "Urethral (Foley)": "Uretrāls (Foley)",
+    "Suprapubic (epicistostoma)": "Suprapubisks (epicistostoma)",
+    "Obstruction": "Obstrukcija",
+    "Ureteral stone": "Urīnvada akmens",
+    "Postoperative drainage": "Pēcoperācijas drenāža",
+    "Clear": "Dzidrs",
+    "Meatus": "Ārējā atvere (meatus)",
+    "Penile urethra": "Penilā uretra",
+    "Bulbar urethra": "Bulbārā uretra",
+    "Membranous (posterior) urethra": "Membranozā (aizmugurējā) uretra",
+    "Iatrogenic (catheter / transurethral surgery)": "Jatrogēna (katetrs / transuretrāla operācija)",
+    "Compensated": "Kompensēts",
+    "Subcompensated": "Subkompensēts",
+    "Decompensated": "Dekompensēts",
+    "Urethrography": "Uretrogrāfija",
+    "Cold knife (Sachse)": "Aukstais nazis (Sachse)",
+    "Laser": "Lāzers",
+    "PSKUS outpatient clinic": "PSKUS ambulatori",
+    "Family doctor's practice": "Ģimenes ārsta prakse",
+    "Meatotomy": "Meatotomija",
+    "Meatoplasty": "Meatoplastika",
+    "Urethral dilation": "Uretras dilatācija",
+    "Internal urethrotomy (DVIU)": "Iekšējā uretrotomija (DVIU)",
+    "Urethroplasty – excision and primary anastomosis": "Uretroplastika – ekscīzija un primāra anastomoze",
+    "Urethroplasty – buccal mucosa graft": "Uretroplastika – vaiga gļotādas transplantāts",
+    "Good stream": "Laba strūkla",
+    "Weak stream": "Vāja strūkla",
+    "C53 Cervical cancer": "C53 Dzemdes kakla vēzis",
+    "C54 Uterine body cancer": "C54 Dzemdes ķermeņa vēzis",
+    "C56 Ovarian cancer": "C56 Olnīcu vēzis",
+    "C61 Prostate cancer": "C61 Prostatas vēzis",
+    "C67 Bladder cancer": "C67 Urīnpūšļa vēzis",
+    "C65 Renal pelvis cancer": "C65 Nieres bļodiņas vēzis",
+    "C66 Ureter cancer": "C66 Urīnvada vēzis",
+    "C18 Colon cancer": "C18 Resnās zarnas vēzis",
+    "C20 Rectal cancer": "C20 Taisnās zarnas vēzis",
+    "C77.2 Intra-abdominal lymph node metastases": "C77.2 Intraabdominālo limfmezglu metastāzes",
+    "C78.6 Retroperitoneal / peritoneal metastases": "C78.6 Retroperitoneālas / peritoneālas metastāzes",
+    "N20.1 Ureteral stone": "N20.1 Urīnvada akmens",
+    "N20.0 Kidney stone": "N20.0 Nieres akmens",
+    "N13.1 Hydronephrosis with ureteral stricture": "N13.1 Hidronefroze ar urīnvada striktūru",
+    "N13.6 Pyonephrosis": "N13.6 Pionefroze",
+    "N13.3 Hydronephrosis, other": "N13.3 Cita hidronefroze",
+    "Z94.0 Kidney transplant status": "Z94.0 Stāvoklis pēc nieres transplantācijas",
+    "Oncologist": "Onkologs",
+    "Urologist": "Urologs",
+    "Less than 24 hours": "Mazāk nekā 24 stundas",
+    "More than 3 days": "Vairāk nekā 3 dienas",
+    "Fever 38 °C or more": "Drudzis 38 °C vai vairāk",
+    "Hypotension / tachycardia": "Hipotensija / tahikardija",
+    "Flank pain not controlled": "Nekontrolētas sāpes sānos",
+    "Not present": "Nav",
+    "Raised creatinine": "Paaugstināts kreatinīns",
+    "Bleeding through the tube": "Asiņošana pa nefrostomu",
+    "Complicated / not successful": "Komplicēta / neveiksmīga",
+    "Cloudy / purulent": "Duļķains / strutains",
+    "IV antibiotics": "I/v antibiotikas",
+    "IV fluids": "I/v infūzijas",
+    "Analgesia": "Atsāpināšana",
+    "Urologist: plan definitive treatment": "Urologs: plānot galīgo ārstēšanu",
+    "Oncologist: oncology plan": "Onkologs: onkoloģiskās ārstēšanas plāns",
+    "Long-term nephrostomy": "Ilgstoša nefrostoma",
+    "Bothersome LUTS despite medication": "Traucējoši AUCS, neskatoties uz medikamentiem",
+    "Recurrent urinary retention": "Recidivējoša urīna retence",
+    "Recurrent hematuria": "Recidivējoša hematūrija",
+    "Bladder stones": "Urīnpūšļa akmeņi",
+    "Upper tract dilatation / renal impairment": "Augšējo urīnceļu dilatācija / nieru funkcijas traucējumi",
+    "Monopolar": "Monopolāra",
+    "Bipolar": "Bipolāra",
+    "Stop after surgery": "Pārtraukt pēc operācijas",
+    "Continue until review": "Turpināt līdz kontrolei",
+    "Removed on day 1": "Evakuēts 1. dienā",
+    "Removed on day 2": "Evakuēts 2. dienā",
+    "Removed on day 3": "Evakuēts 3. dienā",
+    "Removed on day 4": "Evakuēts 4. dienā",
+    "Removed on day 5": "Evakuēts 5. dienā",
+    "Same as the rest period": "Tāpat kā saudzējošais režīms",
+    "Urethral stricture": "Uretras striktūra",
+    "Blocked indwelling catheter": "Nosprostots pastāvīgais katetrs",
+    "Clot retention (hematuria)": "Recekļu tamponāde (hematūrija)",
+    "Drug-induced": "Medikamentu izraisīta",
+    "After surgery / anaesthesia": "Pēc operācijas / anestēzijas",
+    "Constipation": "Aizcietējums",
+    "Urinary tract infection / prostatitis": "Urīnceļu infekcija / prostatīts",
+    "Neurogenic bladder": "Neirogēns urīnpūslis",
+    "Bladder hypotonia suspected": "Aizdomas par urīnpūšļa hipotoniju",
+    "Not clear yet": "Pagaidām nav skaidrs",
+    "Acute-on-chronic (large volume)": "Akūta uz hroniskas fona (liels apjoms)",
+    "Chronic (overflow)": "Hroniska (paradoksālā išūrija)",
+    "3 days": "3 dienas",
+    "UTI and raised creatinine": "UCI un paaugstināts kreatinīns",
+    "Urethral Foley catheter": "Uretrāls Foley katetrs",
+    "Urethral Tiemann (coudé) catheter": "Uretrāls Tiemann katetrs",
+    "Catheter changed (blocked catheter)": "Katetrs nomainīts (nosprostots katetrs)",
+    "Suprapubic catheter (epicystostomy)": "Suprapubisks katetrs (epicistostoma)",
+    "In-out catheterisation (no catheter left)": "Vienreizēja katetrizācija (katetrs netiek atstāts)",
+    "Trial without catheter in 2–3 days": "Katetra evakuācija pēc 2–3 dienām",
+    "Trial without catheter in 1 week": "Katetra evakuācija pēc 1 nedēļas",
+    "Trial without catheter in 2 weeks": "Katetra evakuācija pēc 2 nedēļām",
+    "Urologist decides": "Lemj urologs",
+    "Long-term catheter": "Ilgkatetrs",
+    "Frequency": "Bieža urinācija",
+    "Suprapubic pain": "Sāpes virs simfīzes",
+    "Visible hematuria": "Makrohematūrija",
+    "New urge incontinence": "Jauna urgenta nesaturēšana",
+    "Cloudy / foul-smelling urine": "Duļķains / nepatīkamas smakas urīns",
+    "Since today": "Kopš šodienas",
+    "Flank pain / costovertebral tenderness": "Sāpes sānos / jutīgums kostovertebrālajā leņķī",
+    "Nausea / vomiting": "Slikta dūša / vemšana",
+    "Urinary tract abnormality / stone / obstruction": "Urīnceļu anomālija / akmens / obstrukcija",
+    "Indwelling catheter or self-catheterisation": "Pastāvīgs katetrs vai paškatetrizācija",
+    "Renal impairment": "Nieru funkcijas traucējumi",
+    "Age 65 or older / frail": "Vecums 65 gadi vai vairāk / trausls pacients",
+    "Leukocytes": "Leikocīti",
+    "Nitrite": "Nitrīti",
+    "Erythrocytes": "Eritrocīti",
+    "Bacteria": "Baktērijas",
+    "No pathology": "Bez patoloģijas",
+    "Post-void residual urine": "Atlikušais urīns pēc urinācijas",
+    "Bladder wall thickening": "Urīnpūšļa sienas sabiezējums",
+    "Bladder stone": "Urīnpūšļa akmens",
+    "Enlarged prostate": "Palielināta prostata",
+    "Antibiotic": "Antibiotika",
+    "Symptomatic first (delayed antibiotic)": "Sākumā simptomātiska (atlikta antibiotika)",
+    "Family doctor only": "Tikai ģimenes ārsts",
+    "Gynaecologist": "Ginekologs",
+    "Visible (macrohematuria)": "Redzama (makrohematūrija)",
+    "Non-visible (microhematuria)": "Neredzama (mikrohematūrija)",
+    "Recurrent episodes": "Atkārtotas epizodes",
+    "Clots in urine": "Recekļi urīnā",
+    "Bladder cancer (known)": "Urīnpūšļa vēzis (zināms)",
+    "Radiation cystitis": "Radiācijas cistīts",
+    "BPH (prostatic bleeding)": "LPH (asiņošana no prostatas)",
+    "Urinary stone": "Urīnceļu akmens",
+    "Urinary tract infection (hemorrhagic cystitis)": "Urīnceļu infekcija (hemorāģisks cistīts)",
+    "After a urological procedure": "Pēc uroloģiskas manipulācijas",
+    "Catheter trauma": "Katetra trauma",
+    "Smoker or ex-smoker": "Smēķētājs vai bijušais smēķētājs",
+    "Occupational exposure (aromatic amines, dyes)": "Profesionāla ekspozīcija (aromātiskie amīni, krāsvielas)",
+    "Pelvic radiotherapy in the past": "Iepriekš iegurņa staru terapija",
+    "Cyclophosphamide in the past": "Iepriekš ciklofosfamīds",
+    "Aspirin": "Aspirīns",
+    "Clopidogrel": "Klopidogrels",
+    "Ticagrelor": "Tikagrelors",
+    "Warfarin": "Varfarīns",
+    "Apixaban": "Apiksabāns",
+    "Rivaroxaban": "Rivaroksabāns",
+    "Dabigatran": "Dabigatrāns",
+    "Edoxaban": "Edoksabāns",
+    "LMWH (Fraxiparine / Clexane)": "MMH (Fraxiparine / Clexane)",
+    "Continue": "Turpināt",
+    "Pause until the urine is clear": "Pārtraukt, līdz urīns ir dzidrs",
+    "Prescriber decides": "Lemj ordinējošais ārsts",
+    "Clots in the bladder": "Recekļi urīnpūslī",
+    "Bladder wall mass": "Veidojums urīnpūšļa sienā",
+    "Kidney mass": "Nieres veidojums",
+    "Kidney or ureteral stone": "Nieres vai urīnvada akmens",
+    "Residual urine": "Atlikušais urīns",
+    "CT urography – no source found": "DT urogrāfija – avots nav atrasts",
+    "CT – bladder mass": "DT – urīnpūšļa veidojums",
+    "CT – kidney / upper tract mass": "DT – nieres / augšējo urīnceļu veidojums",
+    "CT – stone": "DT – akmens",
+    "No catheter – voids": "Bez katetra – urinē",
+    "Catheter, washout, removed – voids": "Katetrs, skalošana, evakuēts – urinē",
+    "Discharged with a catheter": "Izrakstīts ar katetru",
+    "Catheter changed (blocked)": "Katetrs nomainīts (nosprostots)",
+    "3-way catheter": "Trīsceļu katetrs",
+    "Foley (2-way)": "Foley (divceļu)",
+    "Light pink": "Gaiši sārts",
+    "Pink, no clots": "Sārts, bez recekļiem",
+    "Red / with clots": "Sarkans / ar recekļiem",
+    "Bladder irrigation (3-way catheter)": "Urīnpūšļa skalošana (trīsceļu katetrs)",
+    "Manual bladder washout": "Manuāla urīnpūšļa skalošana",
+    "IV tranexamic acid": "I/v traneksāmskābe",
+    "Cystoscopy, clot evacuation, coagulation": "Cistoskopija, recekļu evakuācija, koagulācija",
+    "TURU (resection / biopsy)": "TURU (rezekcija / biopsija)",
+    "TURP (prostatic bleeding)": "TURP (asiņošana no prostatas)",
+    "Selective embolisation": "Selektīva embolizācija",
+    "Alum bladder irrigation (1%)": "Urīnpūšļa skalošana ar alauna šķīdumu (1%)",
+    "No tumour, no bleeding source": "Audzēja nav, asiņošanas avota nav",
+    "Diffuse bleeding (radiation cystitis)": "Difūza asiņošana (radiācijas cistīts)",
+    "Bleeding from the prostate": "Asiņošana no prostatas",
+    "Bladder tumour": "Urīnpūšļa audzējs",
+    "Blood from a ureteric orifice": "Asinis no urīnvada atveres",
+    "Bladder – Z03.167": "Urīnpūslis – Z03.167",
+    "Kidney – Z03.164": "Niere – Z03.164",
+    "KUB X-ray": "Urīnceļu pārskata rentgenogramma",
+    "BPH / bladder outlet obstruction": "LPH / infravezikāla obstrukcija",
+    "Foreign body / clips or sutures after surgery": "Svešķermenis / skavas vai šuves pēc operācijas",
+    "Augmented bladder / reservoir": "Augmentēts urīnpūslis / rezervuārs",
+    "Not found": "Nav atrasts",
+    "Transurethral – laser (Ho:YAG)": "Transuretrāli – lāzers (Ho:YAG)",
+    "Transurethral – pneumatic": "Transuretrāli – pneimatiski",
+    "Transurethral – mechanical lithotriptor": "Transuretrāli – mehānisks litotriptors",
+    "Percutaneous cystolithotripsy": "Perkutāna cistolitotripsija",
+    "Open cystolithotomy": "Atvērta cistolitotomija",
+    "Optical urethrotomy": "Optiskā uretrotomija",
+    "Foreign body removal": "Svešķermeņa evakuācija",
+    "Result pending": "Rezultāts gaidāms",
+    "Scrotal wall (subcutaneous)": "Sēklinieku maisiņa siena (zemādā)",
+    "Scrotum and perineum": "Sēklinieku maisiņš un starpene",
+    "Scrotal skin": "Sēklinieku maisiņa āda",
+    "Spermatic cord / paratesticular": "Sēklas virvīte / paratestikulāri",
+    "Midline (raphe)": "Viduslīnijā (raphe)",
+    "Both sides": "Abās pusēs",
+    "Epidermoid (sebaceous) cyst": "Epidermoidāla cista (ateroma)",
+    "Scrotal calcinosis": "Sēklinieku maisiņa kalcinoze",
+    "Intrinsic (congenital) stenosis": "Iekšēja (iedzimta) stenoze",
+    "Crossing lower-pole vessel": "Apakšējā pola krustojošs asinsvads",
+    "Secondary (after stones or surgery)": "Sekundāra (pēc akmeņiem vai operācijas)",
+    "Dismembered (Anderson–Hynes)": "Ar rezekciju (Anderson–Hynes)",
+    "Non-dismembered (Y-V plasty)": "Bez rezekcijas (Y-V plastika)",
+    "No stent": "Bez stenta",
+    "In 4–6 weeks": "Pēc 4–6 nedēļām",
+    "Eversion (Winkelmann)": "Everzija (Winkelmann)",
+    "Excision (Bergmann)": "Ekscīzija (Bergmann)",
+    "Plication (Lord)": "Plikācija (Lord)",
+    # Hints in empty fields
+    "Type it in Latvian, as it should appear in the diagnosis": "Ierakstiet tā, kā tam jābūt diagnozē",
+    "organism and susceptibility, if known": "mikroorganisms un jutība, ja zināma",
+    "in Latvian": "brīvā tekstā",
+    "optional, in Latvian, a full sentence": "neobligāti, pilns teikums",
+    "in Latvian, as it follows 'veikta ...'": "turpinājums vārdiem 'veikta ...'",
+    "optional, e.g. Sol. Ceftriaxoni 2 g i/v": "neobligāti, piem., Sol. Ceftriaxoni 2 g i/v",
+    "optional, e.g. E. coli ESBL+": "neobligāti, piem., E. coli ESBL+",
+    "optional, e.g. Staphylococcus aureus MS": "neobligāti, piem., Staphylococcus aureus MS",
+    "optional, e.g. 09:00": "neobligāti, piem., 09:00",
+    "optional, e.g. 0/18": "neobligāti, piem., 0/18",
+    "in Latvian; optional after prostatectomy, required after TURP": "pēc prostatektomijas neobligāti, pēc TURP obligāti",
+    "in Latvian; required for 'Other RCC' and 'Benign', e.g. onkocitoma": "obligāti, ja izvēlēts 'Cits NŠK' vai 'Labdabīgs', piem., onkocitoma",
+    "optional, e.g. 12.00": "neobligāti, piem., 12.00",
+    "optional, e.g. 12:45": "neobligāti, piem., 12:45",
+    "in Latvian, e.g. lichen sclerosus": "piem., lichen sclerosus",
+    "optional, in Latvian": "neobligāti",
+    "optional, e.g. 10:00": "neobligāti, piem., 10:00",
+    "optional, e.g. E. coli": "neobligāti, piem., E. coli",
+    "in Latvian, nominative, e.g. hemangioma": "nominatīvā, piem., hemangioma",
+    # Section titles
+    "1. Admission": "1. Iestāšanās",
+    "2. NMC findings": "2. Atrades NMC",
+    "2. Findings": "2. Atrades",
+    "3. Operation": "3. Operācija",
+    "1. Paraphimosis": "1. Parafimoze",
+    "2. Treatment at NMC": "2. Ārstēšana NMC",
+    "3. Recommendations": "3. Rekomendācijas",
+    "2. Stone and infection signs": "2. Akmens un infekcijas pazīmes",
+    "3. NMC decision": "3. NMC lēmums",
+    "3. Drainage and treatment": "3. Drenāža un ārstēšana",
+    "4. Definitive treatment": "4. Galīgā ārstēšana",
+    "2. Diagnosis": "2. Diagnoze",
+    "4. Recommendations": "4. Rekomendācijas",
+    "1. Admission and symptoms": "1. Iestāšanās un simptomi",
+    "3. Urinary catheter": "3. Urīnpūšļa katetrs",
+    "4. Ureteral stents": "4. Urīnvada stenti",
+    "5. Urine and imaging": "5. Urīns un attēldiagnostika",
+    "6. Antibiotics and safety checks": "6. Antibiotikas un drošības pārbaudes",
+    "7. Microbiology and laboratory results": "7. Mikrobioloģija un laboratorijas rezultāti",
+    "8. Clinical course at discharge": "8. Klīniskā gaita izrakstīšanas brīdī",
+    "8. NMC decision": "8. NMC lēmums",
+    "9. Follow-up and advice": "9. Novērošana un ieteikumi",
+    "3. Treatment": "3. Ārstēšana",
+    "2. Operation": "2. Operācija",
+    "2. Appendix testis torsion (NMC)": "2. Hidatīdas torsija (NMC)",
+    "1. Complaints and history": "1. Sūdzības un anamnēze",
+    "2. Findings at NMC": "2. Atrades NMC",
+    "3. Treatment at NMC": "3. Ārstēšana NMC",
+    "3. Treatment in 4. Urology": "3. Ārstēšana 4. uroloģijas nodaļā",
+    "2. Tumours (EAU risk factors)": "2. Audzēji (EAU riska faktori)",
+    "3. Operation and course": "3. Operācija un gaita",
+    "2. Diagnosis before cystectomy": "2. Diagnoze pirms cistektomijas",
+    "3. Cystectomy": "3. Cistektomija",
+    "4. Course after cystectomy": "4. Gaita pēc cistektomijas",
+    "5. Recommendations": "5. Rekomendācijas",
+    "2. Prostate cancer": "2. Prostatas vēzis",
+    "3. NMC visit": "3. NMC vizīte",
+    "3. Radical prostatectomy": "3. Radikāla prostatektomija",
+    "4. Course and histology": "4. Gaita un histoloģija",
+    "2. Kidney tumour": "2. Nieres audzējs",
+    "1. Admission and stricture": "1. Iestāšanās un striktūra",
+    "2. Epicystostomy at NMC": "2. Epicistostomija NMC",
+    "3. Catheter and voiding": "3. Katetrs un urinācija",
+    "4. Other": "4. Cits",
+    "1. Nephrostomy and co-diagnoses": "1. Nefrostoma un blakusdiagnozes",
+    "2. Nephrostomy change": "2. Nefrostomas maiņa",
+    "2. Nephrostomy fell out": "2. Nefrostoma izkritusi",
+    "3. New nephrostomy (radiologist)": "3. Jauna nefrostoma (radiologs)",
+    "4. Stay in 4. Urology": "4. Ārstēšanās 4. uroloģijas nodaļā",
+    "1. Admission and indication": "1. Iestāšanās un indikācijas",
+    "3. Course and histology": "3. Gaita un histoloģija",
+    "3. Course": "3. Gaita",
+    "1. Admission and the mass": "1. Iestāšanās un veidojums",
+    "2. Operation and course": "2. Operācija un gaita",
+    "3. Histology": "3. Histoloģija",
+    "3. Plan": "3. Plāns",
+    "4. Plan": "4. Plāns",
+    "4. Discharge": "4. Izrakstīšana",
+    "1. Complaints and cause": "1. Sūdzības un cēlonis",
+    "3. Drainage": "3. Drenāža",
+    "1. Admission and the stone": "1. Iestāšanās un akmens",
+    # Diagnoses
+    "Acute tubulo-interstitial nephritis (acute pyelonephritis)": "Akūts tubulointersticiāls nefrīts (akūts pielonefrīts)",
+    "Other and unspecified hydronephrosis": "Cita un neprecizēta hidronefroze",
+    "Hydronephrosis with ureteropelvic junction obstruction (PUJ stricture)": "Hidronefroze ar pieloureterālā savienojuma obstrukciju (PUS striktūra)",
+    "Scrotal mass – benign tumour / cyst of the scrotum (excision)": "Sēklinieku maisiņa veidojums – labdabīgs audzējs / cista (ekscīzija)",
+    "Bladder stone (cystolithotripsy)": "Urīnpūšļa akmens (cistolitotripsija)",
+    "Urinary retention – acute (NMC: catheter, sent home)": "Akūta urīna retence (NMC: katetrs, izrakstīts mājās)",
+    "Calculus of kidney and ureter (kidney stone disease)": "Nieres un urīnvada akmeņi (urolitiāze)",
+    "Unspecified renal colic": "Neprecizēta nieru kolika",
+    "Acute cystitis (NMC: sent home)": "Akūts cistīts (NMC: izrakstīts mājās)",
+    "Bladder-neck obstruction": "Urīnpūšļa kakliņa obstrukcija",
+    "Urinary tract infection, site not specified": "Urīnceļu infekcija bez precizētas lokalizācijas",
+    "Benign prostatic hyperplasia": "Labdabīga prostatas hiperplāzija",
+    "Acute bacterial prostatitis, prostatic abscess (NMC or 4. Urology)": "Akūts bakteriāls prostatīts, prostatas abscess (NMC vai 4. uroloģija)",
+    "Hydrocele and spermatocele": "Hidrocēle un spermatocēle",
+    "Testicular torsion (4. Urology) / appendix testis torsion (NMC)": "Sēklinieka torsija (4. uroloģija) / hidatīdas torsija (NMC)",
+    "Testicular infarction (vascular disorder of the testis)": "Sēklinieka infarkts (sēklinieka asinsvadu bojājums)",
+    "Orchitis / epididymitis, testicular abscess (NMC or 4. Urology)": "Orhīts / epididimīts, sēklinieka abscess (NMC vai 4. uroloģija)",
+    "Phimosis (4. Urology) / paraphimosis – reduction or dorsumcision (NMC)": "Fimoze (4. uroloģija) / parafimoze – repozīcija vai dorsumcīzija (NMC)",
+    "Hematuria (NMC: sent home / 4. Urology: admitted)": "Hematūrija (NMC: izrakstīts mājās / 4. uroloģija: stacionēts)",
+    "Malignant neoplasm of prostate": "Prostatas ļaundabīgs audzējs",
+    "Malignant neoplasm of kidney": "Nieres ļaundabīgs audzējs",
+    "Malignant neoplasm of bladder (TURU / radical cystectomy)": "Urīnpūšļa ļaundabīgs audzējs (TURU / radikāla cistektomija)",
+    "Nephrostomy – change (48) / fell out, new one by the radiologist (NMC or 4. Urology)": "Nefrostoma – maiņa (48) / izkritusi, jaunu ievieto radiologs (NMC vai 4. uroloģija)",
+    "Complications of genitourinary prosthetic devices, implants and grafts (urinary catheter dysfunction)": "Uroģenitālo protēžu, implantu un transplantātu komplikācijas (urīnpūšļa katetra disfunkcija)",
+    # Departments
+    "NMC (emergency department)": "NMC (neatliekamās medicīnas centrs)",
+    "48. Urology daily department": "48. uroloģijas dienas stacionārs",
+    # Primary evaluation: cases
+    "TURP – complicated BPH": "TURP – komplicēta LPH",
+    "TURU – bladder tumour": "TURU – urīnpūšļa audzējs",
+    "Re-TURU – bladder cancer after TURU": "Re-TURU – urīnpūšļa vēzis pēc TURU",
+    "Circumcision – phimosis": "Cirkumcīzija – fimoze",
+    "Hydrocele plasty": "Hidrocēles plastika",
+    "URS + JJ stent – ureteral stone": "URS + JJ stents – urīnvada akmens",
+    "FURS – kidney stone": "FURS – nieres akmens",
+    "JJ stent removal – cystoscopy": "JJ stenta evakuācija – cistoskopija",
+    "Laparoscopic radical prostatectomy – prostate cancer": "Laparoskopiska radikāla prostatektomija – prostatas vēzis",
+    "Nephrectomy – kidney tumour": "Nefrektomija – nieres audzējs",
+    "Laparoscopic kidney resection – kidney tumour": "Laparoskopiska nieres rezekcija – nieres audzējs",
+    "Scrotal mass – excision": "Sēklinieku maisiņa veidojums – ekscīzija",
+    "Laparoscopic pyeloplasty – PUJ stricture": "Laparoskopiska pieloplastika – PUS striktūra",
+    "Cystolithotripsy – bladder stone": "Cistolitotripsija – urīnpūšļa akmens",
+    "Optical urethrotomy – urethral stricture": "Optiskā uretrotomija – uretras striktūra",
+    "Laser urethrotomy – urethral stricture": "Lāzeruretrotomija – uretras striktūra",
+    "Urethral dilation – urethral stricture": "Uretras dilatācija – uretras striktūra",
+    "Meatotomy – meatal stricture": "Meatotomija – ārējās atveres striktūra",
+    "Urethroplasty – urethral stricture": "Uretroplastika – uretras striktūra",
+    "Testicular infarction – conservative admission (no operation)": "Sēklinieka infarkts – konservatīva stacionēšana (bez operācijas)",
+    "Testicular infarction – exploration": "Sēklinieka infarkts – eksplorācija",
+    "Testicular torsion – CITO exploration": "Sēklinieka torsija – CITO eksplorācija",
+    "Acute bacterial prostatitis – acute admission (no operation)": "Akūts bakteriāls prostatīts – akūta stacionēšana (bez operācijas)",
+    "Prostatic abscess – drainage": "Prostatas abscess – drenāža",
+    "Epididymo-orchitis – acute admission (conservative)": "Epididimoorhīts – akūta stacionēšana (konservatīvi)",
+    "Orchiectomy – purulent orchitis / testicular abscess": "Orhektomija – strutains orhīts / sēklinieka abscess",
+    "Epididymectomy – epididymitis / epididymal abscess": "Epididimektomija – epididimīts / piedēkļa abscess",
+    "Radical cystoprostatectomy + ileal conduit – bladder cancer": "Radikāla cistoprostatektomija + ileālais konduīts – urīnpūšļa vēzis",
+    "Radical cystectomy + hysterectomy + ileal conduit – bladder cancer (woman)": "Radikāla cistektomija + histerektomija + ileālais konduīts – urīnpūšļa vēzis (sievietei)",
+    "Cystectomy – bladder cancer (nephrostomies, no diversion)": "Cistektomija – urīnpūšļa vēzis (nefrostomas, bez derivācijas)",
+    "Hematuria – acute admission (no operation)": "Hematūrija – akūta stacionēšana (bez operācijas)",
+    "Hematuria with bladder tamponade – acute admission (no operation)": "Hematūrija ar urīnpūšļa tamponādi – akūta stacionēšana (bez operācijas)",
+    "Urinary retention – acute admission (no operation)": "Urīna retence – akūta stacionēšana (bez operācijas)",
+    "Acute admission, other (no operation)": "Akūta stacionēšana, cits (bez operācijas)",
+    "Other (type it)": "Cits (ierakstiet)",
+    # Decursus: typical courses
+    "(none)": "(nav)",
+    "Cystolithotripsy (3-way catheter)": "Cistolitotripsija (trīsceļu katetrs)",
+    "Hematuria (3-way catheter, irrigation)": "Hematūrija (trīsceļu katetrs, skalošana)",
+    "Urethrotomy / dilation (catheter)": "Uretrotomija / dilatācija (katetrs)",
+    "Urethroplasty (catheter, perineal wound)": "Uretroplastika (katetrs, starpenes brūce)",
+    "Radical cystectomy + ileal conduit": "Radikāla cistektomija + ileālais konduīts",
+    "Acute prostatitis (conservative)": "Akūts prostatīts (konservatīvi)",
+    "Epididymo-orchitis (conservative)": "Epididimoorhīts (konservatīvi)",
+    "Cystectomy with nephrostomies": "Cistektomija ar nefrostomām",
+    "Testicular infarction (conservative)": "Sēklinieka infarkts (konservatīvi)",
+    "Scrotal operation": "Sēklinieku maisiņa operācija",
+    "Laparoscopic operation": "Laparoskopiska operācija",
+    # Decursus: complaints
+    "Feels well, no complaints": "Jūtas labi, sūdzību nav",
+    "Mild pain at the wounds": "Nelielas sāpes brūču rajonā",
+    "Pain at the wounds": "Sāpes brūču rajonā",
+    "Type my own": "Ierakstīt pašam",
+    # Decursus: dressing
+    "(no dressing)": "(bez pārsēja)",
+    "Clean, healing": "Tīra, dzīst",
+    "Clean (short)": "Tīra (īsi)",
+    "Slight serous discharge": "Neliels serozs izdalījums",
+    "Slight bloody discharge": "Neliels asiņains izdalījums",
+    "Mild redness of the wound edges": "Viegla brūces malu hiperēmija",
+    # Operations
+    "Re-TURU (scar resection)": "Re-TURU (rētas rezekcija)",
+    "Cystoscopy (diagnostic) ± biopsy": "Cistoskopija (diagnostiska) ± biopsija",
+    "Cystoscopy, stent removal": "Cistoskopija, stenta evakuācija",
+    "URS (semirigid)": "URS (semirigīda)",
+    "FURS (flexible)": "FURS (fleksibla)",
+    "Cystolithotripsy": "Cistolitotripsija",
+    "Cystoscopy – clot evacuation, coagulation (hematuria)": "Cistoskopija – recekļu evakuācija, koagulācija (hematūrija)",
+    "Optical urethrotomy (DVIU)": "Optiskā uretrotomija (DVIU)",
+    "Prostatic abscess drainage": "Prostatas abscesa drenāža",
+    "Laparoscopic radical prostatectomy": "Laparoskopiska radikāla prostatektomija",
+    "Laparoscopic nephrectomy": "Laparoskopiska nefrektomija",
+    "Laparoscopic kidney resection": "Laparoskopiska nieres rezekcija",
+    "Laparoscopic pyeloplasty": "Laparoskopiska pieloplastika",
+    "Urethroplasty (EPA / buccal graft)": "Uretroplastika (EPA / vaiga gļotādas transplantāts)",
+    "Dorsumcision (dorsal slit)": "Dorsumcīzija",
+    "Testicular torsion – exploration": "Sēklinieka torsija – eksplorācija",
+    "Epididymal tumour extirpation": "Piedēkļa audzēja ekstirpācija",
+    "Scrotal / funicular revision, drainage": "Sēklinieku maisiņa / funikulāra revīzija, drenāža",
+    "Scrotal mass excision": "Sēklinieku maisiņa veidojuma ekscīzija",
+    "Percutaneous trocar epicystostomy (48)": "Perkutāna troakāra epicistostomija (48)",
+    "Nephrostomy change under US (48)": "Nefrostomas maiņa USS kontrolē (48)",
+    # Operation groups
+    "Endoscopic": "Endoskopiskās",
+    "Penile and scrotal": "Dzimumlocekļa un sēklinieku maisiņa",
+    # Primary evaluation: findings
+    "Oedema, lymph nodes": "Tūska, limfmezgli",
+    "Lungs": "Plaušas",
+    "Abdomen": "Vēders",
+    "Kidneys": "Nieres",
+    "Bladder": "Urīnpūslis",
+    "Genitals": "Ģenitālijas",
+    # Bladder map
+    "Right ureteral orifice": "Labā urīnvada atvere",
+    "Left ureteral orifice": "Kreisā urīnvada atvere",
+    "Right wall": "Labā siena",
+    "Left wall": "Kreisā siena",
+    "Neck": "Kakliņš",
+    "Prostatic urethra": "Prostatiskā uretra",
+    # Follow-up tests: levels
+    "Recommended for this patient": "Ieteicams šim pacientam",
+    "Consider": "Apsvērt",
+    "Not routinely needed": "Rutīnā nav nepieciešams",
+    # Follow-up tests: when
+    "As soon as possible": "Pēc iespējas ātrāk",
+    "In 48–72 hours": "Pēc 48–72 stundām",
+    "If no improvement within 72 hours": "Ja 72 stundu laikā nav uzlabojuma",
+    "In 1 week": "Pēc 1 nedēļas",
+    "In 2 weeks": "Pēc 2 nedēļām",
+    "In 2–6 weeks": "Pēc 2–6 nedēļām",
+    "In 6 weeks": "Pēc 6 nedēļām",
+    "Before catheter removal": "Pirms katetra evakuācijas",
+    "Before JJ stent removal": "Pirms JJ stenta evakuācijas",
+    "Before the urology visit": "Pirms urologa vizītes",
+    "At the urology visit": "Urologa vizītes laikā",
+    "4–6 weeks after stent removal": "4–6 nedēļas pēc stenta evakuācijas",
+    "In 3 months": "Pēc 3 mēnešiem",
+    "In 6 months": "Pēc 6 mēnešiem",
+    "In 12 months": "Pēc 12 mēnešiem",
+    "After the histology result": "Pēc histoloģijas rezultāta",
+    "Before the definitive treatment": "Pirms galīgās ārstēšanas",
+    "After the definitive treatment": "Pēc galīgās ārstēšanas",
+    "Before the next nephrostomy change": "Pirms nākamās nefrostomas maiņas",
+    "Only if symptoms appear": "Tikai, ja parādās simptomi",
+    "Later follow-up": "Turpmākā novērošana",
+    "No time given": "Laiks nav norādīts",
+    # Follow-up tests
+    "Urinalysis": "Urīna analīze",
+    "Urine culture with susceptibility": "Urīna uzsējums ar jutību",
+    "Urine cytology": "Urīna citoloģija",
+    "24-hour urine metabolic evaluation (2 collections)": "Diennakts urīna metaboliskā izmeklēšana (2 savākšanas)",
+    "Stone analysis": "Akmens analīze",
+    "Complete blood count": "Pilna asins aina",
+    "CRP": "CRO",
+    "Creatinine and eGFR": "Kreatinīns un eGFR",
+    "Sodium and potassium": "Nātrijs un kālijs",
+    "Stone blood tests (creatinine, calcium, uric acid)": "Asins analīzes urolitiāzes gadījumā (kreatinīns, kalcijs, urīnskābe)",
+    "Blood glucose and HbA1c": "Glikoze asinīs un HbA1c",
+    "INR (warfarin)": "INR (varfarīns)",
+    "Extended blood panel (department list)": "Paplašinātas asins analīzes (nodaļas saraksts)",
+    "Kidney and bladder ultrasound": "Nieru un urīnpūšļa USS",
+    "Kidney ultrasound": "Nieru USS",
+    "Scrotal ultrasound": "Sēklinieku maisiņa USS",
+    "MRI of the lumbar spine (cauda equina)": "Jostas daļas mugurkaula MR (cauda equina)",
+    "Diuretic renography (MAG3)": "Diurētiskā renogrāfija (MAG3)",
+    "Plain X-ray KUB": "Urīnceļu pārskata rentgenogramma",
+    "Non-contrast low-dose CT (stones)": "Bezkontrasta zemas devas DT (akmeņi)",
+    "Contrast CT of the abdomen": "Vēdera dobuma DT ar kontrastvielu",
+    "CT urography": "DT urogrāfija",
+    "CT chest and abdomen": "Krūškurvja un vēdera dobuma DT",
+    "Staging CT chest, abdomen and pelvis with CT urography": "Stadēšanas krūškurvja, vēdera un iegurņa DT ar DT urogrāfiju",
+    "Prostate MRI": "Prostatas MR",
+    "Chest X-ray": "Krūškurvja rentgenogramma",
+    "Bone scan or PET-CT": "Skeleta scintigrāfija vai PET-DT",
+    "Retrograde urethrography": "Retrogrādā uretrogrāfija",
+    "Retrograde urethrography + voiding cystourethrography": "Retrogrādā uretrogrāfija + mikcijas cistouretrogrāfija",
+    "Pericatheter urethrography before catheter removal": "Perikatetra uretrogrāfija pirms katetra evakuācijas",
+    "Uroflowmetry": "Uroflowmetrija",
+    "Post-void residual by ultrasound": "Atlikušā urīna noteikšana ar USS",
+    "IPSS questionnaire": "IPSS anketa",
+    "IIEF-5 questionnaire (erectile function)": "IIEF-5 anketa (erektilā funkcija)",
+    "Continence assessment (ICIQ-UI SF, pad count)": "Urīna saturēšanas novērtējums (ICIQ-UI SF, ieliktnīšu skaits)",
+    "Stricture questionnaires (USS-PROM, sexual function)": "Striktūras anketas (USS-PROM, seksuālā funkcija)",
+    "Urethrocystoscopy": "Uretrocistoskopija",
+    "Second resection (re-TURU)": "Atkārtota rezekcija (re-TURU)",
+    "Later PSA schedule after prostatectomy": "Turpmākais PSA kontroles grafiks pēc prostatektomijas",
+    "Later CT schedule after kidney cancer surgery": "Turpmākais DT kontroles grafiks pēc nieres vēža operācijas",
+    "Later cystoscopy and cytology schedule (high risk)": "Turpmākais cistoskopijas un citoloģijas grafiks (augsts risks)",
+    "Yearly CT urography (high risk)": "Ikgadēja DT urogrāfija (augsts risks)",
+    "Later stricture follow-up": "Turpmākā striktūras novērošana",
+    "Later cystoscopy schedule (low risk)": "Turpmākais cistoskopijas grafiks (zems risks)",
+    "Later cystoscopy schedule (intermediate risk, Ta LG)": "Turpmākais cistoskopijas grafiks (vidējs risks, Ta LG)",
+    "CT chest, abdomen and pelvis with contrast": "Krūškurvja, vēdera un iegurņa DT ar kontrastvielu",
+    "Later CT schedule after radical cystectomy": "Turpmākais DT kontroles grafiks pēc radikālas cistektomijas",
+    "Vitamin B12 (yearly after bowel diversion)": "B12 vitamīns (katru gadu pēc zarnu derivācijas)",
+    "Transrectal ultrasound of the prostate (TRUS)": "Prostatas transrektālā USS (TRUS)",
+    "Meares–Stamey 2- or 4-glass test": "Meares–Stamey 2 vai 4 trauku tests",
+    "Semen analysis": "Spermogramma",
+    "Thrombophilia / vasculitis screen": "Trombofilijas / vaskulīta izmeklējumi",
+    "Testicular tumour markers (AFP, β-hCG, LDH)": "Sēklinieku audzēju marķieri (AFP, β-hCG, LDH)",
+    "Venous blood gas (bicarbonate)": "Venozo asiņu gāzes (bikarbonāts)",
+    # Follow-up test groups
+    "Urine": "Urīns",
+    "Blood": "Asinis",
+    "Functional": "Funkcionālie",
+    "Endoscopy": "Endoskopija",
+    "Schedule": "Grafiks",
+    # Recommendation blocks
+    "Ciprofloxacin 500 mg q12h, 7 days": "Ciprofloksacīns 500 mg ik 12 h, 7 dienas",
+    "TMP-SMX 160/800 mg q12h, 14 days": "TMP-SMX 160/800 mg ik 12 h, 14 dienas",
+    "Amoxicillin/clavulanate 875/125 mg q12h, 5 days": "Amoksicilīns/klavulānskābe 875/125 mg ik 12 h, 5 dienas",
+    "Ceftriaxone 1-2 g q24h": "Ceftriaksons 1–2 g ik 24 h",
+    "Piperacillin/tazobactam 4.5 g q8h": "Piperacilīns/tazobaktāms 4,5 g ik 8 h",
+    "Paracetamol 500-1,000 mg q6-8h as needed": "Paracetamols 500–1000 mg ik 6–8 h pēc vajadzības",
+    "Ultracod 500 mg/30 mg tablets": "Ultracod 500 mg/30 mg tabletes",
+    "NSAIDs (ibuprofen etc.) - avoid": "NPL (ibuprofēns u.c.) – izvairīties",
+    "Urological herbal teas / diuretic preparations": "Uroloģiskās zāļu tējas / diurētiski preparāti",
+    "Tamsulosin 0.4 mg once daily, 7 days": "Tamsulosīns 0,4 mg 1 reizi dienā, 7 dienas",
+    "Dolmen (dexketoprofen) 25 mg, up to 3 a day for pain": "Dolmen (deksketoprofēns) 25 mg, līdz 3 reizēm dienā sāpju gadījumā",
+    "Fraxiparine 0.3 ml s.c. once daily, 10 days": "Fraxiparine 0,3 ml s.c. 1 reizi dienā, 10 dienas",
+    "Fraxiparine 0.4 ml s.c. once daily, 10 days": "Fraxiparine 0,4 ml s.c. 1 reizi dienā, 10 dienas",
+    "Urorec (silodosin) 8 mg once daily": "Urorec (silodosīns) 8 mg 1 reizi dienā",
+    "Fraxiparine 0.3 ml s.c. once daily, 4 weeks (extended)": "Fraxiparine 0,3 ml s.c. 1 reizi dienā, 4 nedēļas (pagarināti)",
+    "Tadalafil 5 mg once daily": "Tadalafils 5 mg 1 reizi dienā",
+    "Macrogol (Forlax) 10 g as needed": "Makrogols (Forlax) 10 g pēc vajadzības",
+    "Duphalac (lactulose) 15-30 ml as needed": "Duphalac (laktuloze) 15–30 ml pēc vajadzības",
+    "Solifenacin 5 mg once daily for bladder spasm": "Solifenacīns 5 mg 1 reizi dienā urīnpūšļa spazmu gadījumā",
+    "Amoksiklav 875/125 mg twice daily, 10 days": "Amoksiklav 875/125 mg 2 reizes dienā, 10 dienas",
+    "Tadalafil 20 mg, 1/4 tablet at night": "Tadalafils 20 mg, 1/4 tabletes uz nakti",
+    "Amoksiklav 875/125 mg twice daily, 7 days (UTI)": "Amoksiklav 875/125 mg 2 reizes dienā, 7 dienas (UCI)",
+    "Omeprazole 20 mg once daily, 1 month": "Omeprazols 20 mg 1 reizi dienā, 1 mēnesi",
+    "If no stool for 2 days: Duphalac or bisacodyl": "Ja 2 dienas nav vēdera izejas: Duphalac vai bisakodils",
+    "Sodium bicarbonate (metabolic acidosis after bowel diversion)": "Nātrija bikarbonāts (metaboliska acidoze pēc zarnu derivācijas)",
+    "Cranberry products daily": "Dzērveņu preparāti katru dienu",
+    "Amoksiklav 875/125 mg twice daily, 14 days": "Amoksiklav 875/125 mg 2 reizes dienā, 14 dienas",
+    "Betamethasone 0.05% cream twice daily, 4-6 weeks": "Betametazona 0,05% krēms 2 reizes dienā, 4–6 nedēļas",
+    "Amoksiklav 875/125 mg twice daily, 7 days": "Amoksiklav 875/125 mg 2 reizes dienā, 7 dienas",
+    "Diclofenac 100 mg prolonged release once daily as needed": "Diklofenaks 100 mg ilgstošās darbības 1 reizi dienā pēc vajadzības",
+    "Clobetasol 0.05% ointment, 3-month tapering course": "Klobetazola 0,05% ziede, 3 mēnešu pakāpeniski samazinošs kurss",
+    "Chlorhexidine 0.12% mouthwash, 7 days": "Hlorheksidīna 0,12% mutes skalošanas līdzeklis, 7 dienas",
+    "Tamsulosin 0.4 mg once daily (long-term)": "Tamsulosīns 0,4 mg 1 reizi dienā (ilgstoši)",
+    "Cefuroxime 500 mg twice daily, 7 days (UTI)": "Cefuroksīms 500 mg 2 reizes dienā, 7 dienas (UCI)",
+    "Ibuprofen 400 mg up to 3 times daily, max 5 days": "Ibuprofēns 400 mg līdz 3 reizēm dienā, ne ilgāk kā 5 dienas",
+    "Tamsulosin 0.4 mg once daily until stent removal": "Tamsulosīns 0,4 mg 1 reizi dienā līdz stenta evakuācijai",
+    "Tamsulosin 0.4 mg once daily (before and after TWOC)": "Tamsulosīns 0,4 mg 1 reizi dienā (pirms un pēc katetra evakuācijas)",
+    "Alfuzosin 10 mg once daily (prolonged release)": "Alfuzosīns 10 mg 1 reizi dienā (ilgstošās darbības)",
+    "Dutasteride 0.5 mg / tamsulosin 0.4 mg once daily": "Dutasterīds 0,5 mg / tamsulosīns 0,4 mg 1 reizi dienā",
+    "Finasteride 5 mg once daily (add to an alpha-blocker)": "Finasterīds 5 mg 1 reizi dienā (papildus alfa blokatoram)",
+    "Tranexamic acid 1 g three times daily, 3–5 days": "Traneksāmskābe 1 g 3 reizes dienā, 3–5 dienas",
+    "Finasteride 5 mg once daily (recurrent prostatic bleeding)": "Finasterīds 5 mg 1 reizi dienā (recidivējoša asiņošana no prostatas)",
+    "Fosfomycin 3 g single dose (women, cystitis)": "Fosfomicīns 3 g vienreizēja deva (sievietēm, cistīts)",
+    "Consider hyperbaric oxygen (radiation cystitis)": "Apsvērt hiperbāro oksigenāciju (radiācijas cistīts)",
+    "Furamag 100 mg three times daily, 7 days": "Furamag 100 mg 3 reizes dienā, 7 dienas",
+    "Nitrofurantoin 100 mg twice daily, 5 days": "Nitrofurantoīns 100 mg 2 reizes dienā, 5 dienas",
+    "Cefuroxime 250 mg twice daily, 5 days": "Cefuroksīms 250 mg 2 reizes dienā, 5 dienas",
+    "Amoksiklav 875/125 mg twice daily, 5 days (pregnancy / culture)": "Amoksiklav 875/125 mg 2 reizes dienā, 5 dienas (grūtniecība / pēc uzsējuma)",
+    "Trimethoprim/sulfamethoxazole 160/800 mg twice daily, 3 days": "Trimetoprims/sulfametoksazols 160/800 mg 2 reizes dienā, 3 dienas",
+    "Furamag 100 mg three times daily, 7 days (men)": "Furamag 100 mg 3 reizes dienā, 7 dienas (vīriešiem)",
+    "Trimethoprim/sulfamethoxazole 160/800 mg twice daily, 7 days": "Trimetoprims/sulfametoksazols 160/800 mg 2 reizes dienā, 7 dienas",
+    "Ciprofloxacin – do not use for cystitis": "Ciprofloksacīns – nelietot cistīta ārstēšanai",
+    "Ibuprofen 400 mg three times daily, 3 days": "Ibuprofēns 400 mg 3 reizes dienā, 3 dienas",
+    "Vaginal estriol (Ovestin) – postmenopausal women": "Vagināls estriols (Ovestin) – sievietēm pēcmenopauzē",
+    "Methenamine hippurate 1 g twice daily": "Metenamīna hipurāts 1 g 2 reizes dienā",
+    "D-mannose 2 g daily": "D-manoze 2 g dienā",
+    "Uro-Vaxom (OM-89) 6 mg daily, 90 days": "Uro-Vaxom (OM-89) 6 mg dienā, 90 dienas",
+    "Self-start fosfomycin for future episodes": "Fosfomicīns pašārstēšanai nākamo epizožu gadījumā",
+    "Doxycycline 100 mg twice daily, 14 days": "Doksiciklīns 100 mg 2 reizes dienā, 14 dienas",
+    "Moxifloxacin 400 mg once daily, 14 days (M. genitalium)": "Moksifloksacīns 400 mg 1 reizi dienā, 14 dienas (M. genitalium)",
+    "Levofloxacin 500 mg once daily, 10 days": "Levofloksacīns 500 mg 1 reizi dienā, 10 dienas",
+    "Trimethoprim/sulfamethoxazole 160/800 mg twice daily, 14 days": "Trimetoprims/sulfametoksazols 160/800 mg 2 reizes dienā, 14 dienas",
+    "Amoksiklav 875/125 mg twice daily, 10 days (by culture)": "Amoksiklav 875/125 mg 2 reizes dienā, 10 dienas (pēc uzsējuma)",
+    "Cefuroxime 500 mg twice daily, 10 days (by culture)": "Cefuroksīms 500 mg 2 reizes dienā, 10 dienas (pēc uzsējuma)",
+    "Clindamycin 300 mg four times daily, 10 days (S. aureus)": "Klindamicīns 300 mg 4 reizes dienā, 10 dienas (S. aureus)",
+    "Ibuprofen 400 mg three times daily after food": "Ibuprofēns 400 mg 3 reizes dienā pēc ēšanas",
+    "Ciprofloxacin 500 mg twice daily, 14 days": "Ciprofloksacīns 500 mg 2 reizes dienā, 14 dienas",
+    "Ciprofloxacin 500 mg twice daily, 4 weeks": "Ciprofloksacīns 500 mg 2 reizes dienā, 4 nedēļas",
+    "Levofloxacin 500 mg once daily, 14 days": "Levofloksacīns 500 mg 1 reizi dienā, 14 dienas",
+    "Amoksiklav 875/125 mg twice daily, 14 days (by culture)": "Amoksiklav 875/125 mg 2 reizes dienā, 14 dienas (pēc uzsējuma)",
+    "Cefuroxime 500 mg twice daily, 14 days (by culture)": "Cefuroksīms 500 mg 2 reizes dienā, 14 dienas (pēc uzsējuma)",
+    "Tamsulosin 0.4 mg once daily (voiding symptoms / retention)": "Tamsulosīns 0,4 mg 1 reizi dienā (urinācijas traucējumi / retence)",
+    # Recommendation block groups
+    "Antibiotics - stable patient, oral": "Antibiotikas – stabils pacients, perorāli",
+    "Antibiotics - hospitalized patient, IV": "Antibiotikas – stacionēts pacients, i/v",
+    "Pain and fever": "Sāpes un drudzis",
+    "Not recommended": "Nav ieteicams",
+    "Prevention": "Profilakse",
+    "Alpha-blocker": "Alfa blokators",
+    "Thromboprophylaxis": "Tromboprofilakse",
+    "Erectile function": "Erektilā funkcija",
+    "Bowel": "Zarnu darbība",
+    "Bladder spasm": "Urīnpūšļa spazmas",
+    "Stomach protection": "Kuņģa aizsardzība",
+    "Prevention of recurrent cystitis": "Recidivējoša cistīta profilakse",
+    "Topical treatment": "Lokāla terapija",
+    "Graft donor site": "Transplantāta ņemšanas vieta",
+    "Bleeding": "Asiņošana",
+    "Antibiotics – first line (EAU)": "Antibiotikas – pirmā izvēle (EAU)",
+    "Antibiotics – alternatives / pregnancy": "Antibiotikas – alternatīvas / grūtniecība",
+    "Antibiotics – men (7 days)": "Antibiotikas – vīrieši (7 dienas)",
+    "Antibiotics – STI likely": "Antibiotikas – iespējama STI",
+    "Antibiotics – urinary / enteric source": "Antibiotikas – urīnceļu / enterāls avots",
+    "Antibiotics – oral (2–4 weeks in total)": "Antibiotikas – perorāli (kopā 2–4 nedēļas)",
+    # Other
+    "(no catheter)": "(bez katetra)",
+    "(no drain)": "(bez drenas)",
+    "(nothing)": "(nekas)",
+    "(auto)": "(automātiski)",
+    "Medication": "Medikaments",
+    "Dose": "Deva",
+    "Route": "Ievadīšanas veids",
+    "Start date": "Sākuma datums",
+    "Continue at discharge": "Turpināt pēc izrakstīšanas",
+    "Days at home": "Dienas mājās",
+    "Test": "Analīze",
+    "Value": "Vērtība",
+    "Date": "Datums",
+    "Woman": "Sieviete",
+    "Man": "Vīrietis",
+    "Discharge": "Izraksts",
+    "Primary evaluation": "Urologa apskate",
+    "Operation description": "Operācijas apraksts",
+    # Antibiotics
+    "Piperacillin/tazobactam": "Piperacilīns/tazobaktāms",
+    "Amoxicillin": "Amoksicilīns",
+    "Biseptol (sulfamethoxazole/trimethoprim)": "Biseptol (sulfametoksazols/trimetoprims)",
+    "Amoxicillin/clavulanate (Amoksiklav)": "Amoksicilīns/klavulānskābe (Amoksiklav)",
+    "Ciprofloxacin": "Ciprofloksacīns",
+    "Ceftriaxone": "Ceftriaksons",
+    # Laboratory tests
+    "Creatinine": "Kreatinīns",
+    # More choices
+    "At the family doctor's practice": "Ģimenes ārsta praksē",
+    "Family doctor's referral": "Ģimenes ārsta nosūtījums",
+    "Treating urologist's referral": "Ārstējošā urologa nosūtījums",
+    "Penile (brīvā daļa)": "Brīvā (penilā) daļa",
+    "Bulbar": "Bulbārā daļa",
+    "Membranous": "Membranozā daļa",
+    "Dusting": "Pulverizācija (dusting)",
+    "Fragmenting": "Fragmentācija",
+    "Intramural part": "Intramurālā daļa",
+    "Loop (cilpa) extraction": "Ekstrakcija ar cilpu",
+    "Lower calyx group": "Apakšējā kausiņu grupa",
+    "Middle calyx group": "Vidējā kausiņu grupa",
+    "Upper calyx group": "Augšējā kausiņu grupa",
+    "Lower third": "Apakšējā trešdaļa",
+    "Middle third": "Vidējā trešdaļa",
+    "Upper third": "Augšējā trešdaļa",
+    "Move lower-pole stone up (basket)": "Apakšējā pola akmens pārvietošana augšup (groziņš)",
+    "No URS – stent only": "Bez URS – tikai stents",
+    "No stone (passed)": "Akmens nav (izgājis)",
+    "Not possible (narrow ureter)": "Nav iespējama (šaurs urīnvads)",
+    "Oedema / inflamed mucosa": "Tūska / iekaisusi gļotāda",
+    "Pelviureteric junction": "Pieloureterālais segments",
+    "Small fragments (< 2 mm)": "Nelieli fragmenti (< 2 mm)",
+    "Stone": "Akmens",
+    "Stone migrated to the kidney": "Akmens migrējis uz nieri",
+    "Stone remains": "Akmens palicis",
+    "Stone-free": "Bez akmeņiem",
+    "Stricture": "Striktūra",
+    "To the stone": "Līdz akmenim",
+    "Whole ureter, up to the renal pelvis": "Viss urīnvads līdz nieres bļodiņai",
+    "Type it in the form that follows 'par', e.g. sliktu dūšu": "Ierakstiet formā, kas seko vārdam 'par', piem., sliktu dūšu",
+    "type in Latvian, e.g. cukura diabēts": "ierakstiet, piem., cukura diabēts",
+    "optional, as it follows 'pirms aptuveni', e.g. 3 mēnešiem (or give the date above)": "neobligāti, kā turpinājums vārdiem 'pirms aptuveni', piem., 3 mēnešiem (vai norādiet datumu augstāk)",
+    "e.g. vismaz 2 l dienā": "piem., vismaz 2 l dienā",
+    "in Latvian, e.g. neliela asiņošana": "piem., neliela asiņošana",
+    "in Latvian, e.g. PAA, bioķīmija, urīna analīze, CT": "piem., PAA, bioķīmija, urīna analīze, DT",
+    "in Latvian, e.g. hemorāģiska sēklinieka nekroze": "piem., hemorāģiska sēklinieka nekroze",
+    "in Latvian, e.g. hemorāģisks sēklinieka infarkts, audzēja šūnas nav atrastas": "piem., hemorāģisks sēklinieka infarkts, audzēja šūnas nav atrastas",
+    "optional, e.g. Sol. Ceftriaxoni 2 g i/v 1 reizi dienā": "neobligāti, piem., Sol. Ceftriaxoni 2 g i/v 1 reizi dienā",
+    "in Latvian, e.g. strutains orhīts ar abscesu": "piem., strutains orhīts ar abscesu",
+    "optional, in Latvian, e.g. uroteliāla karcinoma HG, LVI+": "neobligāti, piem., uroteliāla karcinoma HG, LVI+",
+    "optional, in Latvian, e.g. uroteliāla karcinoma (required for 'Other')": "neobligāti, piem., uroteliāla karcinoma (obligāti, ja izvēlēts 'Cits')",
+    "in Latvian, as it follows 'sāpēm', e.g. mugurā": "kā turpinājums vārdam 'sāpēm', piem., mugurā",
+    "Type it in Latvian, as it should appear after 'Anamnēzē:'": "Ierakstiet tā, kā tam jābūt pēc vārda 'Anamnēzē:'",
+    "optional, in Latvian, e.g. Metformin nelietot līdz kontrolei": "neobligāti, piem., Metformin nelietot līdz kontrolei",
+    "optional, in Latvian, e.g. urīnpūšļa konkrementa evakuācija": "neobligāti, piem., urīnpūšļa konkrementa evakuācija",
+    "Type it in Latvian, with the ICD code if you have it, e.g. C54 Dzemdes ķermeņa ļaundabīgs audzējs": "Ierakstiet, ja iespējams, ar SSK-10 kodu, piem., C54 Dzemdes ķermeņa ļaundabīgs audzējs",
+    "optional, e.g. E. coli, jutīga pret cefuroksīmu": "neobligāti, piem., E. coli, jutīga pret cefuroksīmu",
+    "e.g. labdabīga prostatas hiperplāzija": "piem., labdabīga prostatas hiperplāzija",
+    "optional; empty = 'veikti ambulatorā kārtā, pieļauj operāciju'": "neobligāti; tukšs = 'veikti ambulatorā kārtā, pieļauj operāciju'",
+    "optional, full sentence in Latvian, e.g. Veic CT m/k jostas daļai…": "neobligāti, pilns teikums, piem., Veic CT m/k jostas daļai…",
+    "in Latvian, e.g. uroteliāla karcinoma pTa LG": "piem., uroteliāla karcinoma pTa LG",
+    "in Latvian, e.g. epidermoidāla cista": "piem., epidermoidāla cista",
+    "in Latvian, one line, e.g. Simptomātiska LPH": "vienā rindā, piem., Simptomātiska LPH",
+    "in Latvian, e.g. hroniska iekaisuma pazīmes, fibroze": "piem., hroniska iekaisuma pazīmes, fibroze",
+}
+
+
+def tr(text):
+    """The Latvian screen text of an internal (English) name; anything else comes back unchanged."""
+    return LV.get(text, text) if isinstance(text, str) else text
+
+
+def tr_opt(option):
+    """format_func for the choice widgets: the Latvian text of a choice."""
+    return LV.get(option, option) if isinstance(option, str) else str(option)
+
+
+OP_GROUP_LV = {"Endoscopic": "Endoskopiskās", "Laparoscopic": "Laparoskopiskās", "Open": "Atvērtās",
+               "Penile and scrotal": "Dzimumlocekļa un sēklinieku maisiņa", "48. nodaļa": "48. nodaļa"}
+NMIBC_RISK_LV = {"low": "zems", "intermediate": "vidējs", "high": "augsts", "very high": "ļoti augsts"}
+ABX_COLUMNS_LV = {"Medication": "Medikaments", "Dose": "Deva", "Route": "Ievadīšanas veids", "Frequency": "Biežums",
+                  "Start date": "Sākuma datums", "Days at home": "Dienas mājās"}
 
 
 # ---------------------------------------------------------------
 # 3. PAGE
 # ---------------------------------------------------------------
 
-st.set_page_config(page_title="Discharge helper", layout="wide")
+st.set_page_config(page_title="Izrakstu palīgs", layout="wide")
 st.markdown(APP_CSS, unsafe_allow_html=True)
 
 # Top bar: the app's name, which document to write, and the patient's sex
 bar = st.columns([1.4, 5, 2.2], vertical_alignment="center")
-bar[0].markdown("<div class='app-name'>Discharge helper</div>", unsafe_allow_html=True)
+bar[0].markdown("<div class='app-name'>Izrakstu palīgs</div>", unsafe_allow_html=True)
 doc_type = bar[1].segmented_control(
-    "Document", ["Discharge", "Primary evaluation", "Decursus", "Operation description"], default="Discharge",
+    "Dokuments", ["Discharge", "Primary evaluation", "Decursus", "Operation description"], default="Discharge",
     selection_mode="single", key="doc_type", label_visibility="collapsed",
-) or "Discharge"
+ format_func=tr_opt) or "Discharge"
 sex = bar[2].segmented_control(
-    "Patient", ["Woman", "Man"], format_func=lambda s: {"Woman": "♀  Woman", "Man": "♂  Man"}[s],
+    "Pacients", ["Woman", "Man"], format_func=lambda s: {"Woman": "♀  Sieviete", "Man": "♂  Vīrietis"}[s],
     selection_mode="single", key="sex", label_visibility="collapsed", width="stretch",
 )
-st.caption(f"Build: 2026-10-31-draft · Running file: {Path(__file__).resolve()}")
+st.caption(f"Versija: 2026-11-02-latvian · Fails: {Path(__file__).resolve()}")
 
 # Keep the Word header fields (and the surgeons) when you switch between pages
 for _key in HDR_KEYS + ["pe-surgeons", "pe-nurse"]:
@@ -12400,7 +14112,7 @@ for _key in HDR_KEYS + ["pe-surgeons", "pe-nurse"]:
 # Primary evaluation, decursus and operation description have their own pages
 if doc_type != "Discharge":
     if sex is None:
-        st.info("Choose the patient's sex first (top right).")
+        st.info("Vispirms izvēlieties pacienta dzimumu (augšā pa labi).")
     elif doc_type == "Primary evaluation":
         render_primary_evaluation(sex)
     elif doc_type == "Operation description":
@@ -12412,19 +14124,19 @@ if doc_type != "Discharge":
 # Where the patient goes home from, and the diagnoses
 with st.container(border=True, key="card-dx"):
     department = st.segmented_control(
-        "Discharged from",
+        "Izrakstīts no",
         options=list(DEPARTMENTS),
-        format_func=lambda key: DEPARTMENTS[key],
+        format_func=lambda key: tr(DEPARTMENTS[key]),
         selection_mode="single",
         default=None,
         key="department",
         width="stretch",
     )
     selected = st.multiselect(
-        "Diagnosis",
+        "Diagnoze",
         options=list(DIAGNOSES),
-        format_func=lambda code: f"{code} - {DIAGNOSES[code]}",
-        placeholder="Start typing a diagnosis or ICD-10 code, e.g. prostate or N40",
+        format_func=lambda code: f"{code} - {tr(DIAGNOSES[code])}",
+        placeholder="Sāciet rakstīt diagnozi vai SSK-10 kodu, piem., prostata vai N40",
     )
 
 choices = {}
@@ -12440,7 +14152,7 @@ if selected:
         for code in selected:
             fixed = fixed_values(code, department)
             with st.container(border=True, key=f"card-dx-{code}"):
-                st.markdown(f"#### {code} · {DIAGNOSES[code]}")
+                st.markdown(f"#### {code} · {tr(DIAGNOSES[code])}")
                 # lets sections and rules depend on the department and the patient's sex
                 choices[code] = {"_department": department, "_sex": sex}
                 layout = DIAGNOSIS_MODIFIERS.get(code, DEFAULT_MODIFIERS)
@@ -12458,8 +14170,8 @@ if selected:
                         summary, missing = section_summary(code, groups, choices[code], fixed)
                         exp_key = f"exp-{code}-{title}"
                         first_open = st.session_state.setdefault(f"{exp_key}-open", bool(missing))
-                        label = (f"**{title}**" + (f"  ·  {summary}" if summary else "")
-                                 + (f"  ·  :orange[{missing} to choose]" if missing else ""))
+                        label = (f"**{tr(title)}**" + (f"  ·  {summary}" if summary else "")
+                                 + (f"  ·  :orange[jāizvēlas: {missing}]" if missing else ""))
                         holder = st.expander(label, expanded=first_open, key=exp_key)
                     else:
                         holder = st.container()
@@ -12479,40 +14191,41 @@ if selected:
 
                             key = f"{code}-{group}"
                             if spec["type"] == "single":
-                                value = st.radio(group, spec["options"], key=key,
-                                                 index=spec.get("default_index"), horizontal=True)
+                                value = st.radio(tr(group), spec["options"], key=key,
+                                                 index=spec.get("default_index"), horizontal=True, format_func=tr_opt)
                             elif spec["type"] == "date":
-                                value = st.date_input(group, value=None, key=key, format="DD.MM.YYYY")
+                                value = st.date_input(tr(group), value=None, key=key, format="DD.MM.YYYY")
                                 if value is None and spec.get("optional"):
                                     value = ""  # an optional date may stay empty
                             elif spec["type"] == "number":
-                                value = st.number_input(group, min_value=spec["min"], max_value=spec["max"],
+                                value = st.number_input(tr(group), min_value=spec["min"], max_value=spec["max"],
                                                         value=None, step=spec["step"], format="%g", key=key)
                                 if value is None and spec.get("optional"):
                                     value = ""  # an optional number may stay empty
                             elif spec["type"] == "multi":
-                                picked = st.multiselect(group, spec["options"],
-                                                        default=spec.get("default_selected", []), key=key)
+                                picked = st.multiselect(tr(group), spec["options"],
+                                                        default=spec.get("default_selected", []), key=key,
+                                                        placeholder="Izvēlieties…", format_func=tr_opt)
                                 if spec.get("custom"):
-                                    extra = st.text_input(f"{group} - other (optional)", key=f"{key}-custom",
-                                                          help=spec.get("custom_help"))
+                                    extra = st.text_input(f"{tr(group)} – cits (neobligāti)", key=f"{key}-custom",
+                                                          help=tr(spec.get("custom_help")))
                                     if extra.strip():
                                         picked = picked + [extra.strip()]
                                 value = picked if (picked or spec.get("optional")) else None
                             elif spec["type"] == "text":
-                                text = st.text_input(group, key=key, placeholder=spec.get("placeholder", ""))
+                                text = st.text_input(tr(group), key=key, placeholder=tr(spec.get("placeholder", "")))
                                 value = text.strip() if (text.strip() or spec.get("optional")) else None
                             elif spec["type"] == "table":
-                                st.markdown(f"**{group}**")
+                                st.markdown(f"**{tr(group)}**")
                                 value = table_input(spec, key)
                             else:  # toggle
-                                value = st.checkbox(group, key=key, value=spec.get("default", False))
+                                value = st.checkbox(tr(group), key=key, value=spec.get("default", False))
                             choices[code][group] = value
 
                 if fixed:
                     shown = {g: v for g, v in fixed.items() if g in choices[code]}
                     if shown:
-                        st.caption("Set automatically: " + ", ".join(f"{g}: {v}" for g, v in shown.items()))
+                        st.caption("Iestatīts automātiski: " + ", ".join(f"{tr(g)}: {tr(v)}" for g, v in shown.items()))
 
                 # Follow-up tests: suggested from the choices above, nothing is ticked by default
                 tests, tests_by = render_tests(code, choices[code])
@@ -12522,8 +14235,8 @@ if selected:
 
         # Medications: the recommendation blocks you drag in
         with st.container(border=True, key="card-meds"):
-            st.markdown("#### Medications and advice")
-            classic = st.checkbox("Use the old panel (if the new one does not load)", key="classic_panel_v2")
+            st.markdown("#### Medikamenti un ieteikumi")
+            classic = st.checkbox("Izmantot veco paneli (ja jaunais neielādējas)", key="classic_panel_v2")
             any_blocks = False
             for code in selected:
                 blocks = BLOCKS.get(code)
@@ -12531,20 +14244,18 @@ if selected:
                     continue
                 any_blocks = True
                 if len(selected) > 1:
-                    st.markdown(f"**{code} - {DIAGNOSES[code]}**")
+                    st.markdown(f"**{code} - {tr(DIAGNOSES[code])}**")
                 by_id = {b["id"]: b for b in blocks}
                 label_to_id = {block_label(b): b["id"] for b in blocks}
 
                 if not classic:
-                    st.caption("Drag blocks into Chosen, or hold Ctrl and click a block to move it "
-                               "between the lists. Hover a block to read its notes.")
+                    st.caption('Velciet blokus uz "Izvēlētie" vai turiet Ctrl un noklikšķiniet uz bloka, lai pārvietotu to starp sarakstiem. Novietojiet kursoru uz bloka, lai izlasītu tā piezīmes.')
                     chosen_ids = block_picker(code, blocks)
                 elif HAS_SORTABLES:
-                    st.caption("Drag blocks from Available to Chosen. "
-                               "The order in Chosen is the order in the text.")
+                    st.caption('Velciet blokus no "Pieejamie" uz "Izvēlētie". Secība sarakstā "Izvēlētie" ir secība tekstā.')
                     result = sort_items(
-                        [{"header": "Available", "items": list(label_to_id)},
-                         {"header": "Chosen", "items": []}],
+                        [{"header": "Pieejamie", "items": list(label_to_id)},
+                         {"header": "Izvēlētie", "items": []}],
                         multi_containers=True,
                         direction="vertical",
                         key=f"blocks-{code}",
@@ -12554,8 +14265,8 @@ if selected:
                     except (TypeError, IndexError, KeyError):
                         chosen_ids = []
                 else:
-                    st.caption("Drag and drop is not installed, so pick the blocks from a list.")
-                    picked = st.multiselect("Choose blocks", list(label_to_id), key=f"blocks-{code}")
+                    st.caption("Vilkšanas komponents nav instalēts, tāpēc izvēlieties blokus no saraksta.")
+                    picked = st.multiselect("Izvēlieties blokus", list(label_to_id), key=f"blocks-{code}", format_func=tr_opt)
                     chosen_ids = [label_to_id[t] for t in picked]
 
                 chosen_blocks[code] = [by_id[i] for i in chosen_ids if i in by_id]
@@ -12564,13 +14275,13 @@ if selected:
                     if all(i in chosen_ids for i in warning["ids"]):
                         st.warning(warning["text"])
 
-                with st.expander("Clinical notes"):
+                with st.expander("Klīniskās piezīmes"):
                     for b in blocks:
-                        st.markdown(f"**{b['title']}** ({b['group']})  \n{b['note']}")
+                        st.markdown(f"**{tr(b['title'])}** ({tr(b['group'])})  \n{b['note']}")
             if not any_blocks:
-                st.caption("No blocks for the selected diagnoses yet.")
+                st.caption("Izvēlētajām diagnozēm vēl nav bloku.")
 
-        with st.expander("Current selection (technical view)"):
+        with st.expander("Pašreizējā izvēle (tehniskais skats)"):
             technical = {"department": department, "sex": sex, "diagnoses": choices}
             st.json(json.loads(json.dumps(technical, default=str)))
 
@@ -12580,11 +14291,11 @@ if selected:
     with col_side:
         with st.container(key="paper-dx"):
             if department is None or sex is None:
-                st.info("Choose where the patient is discharged from and the patient's sex to see the text.")
+                st.info("Izvēlieties, no kurienes pacients tiek izrakstīts, un pacienta dzimumu, lai redzētu tekstu.")
             else:
                 for code in selected:
                     if len(selected) > 1:
-                        st.markdown(f"**{code} · {DIAGNOSES[code]}**")
+                        st.markdown(f"**{code} · {tr(DIAGNOSES[code])}**")
                     values = choices[code]
                     values["_blocks"] = [b["id"] for b in chosen_blocks.get(code, [])]  # for the safety checks
 
@@ -12598,25 +14309,24 @@ if selected:
                         template = find_template(code, department, values)
                     if template is None:
                         if missing:
-                            st.info("Choose more options to see the text. Not chosen yet: " + ", ".join(missing))
+                            st.info("Izvēlieties vairāk parametru, lai redzētu tekstu. Vēl nav izvēlēts: " + ", ".join(tr(m) for m in missing))
                         else:
-                            st.warning("No text template for this combination of choices yet.")
+                            st.warning("Šai izvēļu kombinācijai vēl nav teksta veidnes.")
                         continue
 
                     if missing:
-                        st.info(f"**Draft** – the text fills in as you choose. Still to choose ({len(missing)}): "
-                                + ", ".join(missing) + ". Until then they show as [name] in the text, or the "
-                                "text uses their first option.")
+                        st.info(f"**Melnraksts** – teksts tiek papildināts, kamēr izvēlaties. Vēl jāizvēlas ({len(missing)}): "
+                                + ", ".join(tr(m) for m in missing) + ". Līdz tam tekstā tie redzami kā [nosaukums] vai tiek izmantota to pirmā izvēle.")
                     else:
                         # Safety checks: some situations need a clinician's review instead of a routine text
                         checker = CHECKS.get(code)
                         blockers, cautions = checker(values) if checker else ([], [])
                         if blockers:
-                            st.error("Clinical review is needed before a routine discharge text can be written:\n\n"
+                            st.error("Pirms standarta izraksta teksta sagatavošanas nepieciešama klīniska izvērtēšana:\n\n"
                                      + "\n".join(f"- {b}" for b in blockers))
                             continue
                         if cautions:
-                            st.warning(("1 thing to check" if len(cautions) == 1 else f"{len(cautions)} things to check")
+                            st.warning(("Jāpārbauda (1)" if len(cautions) == 1 else f"Jāpārbauda ({len(cautions)})")
                                        + ":\n\n" + "\n".join(f"- {c}" for c in cautions))
 
                     block_texts = [b["text"] for b in chosen_blocks.get(code, [])]
@@ -12632,7 +14342,7 @@ if selected:
                             except Exception:
                                 continue
                         if drafted is None:
-                            st.caption("The draft needs a few more choices before it can be written.")
+                            st.caption("Melnrakstam nepieciešamas vēl dažas izvēles, pirms to var uzrakstīt.")
                             continue
                         # an empty list can leave a double space in the middle of a line: close it up
                         dx_text, epi_text, recs = (re.sub(r"(?<=\S)  +(?=\S)", " ", t) for t in drafted)
@@ -12643,7 +14353,7 @@ if selected:
                     sig = f"{template['id']}|{sex}|{digest}"
 
                     if not dx_text:
-                        st.caption("No clinical diagnosis text for this template yet – you can type it in the box.")
-                    paper_area("Klīniskā diagnoze", dx_text, f"dx-{sig}", label="Clinical diagnosis")
-                    paper_area("Epikrīze", epi_text, f"epi-{sig}", label="Epicrisis")
-                    paper_area("Rekomendācijas", recs, f"rec-{sig}-{block_sig}", label="Recommendations")
+                        st.caption("Šai veidnei vēl nav klīniskās diagnozes teksta – varat to ierakstīt lodziņā.")
+                    paper_area("Klīniskā diagnoze", dx_text, f"dx-{sig}", label="Klīniskā diagnoze")
+                    paper_area("Epikrīze", epi_text, f"epi-{sig}", label="Epikrīze")
+                    paper_area("Rekomendācijas", recs, f"rec-{sig}-{block_sig}", label="Rekomendācijas")
